@@ -1,6 +1,6 @@
 # Supabase Contract
 
-Last verified: 2026-07-14 (T-355 conversation-scoped counterpart avatar access).
+Verification is scoped by section. The latest recorded pet-save and linked-history verification is T-406, 2026-10-17. Other domains retain their named acceptance baselines; documentation reconciliation does not revalidate remote behavior.
 
 This is the active fast-path backend contract. It records current authoritative facts and points to the right detailed source instead of embedding every historical table, RPC, Storage, and migration note.
 
@@ -8,12 +8,13 @@ Full pre-trim contract text is archived at `../09_frozen/backend_contracts/SUPAB
 
 ## Current Status
 
-- T-388 migration verification (2026-09-10): 85 aligned versions through `20260910125207_t388_message_notification_conversations.sql`; repeat dry run empty. Both notification tables now expose nullable `related_conversation_id` with indexed `ON DELETE SET NULL` references. Text triggers target the opposite participant's conversation; no historical target inference. Atomic replacement cancels the locked original before unchanged quota-checked publication in the same transaction. Schema/RLS/ACL and real behavior acceptance passed; see [T-388](../04_ios/testops/T-388_BOOKING_REMEDIATION_ACCEPTANCE.md). Earlier runtime evidence below retains its named historical baseline, not current migration counts.
+- Latest recorded migration verification: T-406 confirms 125 aligned versions through `20261017105527_pet_profile_reliability.sql`, with an empty repeat dry run; see [T-406 acceptance](../superpowers/plans/2026-10-17-pet-profile-reliability-plan.md#7-执行记录). Earlier counts below describe only their named historical baselines.
+- T-388 notification/replacement acceptance (2026-09-10): both notification tables expose nullable `related_conversation_id` with indexed `ON DELETE SET NULL` references. Text triggers target the opposite participant's conversation; no historical target inference. Atomic replacement cancels the locked original before unchanged quota-checked publication in the same transaction. Schema/RLS/ACL and real behavior acceptance passed; see [T-388](../04_ios/testops/T-388_BOOKING_REMEDIATION_ACCEPTANCE.md).
 - Authorized fresh project: `Beckon`, ref `lqmasbuqzvcvtawonjlb`, organization `Prinnyyy`, region `us-west-1`.
 - Forbidden legacy project: `Prinnyyy's Project`, ref `swdiiyypysyxbnfrxxsv`. Do not inspect, branch, migrate, reset, or mutate it for this rebuild.
-- Remote verification baseline: linked history aligns through `20260714072728_t355_chat_counterpart_avatar_access.sql`; the final linked dry-run is empty, conversation-scoped avatar authorization validation passed, performance advisors found no issue, and security advisors retained only the known Q-93 warning.
+- T-385 integrated baseline: actual participant Realtime delivery/nonparticipant isolation and dual-Simulator functional acceptance pass; exact fixture restoration, enabled profile triggers and zero tagged requests verified. Installed writer/grant, legacy, matching cost and security evidence is in [final acceptance](../06_tasks/sql_reviews/T-385_RELEASE_CHECKPOINT.md). Physical devices, signing and store distribution are excluded. Earlier admission/Save evidence remains [T-374](../06_tasks/sql_reviews/T-374_TIMING_BACKEND_ACCEPTANCE.md), independent-session races [T-373](../06_tasks/sql_reviews/T-373_ACCEPTANCE_EVIDENCE.md), and availability [T-371](../06_tasks/sql_reviews/T-371_AVAILABILITY_ACCEPTANCE.md). These records do not refresh unrelated assertions.
 - Local CLI readiness baseline: T-139 confirmed sequential `supabase projects list`, `supabase migration list --linked`, and `supabase db push --linked --dry-run` work from this checkout without `SUPABASE_DB_PASSWORD`.
-- Local migration mirror: `../../supabase/migrations/`. Local migration mirror count: 85 files, aligned through T-388. T-385 `20260910075314_t385_chat_realtime_publication.sql` adds only `messages` to the existing publication after requiring enabled RLS; grants and participant policy are unchanged. Do not rename applied migrations.
+- Local migration mirror: `../../supabase/migrations/`. Do not rename or edit applied migrations; use the named acceptance record for its verified history rather than treating older counts as current.
 - Full historical contract detail before this fast-path trim is frozen for comparison only. Current implementation truth comes from migrations plus focused active backend policy files.
 
 ## Read Order
@@ -39,6 +40,22 @@ The implementation contract below is defined by the T-399 migrations. Rollout, r
 - `set_groomer_favorite_v1` is private revision-checked desired-state mutation; `get_my_favorite_groomers_v1` uses signed keyset pagination (25 default, 50 maximum), a 500 active-favorite policy and 30-day false-state tombstones. Favorites never alter ranking, eligibility, invitation or booking state. Paused/deleted targets retain only the permitted unavailable representation.
 - Discovery rollout and legacy-publication retirement are independent flags. Retirement rejects new unsafe legacy publication while allowing accepted legacy receipt replay. Disabling discovery never restores broad groomer raw-table reads, publicizes directed requests or prevents handling existing quotes/cancellation.
 
+- [Booking fulfillment](BOOKING_FULFILLMENT_CONTRACT.md): deployed WP-06 action, evidence and resource-release contract; [T-377 acceptance](../06_tasks/sql_reviews/T-377_FULFILLMENT_ACCEPTANCE.md).
+
+WP-03's deployed [service timing contract](SERVICE_TIMING_CONTRACT.md) owns timezone, duration, buffer and interval semantics. Existing accounts' missing settings were not fabricated. Original WP-03 acceptance now passes; evidence and later-package/release limits are recorded in the T-374 acceptance files.
+
+### Historical Availability Inspection - T-369
+
+Inspected 2026-09-07 using sequential installed CLI `db query --linked` catalog SELECTs, after matching the linked project to the authorized Beckon ref. The bullets preserve the preparation-time definitions, not current grants or open work.
+
+T-371 authorized continuation: both availability migrations are applied. Rollback/access, Save/Save, Save/acceptance with both orderings, and focused client interactions passed; exact fixtures were restored. Legacy authenticated schedule writes are revoked; old binaries need the compatible client. This extends only scoped evidence; unrelated address/Auth/Storage assertions are not refreshed. See the acceptance record above. The following T-369 bullets describe the pre-implementation inspection, not current write grants or outstanding WP-01 validation.
+
+- Inspected columns, constraints, explicit anon/authenticated grants, RLS and triggers for `groomer_availability_windows`, `groomer_booking_preferences`, and `groomer_time_off_windows`. All three have RLS enabled (not forced), authenticated CRUD grants, and owner/non-anonymous/groomer-role policies. No explicit anon grants appeared in the inspected view; this is not a negative authorization execution test.
+- Weekly windows are unique per groomer/weekday and require start before end; weekdays are 1...7. Preferences constrain daily maximum to 1...12 and notice to 0...2 days. Time off uses inclusive date bounds with start <= end. These tables have row timestamps but no aggregate schedule revision column.
+- Each row mutation invoked `app_private.backfill_matches_after_groomer_availability_change`, which called `backfill_request_matches_for_groomer` with batch size 250. The inspected backfill selected open/unexpired requests with no existing match and used request-row `SKIP LOCKED`; it did not re-evaluate existing matches. This motivated WP-01's handling of intermediate transaction states and repeated trigger work, rather than transaction wrapping alone.
+- Inspected `app_private.accept_groomer_offer` and `groomer_is_available_for_range`. Acceptance locks offer/request/match rows before taking the groomer advisory transaction lock (hash seed 71071), then rechecks availability. Save/acceptance lock ordering and existing direct table writers require explicit treatment; a new Save-only lock cannot protect old writers automatically.
+- No application data was selected and no application mutation, migration, RPC execution, authorization scenario, or concurrency test was performed in this inspection. It established definitions, not runtime correctness. Its former WP-01 validation gaps were subsequently closed by the T-371 acceptance above; later timing and final compatibility evidence belongs to T-374 and T-385.
+
 Use the smallest source that answers the task:
 
 1. This file for project boundary, deployed-scope summary, and backend guardrails.
@@ -56,7 +73,7 @@ Do not read this file as proof that a future object is deployed. A deployed clai
 
 T-296/Q-108 deployed the private PostGIS contract. T-299/Q-111 deployed service-role-only list/snapshot-checked atomic backfill/summary RPCs plus exact-tag TestOps location cleanup. T-300/Q-112 removed the temporary text fallback after re-proving zero active gaps. Linked history is aligned and a repeat dry-run reports the remote database up to date.
 
-The deployed contract enables PostGIS in `extensions`, stores exact Apple Maps coordinates and optional Place IDs only in `app_private.address_locations`, adds opaque location references plus Address Line 2 snapshots, and exposes owner-checked profile read/write wrappers. Current Customer and TestOps publication uses `create_grooming_request_v3`, which binds one private operation UUID to one Request and replays the original Request ID/match count on retry; `v2` remains compatible for older installed builds. Matching requires both private coordinates, uses Customer travel radius for `customer_comes_to_groomer` and Groomer service radius for `groomer_comes_to_customer`, and never uses state/city text as an eligibility fallback. The pre-coordinate `create_grooming_request` endpoint remains present only for migration-history compatibility and has no client execute grant.
+The deployed contract enables PostGIS in `extensions`, stores exact Apple Maps coordinates and optional Place IDs only in `app_private.address_locations`, adds opaque location references plus Address Line 2 snapshots, and exposes owner-checked profile read/write wrappers. The coordinate-era `create_grooming_request_v3` binds one private operation UUID to one Request and replays the original Request ID/match count on retry. Current discovery publication uses `publish_request_with_distribution_v1`; timing and retained legacy paths use their versioned endpoints subject to the T-399 rollout/retirement rules above. Historical v2 compatibility is not an assurance that new legacy publication remains enabled. Matching requires both private coordinates, uses Customer travel radius for `customer_comes_to_groomer` and Groomer service radius for `groomer_comes_to_customer`, and never uses state/city text as an eligibility fallback. The pre-coordinate `create_grooming_request` endpoint remains present only for migration-history compatibility and has no client execute grant.
 
 Authenticated clients receive no direct table privileges on private address locations. Exact coordinates and full Place IDs are returned only through current-owner profile RPCs. Strict-cutover runtime verification is `../06_tasks/sql_reviews/T-300_STRICT_COORDINATE_ROLLBACK_VALIDATION.sql`; static coverage is `../../tests/migrations/strict-coordinate-cutover.test.mjs`.
 
@@ -64,9 +81,9 @@ The controlled backfill linked 51 Groomers, 50 Customers, and 1 active Request. 
 
 ## Matching Contract - T-390
 
-Verified 2026-09-12: 107 aligned migrations through `20260912144522_t390_enable_matching_ranking.sql`, empty repeat dry run, matching-v1 enabled and private validation cohort empty. This scoped current verification supersedes earlier matching/rating descriptions and migration counts above; unrelated historical evidence keeps its original scope. [Acceptance and limits](../04_ios/testops/T-390_MATCHING_RATING_ACCEPTANCE.md).
+T-390 baseline verified 2026-09-12: 107 aligned migrations through `20260912144522_t390_enable_matching_ranking.sql`, empty repeat dry run, matching-v1 enabled and private validation cohort empty. Later amendments are identified below; this historical count does not replace the latest linked-history verification in Current Status. Unrelated evidence keeps its original scope. [Acceptance and limits](../04_ios/testops/T-390_MATCHING_RATING_ACCEPTANCE.md).
 
-- Service species are explicitly confirmed. Unknown weight/size/coat/matting are not invented; `save_my_pet_v2` owns provenance. `create_groomer_offer_v3` requires applicable unknown-fact confirmations and binds a service configuration/revision. Compatible v2 calls cannot bypass confirmations or locked admission.
+- Service species are explicitly confirmed. Unknown weight/size/coat/matting are not invented; the T-406 `save_my_pet_v3` entry reuses private v2 fact/provenance validation without exposing the old writer. `create_groomer_offer_v3` requires applicable unknown-fact confirmations and binds a service configuration/revision. Compatible offer v2 calls cannot bypass confirmations or locked admission.
 - `get_booking_review_context` exposes only the owning customer's frozen, eligible completed-service keys. `create_review_v2` validates context revision and answers. Public stars use exact integer sum/count; private professional evidence uses trusted service time and independently bounded customer influence. Claims/portfolio do not raise evidence scores; missing and negative answers remain distinct.
 - `get_ranked_matched_requests` and `get_ranked_customer_offers` rank the complete authorized candidate set before paging. Signed cursors bind actor, role, scope, mode, source revision and score clock. Changed/expired pages return list_changed; a soft arithmetic failure uses independent fallback ranking without changing quote/acceptance eligibility.
 - T-391 page revisions hash visible payloads, ordering keys and hard eligibility state, not unused raw scores or soft-worker metadata. A star-only change does not interrupt groomer paging when its displayed evidence/order are unchanged; customer-visible ratings still invalidate customer pages. Soft updates that actually change displayed professional evidence still invalidate. Hard events, candidate membership, authorization and quote validation remain authoritative.
@@ -110,7 +127,11 @@ Core deployed data areas:
 
 Controlled public RPCs currently include:
 
+- `get_groomer_availability`
+- `save_groomer_availability`
+- `save_my_pet_v3`
 - `create_my_profile`
+- `publish_request_with_distribution_v1`
 - `create_grooming_request_v3`
 - `get_my_customer_profile_address_v2`
 - `save_customer_profile_address_v2`
@@ -145,6 +166,8 @@ Service-role controlled RPCs currently include:
 Exact signatures, grants, error behavior, table constraints, and policy predicates belong to the owning migrations and `RLS_RPC_POLICY.md`.
 
 ## Backend Guardrails
+
+T-371 HTTP conflict correction: the public Save wrapper maps only `availability_revision_conflict` from private SQLSTATE `40001` to `PT409`. Permanent revision conflicts must not trigger PostgREST transaction retries. Concurrent real HTTP submissions initially timed out and required guarded fixture recovery; after the corrective migration, exactly one request succeeded and one returned HTTP 409/PT409, and exact original rows/revision plus booking/match hashes were restored. The opt-in runner is `../../scripts/test-t371-availability-race.mjs`; separate Save/acceptance evidence is recorded in T-371 acceptance, with both later admission/Save lock orderings and exact restoration in [T-374 acceptance](../06_tasks/sql_reviews/T-374_TIMING_BACKEND_ACCEPTANCE.md).
 
 - Supabase Auth supplies identity; app role and ownership come from application tables.
 - iOS uses only publishable client configuration. Secret, service-role, project secret, database password, and CLI PAT values must never be embedded in Swift, tracked docs, logs, artifacts, or committed config.

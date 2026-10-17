@@ -12,6 +12,7 @@ Read one domain entry when needed, then targeted contracts/code. [Current State]
 | Client architecture | [Architecture](02_architecture/ARCHITECTURE.md) |
 | Backend definitions and safety | [Supabase Contract](03_backend/SUPABASE_CONTRACT.md) |
 | Build and tests | [iOS commands](04_ios/IOS_BUILD_AND_TESTING.md), [TestOps](04_ios/testops/README.md) |
+| App demo and launch videos | [App demo video workflow](05_workflow/APP_DEMO_VIDEO_WORKFLOW.md) |
 | Future product directions | [Roadmap](06_tasks/ROADMAP.md) |
 | Durable decisions | [Decision Log](07_decisions/DECISION_LOG.md) |
 | Plans and acceptance evidence | [Task artifacts](superpowers/README.md), [reviewed SQL/evidence index](06_tasks/sql_reviews/README.md) |

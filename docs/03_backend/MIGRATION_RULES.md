@@ -1,6 +1,6 @@
 # Migration Rules
 
-Last verified: 2026-07-09.
+Protocol baseline verified: 2026-09-07 (T-371: installed CLI help, linked history and single-migration push dry run). Later scoped history checks are identified below; documentation reconciliation is not a new remote verification.
 
 Use this file for Supabase migration workflow. It is an operating protocol, not migration history.
 
@@ -12,7 +12,7 @@ Archived pre-trim version: `../09_frozen/backend_policies/MIGRATION_RULES_2026-0
 - Legacy project ref `swdiiyypysyxbnfrxxsv` is out of scope and must not be inspected or mutated.
 - Local migration mirror: `../../supabase/migrations/`.
 - Normal remote DDL path: installed `supabase` CLI with the linked project.
-- Linked CLI baseline was verified on 2026-07-01: project list, migration list, and dry-run push succeeded sequentially.
+- Latest recorded linked history check: [T-406 acceptance](../superpowers/plans/2026-10-17-pet-profile-reliability-plan.md#7-执行记录), 2026-10-17, confirms 125 aligned applied versions and an empty repeat push dry run. T-371's 72-version check and the 2026-07-01 project-list check are historical baselines, not current counts; no legacy project was inspected.
 
 ## Principles
 

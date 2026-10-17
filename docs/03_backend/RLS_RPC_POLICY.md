@@ -19,8 +19,10 @@ Archived pre-trim version: `../09_frozen/backend_policies/RLS_RPC_POLICY_2026-07
 | Resource | Customer | Groomer | Direct Critical Writes |
 |---|---|---|---|
 | `profiles`, `customer_profiles`, `groomer_profiles` | Own safe profile/contact/avatar fields; related Groomer avatar path after offer/booking | Own safe profile/business/avatar fields; related Customer avatar path for an existing conversation | Role changes denied after onboarding except future privileged process |
-| `pets`, `pet_photos` | CRUD owned active pets/photos | No general direct access | Ownership reassignment denied |
-| Groomer services, portfolio, availability, preferences, time off | Marketplace-safe active reads where intended | Manage own rows | Availability/preferences enforced by matching/offer/acceptance RPCs |
+| `pets` | Read owned active pets; create/edit via `save_my_pet_v3`; owner soft-delete via allowed columns | No general direct access | T-406 revokes direct fact INSERT/UPDATE and client execution of private v2; public v2 requires a client update |
+| `pet_photos` | CRUD owned active pet photos | No general direct access | Existing pet ownership checks and Storage policy remain unchanged |
+| Groomer services, portfolio | Marketplace-safe active reads where intended | Manage own rows | Existing ownership and service constraints apply |
+| Groomer availability, preferences, time off | Existing policy-scoped reads | Read own snapshot; save complete version-checked snapshot via RPC | Authenticated/anon direct INSERT, UPDATE, DELETE revoked by T-371; owner-checked private definer saves under acceptance's groomer lock |
 | `grooming_requests`, `request_photos` | Read own; create/cancel through controlled path; upload owned open request photos | No raw Request SELECT; safe summary/exact RPC and request-photo policy check current distribution or retained offer/booking rights | Publication, matching, and status transitions controlled |
 | `request_matches` | Read offered match evidence for own requests only | Read/update own allowed match state | Insert/system statuses denied |
 | `groomer_offers` | Read offers on owned requests; accept one through RPC | Create/withdraw own offers through RPC | Offer status transitions controlled |
@@ -79,6 +81,10 @@ These operations must reject unauthenticated callers, resolve role and ownership
 T-392 browse v2 RPCs use authenticated-only public invoker/private definer wrappers. Private browse snapshots and their core/prune/epoch functions have no client or service-role execution/table grant. Signed cursors additionally bind a viewer-owned expiring snapshot; hard qualification and acceptance never reuse cached scores as authorization. Old RPC ACLs and definitions are retained. Validate wrong viewer/role/scope, expired/invalidated cursors and direct snapshot access; actual acceptance remains tracked in `../04_ios/testops/T-392_CLIENT_ACCEPTANCE.md`.
 
 CA-14 preserves those ACLs while batching quote timezone validation. New catalog-accepting admission overloads revoke all execution from public, anon, authenticated and service_role. Existing private signatures remain wrappers that load the live server catalog themselves; authorized quote-detail batches still filter every offer by participant and role.
+
+The Availability public wrapper returns `PT409`/HTTP 409 for a stale client revision, while preserving other database errors. Do not expose a permanent revision mismatch as retryable `40001` through PostgREST. `../../scripts/test-t371-availability-race.mjs` passed two concurrent same-version HTTP requests with exactly one winner, then restored exact fixture rows and verified unchanged booking/match hashes.
+
+T-371 availability evidence: `../06_tasks/sql_reviews/T-371_ATOMIC_AVAILABILITY_ROLLBACK_VALIDATION.sql` executed after deployment with `SET LOCAL ROLE authenticated`, dedicated rolled-back fixtures, three constraint-failure boundaries, version conflict and anonymous/signed-out rejection. `../06_tasks/sql_reviews/T-371_AVAILABILITY_AUTHORIZATION_VALIDATION.sql` additionally passed customer denial, cross-owner revision rejection, spoofed payload ownership isolation, and all nine direct-write denials. Separate-session Save/Save and Save/acceptance evidence is recorded in [T-371 acceptance](../06_tasks/sql_reviews/T-371_AVAILABILITY_ACCEPTANCE.md); [T-374 timing acceptance](../06_tasks/sql_reviews/T-374_TIMING_BACKEND_ACCEPTANCE.md) proves both later admission/Save lock orderings with exact restoration. Static migration tests alone are not proof of those cases.
 
 Every backend access change must cover the relevant negative cases:
 

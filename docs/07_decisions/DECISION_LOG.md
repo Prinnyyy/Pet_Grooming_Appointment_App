@@ -39,6 +39,16 @@ Linked files: docs/01_product/DESIGN_SYSTEM.md; docs/04_ios/UI_CODE_GOVERNANCE.m
 ```
 
 ```text
+Decision ID: D-057
+Date: 2026-09-15
+Task: T-394
+Decision: Use one on-demand app demo video workflow with a motion-rich sample gate before bulk capture and full-length production. Reuse valid genuine UI media first; separately assess information, visual quality, technical validity and scoped restoration.
+Context: T-393 rendered and restored successfully, but the user found the film visually flat. Technical sample approval did not establish launch-film quality; serial fixture discovery, capture mistakes, VFR edits and excessive tool output added rework.
+Consequences: Keep a compact production record, a shot-to-asset map, preflight for necessary data operations, exact cleanup and change-scoped QA. A toolkit change alone is not aesthetic acceptance. The workflow adds no install, account, remote-write, upload or video-remake authorization. Existing host and Development Guide rules remain authoritative.
+Linked files: docs/05_workflow/APP_DEMO_VIDEO_WORKFLOW.md; docs/README.md; docs/05_workflow/DEVELOPMENT_GUIDE.md.
+```
+
+```text
 Decision ID: D-056
 Date: 2026-09-15
 Task: T-392 / V-04
@@ -79,132 +89,85 @@ Linked files: docs/05_workflow/DEVELOPMENT_GUIDE.md; docs/superpowers/plans/2026
 ```
 
 ```text
-Decision ID: D-036
-Date: 2026-07-28
-Decision: Remediate the Customer Request Journey through five dependency-ordered packages, with publish correctness and idempotency preceding form, media, offer, and presentation changes.
-Context: The journey audit found a duplicate-Request risk when post-create work fails, implicit service selection, a seven-day date ceiling, incomplete Request-photo review, an under-informed Offer acceptance handoff, misleading loading/empty states, and focused UI consistency debt. Combining backend correctness and all visible refinements in one task would be difficult to validate and reverse.
-Consequences: R-042 uses Q-121 through Q-125. Q-121 owns the separately authorized Deep publish contract; later packages own Wizard semantics, Request media, Offer-to-Booking handoff, and page-state/visual corrections. Matching rules, Groomer offer creation, booking lifecycle semantics, dependencies, direct booking, and deferred Groomer Q-104 scope remain unchanged.
-Linked files: docs/06_tasks/ROADMAP.md, docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md, docs/01_product/DESIGN_SYSTEM.md, docs/01_product/FORM_INTERACTION_RULES.md
+Decision ID: D-052
+Date: 2026-09-09
+Task: T-384 / original WP-13, G-10 loading budget
+Decision: Publish authoritative profile/services/schedule and request/booking facts before optional metadata or images. Each load uses at most four independent metadata reads and each image batch at most three concurrent downloads within existing Store/repository ownership. Failed or unfinished fit metadata cannot become an empty replacement; preserve dirty forms and reject cancelled, superseded or pre-mutation loads. Do not start profile refreshes during a save/upload.
+Evidence: Fixed six-image/192KiB fixture with 20ms per repository read: baseline core 160.8ms, total 311.2ms, 14 reads; first core-first run core 68.5ms, total 159.5ms, same 14 reads and 196608 image bytes. These are controlled repository measurements, not production HTTP latency or total wire-byte claims.
+Acceptance: No optional read on the core publication path, no increased reads/image payload for the fixed fixture, bounded image concurrency and failure/dirty-edit/session/mutation tests. Preserve unchanged backend query shapes and critical missing-data rejection; complete request-list measurements and shared regression before acceptance. No invented global speed or matching-quality target.
 ```
 
 ```text
-Decision ID: D-035
-Date: 2026-07-13
-Decision: Give each Customer/Groomer pair one durable conversation and represent acceptance/cancellation as ordered typed booking events.
-Context: Booking-scoped conversations split the same participants across multiple threads and static chat context could not represent more than one booking or remain current after a status transition.
-Consequences: Existing duplicate threads merge into the earliest participant-pair conversation with messages preserved. Controlled acceptance and first cancellation atomically append a live booking card followed by friendly text from the acting user. Authenticated clients may still insert only self-authored text and cannot forge cards. iOS resolves cards through the Booking repository and routes to the existing role-specific Booking detail with shared state.
-Linked files: supabase/migrations/20260713223400_t351_participant_conversations_booking_events.sql, ios/Beckon/Beckon/Features/Chat/, docs/03_backend/RLS_RPC_POLICY.md, docs/06_tasks/sql_reviews/T-351_PARTICIPANT_CHAT_ROLLBACK_VALIDATION.sql
+Decision ID: D-051
+Date: 2026-09-09
+Decision: WP-12 uses a dedicated PKCE recovery client with its own Keychain storage key and exact com.hellobeckon.beckon://auth/recovery callback; the normal marketplace session is never replaced by a recovery callback.
+Context: Installed SDK defaults to PKCE and namespaces its verifier by storageKey. Existing recovery-like callback handling can replace a signed-in account. Hosted SMTP is verified Resend; OTP lifetime is 3600 seconds and the old exact callback remains configured.
+Consequences: Request/resend, callback retry, verified new-password submission and session cleanup stay behind AuthSessionRepository/AuthenticationStore. Recovery survives restart in isolated secure SDK storage, but never grants marketplace entry. Success returns to the existing account or sign-in, without inventing role/session state. Append only the exact recovery URI to the allow list. Verify delivery/callback using a newly created disposable alias account, never reset an existing user's password; remove the identified test account afterward. Keep full links, PKCE verifiers and credentials out of logs.
+Linked files: docs/superpowers/plans/2026-09-07-functional-reliability-task-plan.md; docs/03_backend/AUTH_EMAIL_DEEP_LINK_DESIGN.md.
 ```
 
 ```text
-Decision ID: D-034
-Date: 2026-07-13
-Decision: Use one guarded task-closeout command for numbered durable closeouts and a metadata-based lifecycle for temporary plans/specs.
-Context: Closeout required several manual steps, so completed artifacts, active backlinks, and rolling windows could drift independently. The unused agent-preflight script also referenced a deleted template and always failed.
-Consequences: task-closeout dry-runs by default. Apply mode first requires aligned completed ledger/current-state/worklog facts, completed task/type metadata, clear active backlinks, a safe rotation preview, and a hygiene precheck; it then moves artifacts verbatim into a dated frozen Superpowers family, applies one rotation batch, and reruns hygiene. Default output is concise and --verbose exposes diagnostics. The broken agent-preflight entrypoint is removed rather than maintained beside the canonical gates.
-Linked files: docs/05_workflow/SINGLE_AGENT_WORKFLOW.md, docs/05_workflow/CONTEXT_AND_RECOVERY.md, docs/superpowers/README.md, scripts/task-closeout.mjs, scripts/context-rotate.mjs, tests/scripts/task-closeout.test.mjs
+Decision ID: D-050
+Date: 2026-09-08
+Decision: WP-11 reconciles local reminders from one owned, complete 30-day server snapshot; partial UI pages cannot prove removal. Retain at most the nearest 60 local alerts, with explicit account/session ownership and current-state tap resolution.
+Context: Existing scheduling is add-only, role/booking identifiers omit account scope, and exit leaves pending/delivered alerts. Multi-page reads can shift during remote changes; a single invoker snapshot avoids that inconsistency.
+Consequences: A bounded scalar JSON RPC returns narrow booking facts and a server horizon/as-of under unchanged participant RLS; excessive snapshots fail rather than masquerade as complete. Scheduler retains 60 nearest eligible alerts to leave platform headroom, clears only app-owned obsolete/exit alerts, uses absolute UTC triggers and rejects late account-generation work. Foreground/reconnect refresh and explicit mutations request the same snapshot. Offline remote cancellation cannot withdraw an already scheduled local alert immediately. No timezone-settings or APNs changes.
+Linked files: docs/superpowers/plans/2026-09-07-functional-reliability-task-plan.md.
 ```
 
 ```text
-Decision ID: D-033
-Date: 2026-07-13
-Decision: Assign each workflow concern to one owner file, enforce compact AGENTS/Claude adapters, and keep one T-### task per session without automatic meta-review chaining.
-Context: Validation, context, Git, stop, Simulator, checkpoint, skill, and meta-review rules had been copied across active files and had drifted into contradictions. The repository also assumed a fixed host context capacity it cannot observe.
-Consequences: SINGLE_AGENT_WORKFLOW owns lifecycle; CONTEXT_AND_RECOVERY owns reads/recovery/compaction/hygiene; TOOLING_POLICY owns validation/tools/credentials/remote authorization; GITHUB_RULES owns Git conventions; STOP_CONDITIONS is a short matrix. AGENTS and CLAUDE have enforced 600/250-word interface ceilings. Development RED is distinct from completion failure; user-deferred Simulator review is valid; host-required skills are not repository-capped; incomplete checkpoint Git needs explicit approval. A due meta-review is reserved and runs only in a fresh user-continued session. Host telemetry replaces fixed token thresholds. This supersedes D-029, the fixed-capacity/checkpoint parts of D-028, and creates an entry-adapter exception to D-024's generic informational word telemetry.
-Linked files: AGENTS.md, CLAUDE.md, docs/05_workflow/SINGLE_AGENT_WORKFLOW.md, docs/05_workflow/CONTEXT_AND_RECOVERY.md, docs/05_workflow/TOOLING_POLICY.md, docs/05_workflow/GITHUB_RULES.md, docs/05_workflow/STOP_CONDITIONS.md, docs/06_tasks/META_REVIEW_TEMPLATE.md, scripts/context-hygiene-check.mjs
+Decision ID: D-049
+Date: 2026-09-08
+Decision: WP-10 retains the existing server-owned booking-handoff acknowledgement independently of notification read state, and marks a selected notification read after its current owned destination resolves.
+Context: Acknowledgement suppresses a cross-device confirmation handoff, not fulfillment. Existing local-first writes suppress retries after server failure. Customer notifications are inert and Groomer routes rely on partially loaded destinations.
+Consequences: Cache only server-confirmed acknowledgement IDs under a versioned account key; ignore unverified legacy local hints and retain server history. Failure remains retryable. Resolve exact request/offer/booking/conversation targets using repository/Store boundaries; missing or inaccessible targets remain explicit without consuming another business action. Exact groomer-match reads preserve the installed pending-refresh masking and participant guard. No notification tap starts, completes or cancels a booking.
+Linked files: docs/superpowers/plans/2026-09-07-functional-reliability-task-plan.md.
 ```
 
 ```text
-Decision ID: D-032
-Date: 2026-07-12
-Decision: Use layered Xcode/Simulator runtime-log sampling for app behavior validation.
-Context: Full Debug Area output is noisy and expensive to inspect, but ignoring it can miss SwiftUI faults and runtime warnings that are not visible in screenshots or test assertions.
-Consequences: Runtime validation samples recent interaction output and severity/task keywords first, then expands only relevant messages and narrow time windows. Actionable Beckon diagnostics are recorded; Apple/Simulator noise is classified before any code change. Build-only, test-only, docs-only, and static checks do not require runtime-log inspection.
-Linked files: docs/05_workflow/TOOLING_POLICY.md, docs/04_ios/IOS_BUILD_AND_TESTING.md
+Decision ID: D-048
+Date: 2026-09-08
+Decision: WP-09 uses a bounded SECURITY INVOKER summary RPC under unchanged participant RLS, plus exact participant-pair conversation lookup.
+Context: Installed metadata confirms unique participant pairs and a message conversation/time/ID index. Global history reads can exhaust the API cap before quiet conversations appear.
+Consequences: At most 100 requested conversation IDs; inaccessible/missing IDs fail together. Each conversation gets one latest message and one latest pair booking using deterministic timestamp/ID order and indexed lateral limits. No high-privilege reader, new persistence or cross-device read receipts. Summary failure stays an error; private avatars and thread history retain existing ownership.
+Linked files: docs/superpowers/plans/2026-09-07-functional-reliability-task-plan.md; supabase/migrations/20260908234932_t380_bounded_chat_summaries.sql.
 ```
 
 ```text
-Decision ID: D-031
-Date: 2026-07-12
-Decision: Govern Beckon UI consistency through the existing DesignSystem, semantic components, and an all-app source-audit debt ratchet, with the first migration slice limited to Customer Home, Requests, Request creation, and Account.
-Context: Existing tokens and shared primitives are real but incomplete; feature code still mixes platform fonts, fixed sizes, local styles, repeated modifier stacks, and layout repairs. Screenshot review catches rendering failures but cannot reliably enforce fine-grained consistency. Customer reference pages establish useful hierarchy and tone but also contain debt, while Groomer intentionally uses denser workspace patterns.
-Consequences: R-041 evolves DesignTokens in place, adds only reuse-backed semantic components, establishes a tested dependency-free source audit with explicit exceptions, baselines non-slice debt, and blocks new violations. The four Customer surfaces migrate first. Business logic, repositories, navigation, Supabase, dependencies, and deferred Groomer Q-104 scope are unchanged unless separately approved.
-Linked files: docs/01_product/DESIGN_SYSTEM.md, docs/01_product/ACCESSIBILITY_RULES.md, docs/01_product/FORM_INTERACTION_RULES.md, docs/04_ios/UI_CODE_GOVERNANCE.md, docs/04_ios/UI_CONSISTENCY_DEBT.md, docs/06_tasks/ROADMAP.md, docs/00_memory/FEATURE_INDEX.md
+Decision ID: D-047
+Date: 2026-09-08
+Decision: WP-08 uses purpose-specific nearest/date/exact repository reads behind existing participant RLS, not unbounded history loading or a new general query framework.
+Context: Descending page one cannot prove the next appointment or an empty day; a missing locally cached original request cannot prove deletion.
+Consequences: Nearest eligible confirmed booking is ordered by start then ID; date scopes use half-open service overlap and bounded pages with stable tie ordering. Only a completed scope can show confirmed empty; loading/failed/stale reads remain explicit and changing dates invalidates older responses. Republish fetches the exact owned source and still requires new address confirmation. No new persistence/schema/role capability is introduced; backend read changes require actual contract/access evidence.
+Linked files: docs/superpowers/plans/2026-09-07-functional-reliability-task-plan.md.
 ```
 
 ```text
-Decision ID: D-030
-Date: 2026-07-11
-Decision: Adopt one shared Apple Maps service-address confirmation system and make private PostGIS coordinates plus the controlling radius the long-term location-matching authority.
-Context: Device-localized city strings can differ across Customer and Groomer records, current city/state matching ignores ZIP and configured radii, and the Request address dropdown performed expensive per-candidate language normalization. The product needs shopping-style field semantics and address confirmation, but grooming service locations do not require a USPS-deliverability claim or a Google dependency.
-Consequences: Address Line 1 excludes Unit/Apt data and Address Line 2 owns it; complete misplaced suffixes auto-move unless a conflict requires user choice. MapKit suggestions display directly, only selections/manual continuation resolve, Place ID is optional, and complete coordinates are mandatory. Exact geo metadata is private; PostGIS applies Customer travel radius for shop visits and Groomer service radius for mobile service. Legacy city/state fallback exists only through controlled backfill and is removed after a zero-gap gate. Remote migration/backfill/TestOps remain separately authorized.
-Linked files: docs/02_architecture/DATA_FLOW.md, docs/03_backend/RLS_RPC_POLICY.md, docs/04_ios/ADDRESS_BACKFILL.md, docs/06_tasks/ROADMAP.md
+Decision ID: D-046
+Date: 2026-09-08
+Decision: Adopt G-07 as time-only bilateral rescheduling under delegated judgment, with one live proposal and no speculative second reservation.
+Context: Original WP-07 requires self-overlap exclusion, date-capacity revalidation, expiry and competing-action safety. Existing agreement/admission/timing guards intentionally reject in-place changes.
+Consequences: Preserve duration/participants/pet/service/price/address/buffers. Deadline is the earliest of 24 hours, original start and proposed start minus five minutes; latest notice still applies. Expected fulfillment revision binds consent. Acceptance atomically replaces only the original booking's timing/agreement, retaining both snapshots and original request/quote. Failure preserves the old reservation. Unsupported history is not fabricated.
+Linked files: docs/03_backend/BOOKING_RESCHEDULING_CONTRACT.md; docs/superpowers/plans/2026-09-07-functional-reliability-task-plan.md.
 ```
 
 ```text
-Decision ID: D-029
-Date: 2026-07-11
-Status: Superseded by D-033 on 2026-07-13.
-Decision: Automatically chain an immediately due periodic meta-review after the triggering task, then require a conversation-compaction boundary.
-Context: The previous reservation rule prevented a two-task commit deadlock but still required another user turn before the reserved review ran. The user now requires due reviews to execute automatically and every completed meta-review to be followed by context compaction.
-Consequences: The triggering task and meta-review retain separate task IDs, validation, closeouts, commits, and pushes; this is the only automatic exception to one task per session. After meta-review closeout, Codex invokes host compaction when callable. If the host provides no compaction API, Codex emits an explicit /compact handoff, states that compaction is pending, and stops before any implementation task.
-Linked files: AGENTS.md, docs/05_workflow/SINGLE_AGENT_WORKFLOW.md, docs/05_workflow/CONTEXT_AND_RECOVERY.md, docs/06_tasks/META_REVIEW_TEMPLATE.md
+Decision ID: D-045
+Date: 2026-09-08
+Decision: Adopt remaining G-02 and G-06/G-09 for original WP-06 under delegated judgment, using the Booking fulfillment contract rather than a general workflow engine.
+Context: Installed completion permits future appointments and cancellation immediately removes occupancy. Actual-time and bilateral outcome evidence are missing. Preserve request-first locking, immutable agreements and receipt recovery.
+Consequences: Server-timed Start, early completion retaining buffers, pre-start cancellation, non-releasing unilateral reports, bilateral stop/completion confirmation, elapsed closure without blame, and immutable observations/receipts. Effective release feeds every resource consumer without modifying planned intervals. Unknown actual history stays unknown. No penalties, staffing promise, paid services or account-timezone settings.
+Linked files: docs/03_backend/BOOKING_FULFILLMENT_CONTRACT.md; docs/superpowers/plans/2026-09-07-functional-reliability-task-plan.md.
 ```
 
 ```text
-Decision ID: D-028
-Date: 2026-07-10
-Status: Fixed-capacity and automatic checkpoint-Git parts superseded by D-033 on 2026-07-13; task-boundary/evidence rules remain active.
-Decision: Use one T-### task per session, with session end as the default context reset and manual compaction as fallback for one oversized task.
-Context: Per-turn cost scales with conversation size. The T-249 through T-257 mega-session and its unattributed modified files drove context and quota growth, while build scripts were already summary-mode and active Markdown was already minimal.
-Consequences: Standard slices use focused tests plus one build; full ios-test.sh is reserved for package/integration gates, Deep tasks, shared-layer changes, and pre-release. Visual evidence stays under artifacts/evidence/<task-id>/ and is referenced by path rather than re-ingested. Full logs are read only in filtered slices. Session boundaries require a task commit or a WORKLOG-linked checkpoint(<id>) commit; stash is not a boundary mechanism. The 65%/80% thresholds govern only a single oversized in-flight task.
-Linked files: AGENTS.md, docs/05_workflow/SINGLE_AGENT_WORKFLOW.md, docs/05_workflow/CONTEXT_AND_RECOVERY.md, docs/05_workflow/GITHUB_RULES.md, docs/05_workflow/TOOLING_POLICY.md, .gitignore, .rgignore
-```
-
-```text
-Decision ID: D-027
-Date: 2026-07-10
-Decision: Permit an exactly due documentation meta-review to be explicitly reserved as the immediate next task without blocking the preceding task's closeout.
-Context: T-250 became the tenth completed task after T-240. The cadence check correctly required T-251, but it also prevented T-250 from passing its own Git completion gate even though CURRENT_STATE explicitly reserved T-251, creating a two-task commit deadlock.
-Consequences: At a delta of exactly ten, context hygiene passes only when CURRENT_STATE names the numerically immediate next task and explicitly calls it the required periodic meta-review. Missing reservations and deltas above ten still fail. The reserved meta-review must execute next and update the marker.
-Linked files: scripts/context-hygiene-check.mjs, tests/docs/context-hygiene-check.test.mjs, docs/06_tasks/META_REVIEW_TEMPLATE.md, docs/00_memory/CURRENT_STATE.md
-```
-
-```text
-Decision ID: D-026
-Date: 2026-07-10
-Decision: Use one Beckon visual foundation with a schedule/action-oriented Groomer workspace and exactly five direct Groomer tabs.
-Context: Live Simulator inspection showed the Groomer side using six equal tabs, a system-generated More screen, nested Account navigation, duplicate back buttons in Edit Profile, and card-heavy pages without a stable operational priority. The user approved the first T-249 visual direction and its Requests, Account, and Edit Profile extensions.
-Consequences: R-039 targets Home, Requests, Schedule, Messages, and Account. Offers moves into a Requests Matches/Offers segment; Notifications opens from Home; Account is direct; feature editors hide the tab bar. Grouped surfaces and row separators replace per-row floating cards. Existing marketplace/backend contracts remain unchanged, and implementation is split into Q-97 through Q-104.
-Linked files: docs/08_design/GROOMER_UI_REDESIGN.md, docs/06_tasks/ROADMAP.md, docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md, docs/01_product/DESIGN_SYSTEM.md
-```
-
-```text
-Decision ID: D-025
-Date: 2026-07-09
-Decision: Treat Beckon as the only active product and workflow vocabulary while preserving legacy names solely in immutable history and explicit migration evidence.
-Context: Q-94 renamed the local application and source, but the separately governed agent/workflow rules still used the prior product name and old Xcode credential path. Their temporary identity-audit exclusion also allowed future drift.
-Consequences: AGENTS.md, CLAUDE.md, and docs/05_workflow use Beckon terminology and current ios/Beckon paths. The active identity audit now checks those files; only frozen records, applied migrations, the migration contract, and audit fixtures may retain legacy literals. Product behavior and remote state are unchanged.
-Linked files: AGENTS.md, CLAUDE.md, docs/05_workflow/CONTEXT_AND_RECOVERY.md, docs/05_workflow/STOP_CONDITIONS.md, docs/05_workflow/TOOLING_POLICY.md, scripts/beckon-identity-check.mjs
-```
-
-```text
-Decision ID: D-024
-Date: 2026-07-09
-Status: Generic word telemetry remains informational; D-033 adds hard ceilings only for the AGENTS/Claude workflow-entry interfaces.
-Decision: Maintain active Markdown with buffered entry-count windows and treat all word counts as informational telemetry.
-Context: The old trigger and retained counts were identical, so every new closeout rotated one item and left the window full. Separate word limits then caused repeated trimming even when document structure was healthy, while manual compaction guidance started at only 30% of the 353,000-token context.
-Consequences: Ledger uses trigger/retain 18/12; Worklog and active decisions use 14/8; decision archive pointers use 12/6 with one pointer per archive batch. Each completed rotation restores six entries. Word references never warn, fail, stop, compress, or rotate content. Manual compaction uses 65%/80% task-boundary thresholds, and completed task-specific plans/specs move to dated frozen Superpowers archives. This supersedes D-016 and the Markdown-budget parts of D-017; D-017's failed-push rule remains active.
-Linked files: AGENTS.md, docs/05_workflow/CONTEXT_AND_RECOVERY.md, docs/05_workflow/SINGLE_AGENT_WORKFLOW.md, docs/05_workflow/STOP_CONDITIONS.md, scripts/context-hygiene-policy.mjs, scripts/context-hygiene-check.mjs, scripts/context-rotate.mjs
-```
-
-```text
-Decision ID: D-023
-Date: 2026-07-09
-Decision: Replace the complete active legacy brand/project identity with Beckon through a dependency-ordered local, workflow, and remote cutover.
-Context: The user finalized the brand, domain, App Store name, and tagline and explicitly required technical identifiers, files, UI, TestOps seeds, and remote state to follow the same identity.
-Consequences: The canonical identity is Beckon, `com.hellobeckon.beckon`, and `com.hellobeckon.beckon://auth/callback`. R-038 uses Q-94 through Q-96 so product/source work, standalone workflow-rule changes, and authorized remote Supabase/seed-user changes remain separately reviewable. Applied migrations, frozen records, and Git history remain immutable; append-only changes replace live old identifiers.
-Linked files: docs/01_product/BRAND_IDENTITY.md, docs/06_tasks/ROADMAP.md, docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md
+Decision ID: D-044
+Date: 2026-09-08
+Decision: Adopt G-03/G-04 for WP-05 under delegated judgment. Pending quotes reserve no capacity. Confirmation expires at the earliest of request/quote expiry and the current earliest-start cutoff; reads and mutations evaluate it without relying on cron. Capacity-only conflicts are retryable while unchanged terms remain valid; withdrawal, request replacement and revoked explicit eligibility are terminal for that quote.
+Context: Installed request timing is immutable but other critical terms lack a complete guard. Quotes lack a request revision, booking hydration reads mutable profiles and omits Address Line 2. Existing participant tables are read-only to clients, mutations use controlled RPCs.
+Consequences: Keep published request intent immutable and replace open requests through an owned, atomic, idempotent supersession operation using the existing publication contract. Bind quotes to an immutable request revision and give each immutable quote a revision. Acceptance sends the displayed quote revision and preserves original-receipt replay. Persist one complete versioned quote/booking agreement (pet, service, location including unit, timezone, time and price) with source provenance. Unsafe legacy writers require an actionable update; old bookings remain usable but unproven original locations are explicitly unverified, never inferred from today's profile. Reconfirmation requires both participants, not unilateral historical backfill. WP-07 owns later agreement changes. No deployment is implied by this decision.
+Boundary clarification: An advance-notice policy change revokes pre-change quotes through the existing eligibility revision, even if changed back; ordinary schedule/time-off capacity changes do not. A visible confirmation also enforces its deadline locally without polling, but an unresolved acceptance remains eligible for read-only outcome recovery after expiry.
+Linked files: docs/superpowers/plans/2026-09-07-functional-reliability-task-plan.md; ios/Beckon/Beckon/Core/Models/ServiceAgreement.swift.
 ```
 
 
@@ -214,6 +177,9 @@ Full text for the entries below is preserved in `../09_frozen/decisions/DECISION
 
 | Date | Decision | Current entry point |
 |---|---|---|
+| 2026-09-10 | Archived decisions D-037 to D-043. | `../09_frozen/decisions/DECISION_LOG_D-037_TO_D-043_2026-09-10.md` |
+| 2026-09-08 | Archived decisions D-030 to D-036. | `../09_frozen/decisions/DECISION_LOG_D-030_TO_D-036_2026-09-08.md` |
+| 2026-09-07 | Archived decisions D-023 to D-029. | `../09_frozen/decisions/DECISION_LOG_D-023_TO_D-029_2026-09-07.md` |
 | 2026-07-12 | Archived decisions D-016 to D-022. | `../09_frozen/decisions/DECISION_LOG_D-016_TO_D-022_2026-07-12.md` |
 | 2026-07-09 | Replace the active Markdown 85% cleanup trigger with structural context-budget tooling. | `../09_frozen/decisions/DECISION_LOG_D-015_2026-07-10.md` |
 | 2026-07-09 | Superseded by D-016/D-017: treat the active Markdown 85% waterline as a cleanup trigger. | `../09_frozen/decisions/DECISION_LOG_D-014_2026-07-09.md` |

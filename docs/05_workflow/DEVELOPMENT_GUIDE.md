@@ -46,7 +46,7 @@ Read the [Backend Contract](../03_backend/SUPABASE_CONTRACT.md) and affected def
 
 ## Git And User Work
 
-Work on the current user-selected branch; new branches use `codex/` only when needed within authorized scope. Do not merge the reviewed superseded main-only commit `2fddf7b`, switch branches or reconcile merely because another branch appears newer. Canonical remote is `Prinnyyy/Pet_Grooming_Appointment_App`.
+Work on the current user-selected branch; new branches use `codex/` only when needed within authorized scope. Read the current branch from Git. Do not switch branches or reconcile merely because another branch appears newer; merges require explicit user approval. Canonical remote is `Prinnyyy/Pet_Grooming_Appointment_App`.
 
 Inspect unstaged/staged differences and keep existing user changes. Use named files/hunks, never blanket stage/reset/stash. For a governed rewrite of dirty material, preserve the actual pre-edit content; HEAD is not its backup. Restore only task-owned changes, retaining later user edits. Roll back coupled rules/checkers together; published corrections are forward commits, never history rewriting.
 
@@ -55,6 +55,8 @@ After the whole objective passes required acceptance, standing approval permits 
 Incomplete checkpoint commits/pushes, PRs, tags, merges/rebases/resets, branch deletion and repository settings need explicit approval. Dependencies, signing, schemes, entitlements and new capabilities also require adopted scope. A paused task can have a local state checkpoint without a Git checkpoint commit.
 
 ## Documentation And Search
+
+For app demo or launch-film production, use the [App Demo Video Workflow](APP_DEMO_VIDEO_WORKFLOW.md) on demand. It owns creative sampling, capture, media QA and delivery sequencing; this guide continues to own authorization, task state, data safety and Git rules.
 
 [Docs Index](../README.md) routes domain contracts; [Feature Index](../00_memory/FEATURE_INDEX.md) routes code. Stable facts belong there, not in task status. [Roadmap](../06_tasks/ROADMAP.md) holds unadopted/deferred product directions. Worklog/ledger and superseded workflow snapshots are historical, not daily write targets.
 
