@@ -34,12 +34,12 @@ Avoid dense dashboards, map-first layouts, oversized calendars, decorative anima
 `BeckonBrandBubble` owns the existing mascot bubble and seven surrounding small bubbles. The wordmark, copy, layout and authentication actions remain owned by `AuthenticationView`; no new asset, navigation or account capability is implied.
 
 - Main bubble: mint body, soft translucent highlight, no outline. Do not substitute a selected-control Tint, a solid white highlight circle or a Deep selection border.
-- Ground shadow: a discernible but soft neutral ellipse below the bubble, separated from the wordmark. It is not the shared card shadow and must not alter other surfaces' elevation.
+- Layer shadow: composite the icon first, then cast a soft neutral shadow behind its circular silhouette, slightly biased downward. It moves with the icon and separates the icon layer from the page background. No detached ground ellipse. Use `Shadows.brandBubble`, never change shared card elevation for this effect.
 - Preserve the surrounding small bubbles as light translucent decoration, without hard white outlines or overlap with the wordmark/actions. Do not spread this treatment to operational screens.
-- Main motion is a slow 4-second cycle with at most 4pt vertical displacement; satellites drift slowly. Fixed artwork bounds keep the wordmark and actions stationary. No large falling entrance or elastic bounce.
+- Preserve the one-time opening animation: the icon enters from above with a small scale/fade and a lightly damped spring, then continues a slow 4-second float with at most 4pt vertical displacement. Satellites drift slowly. `AuthenticationView` owns entrance completion so returning from the form does not replay it. Fixed artwork bounds keep the wordmark and actions stationary; entrance overshoot must not collide with the wordmark.
 - One bounded animation timeline is owned by the artwork. Reduce Motion or an inactive scene stops all decorative motion; leaving the landing removes the artwork. Re-enabling motion must work without remounting the screen.
 - `DesignTokens.BrandIllustration` owns decorative alpha/material values. Feature-local color-opacity, control contrast and status rules remain unchanged. Decorative artwork is hidden from accessibility and cannot intercept touches.
-- Palette/elevation changes require a rendered comparison of the main body, highlight, edge and ground shadow, plus default/AX3 and moving/static checks. Source-audit success alone does not establish visual correctness.
+- Palette/elevation changes require a rendered comparison of the main body, highlight, edge and layer shadow, plus opening/settled, default/AX3 and moving/static checks. Source-audit success alone does not establish visual correctness.
 
 ## Sources And Ownership
 

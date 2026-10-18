@@ -141,7 +141,6 @@ enum DesignTokens {
         static let body = Colors.customerFill
         static let highlight = Color(hex: ColorHex.surface, opacity: 0.42)
         static let satellite = Color(hex: ColorHex.customerFill, opacity: 0.28)
-        static let groundShadow = Color(hex: ColorHex.textPrimary, opacity: 0.20)
     }
 
     enum Spacing {
@@ -191,6 +190,13 @@ enum DesignTokens {
     }
 
     enum Shadows {
+        static let brandBubble = ShadowStyle(
+            color: Color(hex: ColorHex.textPrimary, opacity: 0.20),
+            radius: 12,
+            x: 0,
+            y: 8,
+            spread: 0
+        )
         static let softCard = ShadowStyle(
             color: Color(hex: ColorHex.textPrimary, opacity: 0.06),
             radius: 2,

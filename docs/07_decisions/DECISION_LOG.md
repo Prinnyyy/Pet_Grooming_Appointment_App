@@ -21,9 +21,10 @@ Linked files:
 Decision ID: D-061
 Date: 2026-10-18
 Task: T-416
-Decision: Keep authentication brand artwork separate from D-060's control surfaces and card elevation. Preserve its small bubbles; use a borderless mint main bubble, translucent highlight, visible soft ground shadow and bounded motion that stops for Reduce Motion/inactive scenes.
+Decision: Keep authentication brand artwork separate from D-060's control surfaces and card elevation. Preserve its small bubbles; use a borderless mint main bubble, translucent highlight, soft shadow behind the icon layer, one-time opening animation and bounded continuous float.
 Context: Color migration turned translucent artwork into opaque control colors and reused the flattened card shadow. The user requested repair and explicitly retained the surrounding small bubbles.
 Consequences: One DesignSystem artwork component and named material tokens, no general Feature opacity exception or new motion framework. Keep authentication flows and global control/card tokens unchanged. Require rendered material and motion evidence, not just source checks.
+User clarification (2026-10-18): The opening animation must remain. "Below the icon" means behind its layer, not an ellipse on an imagined ground plane. The initial T-416 interpretation is superseded; Reduce Motion skips entrance and stops float.
 Linked files: docs/01_product/DESIGN_SYSTEM.md; docs/08_design/UI_IMPLEMENTATION_NOTES.md
 ```
 

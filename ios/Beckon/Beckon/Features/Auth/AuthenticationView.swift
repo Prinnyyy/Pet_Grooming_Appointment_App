@@ -12,6 +12,7 @@ struct AuthenticationView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var surface: AuthenticationSurface = .landing
+    @State private var heroHasEntered = false
     @State private var isPasswordVisible = false
     @FocusState private var focusedField: AuthenticationFocusTarget?
 
@@ -40,6 +41,12 @@ struct AuthenticationView: View {
             }
         }
         .animation(reduceMotion ? nil : .spring(response: 0.38, dampingFraction: 0.88), value: surface)
+        .onAppear {
+            guard !heroHasEntered else { return }
+            withAnimation(reduceMotion ? nil : .interpolatingSpring(stiffness: 92, damping: 14).delay(0.08)) {
+                heroHasEntered = true
+            }
+        }
     }
 
     private var landingBackground: some View {
@@ -91,7 +98,8 @@ struct AuthenticationView: View {
 
     private var landingHero: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
-            BeckonBrandBubble(isMotionEnabled: !reduceMotion && scenePhase == .active)
+            BeckonBrandBubble(isMotionEnabled: !reduceMotion && scenePhase == .active,
+                hasEntered: heroHasEntered || reduceMotion)
 
             VStack(spacing: DesignTokens.Spacing.sm) {
                 Text("Beckon")

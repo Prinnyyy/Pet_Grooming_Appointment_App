@@ -3,6 +3,7 @@ import SwiftUI
 /// Brand artwork has its own material and elevation; it is not an actionable card.
 struct BeckonBrandBubble: View {
     let isMotionEnabled: Bool
+    var hasEntered = true
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !isMotionEnabled)) { context in
@@ -12,13 +13,6 @@ struct BeckonBrandBubble: View {
                 : 0
 
             ZStack(alignment: .top) {
-                Ellipse()
-                    .fill(DesignTokens.BrandIllustration.groundShadow)
-                    .frame(width: 92, height: 10)
-                    .blur(radius: 5)
-                    .scaleEffect(x: 1 + lift / 40, y: 1)
-                    .offset(y: 164)
-
                 ZStack {
                     Circle()
                         .fill(DesignTokens.BrandIllustration.body)
@@ -33,7 +27,12 @@ struct BeckonBrandBubble: View {
                         .offset(y: 3)
                 }
                 .frame(width: 156, height: 156)
+                .compositingGroup()
+                .beckonShadow(DesignTokens.Shadows.brandBubble)
                 .offset(y: lift)
+                .scaleEffect(hasEntered ? 1 : 0.82)
+                .offset(y: hasEntered ? 0 : -420)
+                .opacity(hasEntered ? 1 : 0)
             }
             .frame(width: 156, height: 180, alignment: .top)
             .background(alignment: .top) {

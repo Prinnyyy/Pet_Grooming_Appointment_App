@@ -5,6 +5,22 @@ import XCTest
 
 @MainActor
 final class AuthenticationBrandRenderingTests: XCTestCase {
+    func testShadowSeparatesTheIconLayerFromItsBackground() throws {
+        let image = try XCTUnwrap(ImageRenderer(content:
+            BeckonBrandBubble(isMotionEnabled: false).padding(40).background(Color.white)).cgImage)
+        var pixels = [UInt8](repeating: 0, count: image.width * image.height * 4)
+        let context = try XCTUnwrap(CGContext(data: &pixels, width: image.width, height: image.height,
+            bitsPerComponent: 8, bytesPerRow: image.width * 4, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        // Sample just outside both sides of the 156pt icon, not the space below it.
+        for x in [33, 203] {
+            let i = (118 * image.width + x) * 4
+            XCTAssertLessThan(pixels[i], 249, "A detached ground ellipse does not lift the icon layer")
+            XCTAssertLessThan(abs(Int(pixels[i]) - Int(pixels[i + 1])), 8, "Shadow should be neutral, not a colored outline")
+        }
+    }
+
     func testBubbleFloatsThenStopsAndResumesWithoutRemounting() async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let previous = scene.windows.first(where: \.isKeyWindow)
@@ -41,7 +57,7 @@ final class AuthenticationBrandRenderingTests: XCTestCase {
         XCTAssertGreaterThan(Set(resumed).count, 1, "Motion did not resume when re-enabled")
     }
 
-    func testLandingBrandHasMintBodyWithoutAControlOutline() async throws {
+    func testLandingEntranceRevealsMintBodyWithoutAControlOutline() async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let previous = scene.windows.first(where: \.isKeyWindow)
         let window = UIWindow(windowScene: scene)
@@ -50,9 +66,14 @@ final class AuthenticationBrandRenderingTests: XCTestCase {
             AuthenticationView(store: AuthenticationStore(repository: AuthSessionRepositoryFake())))
         window.makeKeyAndVisible()
         defer { window.isHidden = true; window.rootViewController = nil; previous?.makeKey() }
-        try await Task.sleep(for: .seconds(2))
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
+        try await Task.sleep(for: .milliseconds(50))
+        let early = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+        let earlyBody = try artworkPixels(early).body
+        try await Task.sleep(for: .seconds(2))
         let image = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }
@@ -61,6 +82,13 @@ final class AuthenticationBrandRenderingTests: XCTestCase {
         attachment.lifetime = .keepAlways
         add(attachment)
 
+        let settled = try artworkPixels(image)
+        XCTAssertLessThan(earlyBody, settled.body / 2, "The one-time entrance was removed; artwork appeared instantly")
+        XCTAssertGreaterThan(settled.body, 1_200, "Brand body was washed out into a selected-control Tint")
+        XCTAssertLessThan(settled.outline, 20, "The decorative brand bubble has a dark control outline")
+    }
+
+    private func artworkPixels(_ image: UIImage) throws -> (body: Int, outline: Int) {
         let cgImage = try XCTUnwrap(image.cgImage)
         let width = cgImage.width
         let height = cgImage.height
@@ -80,7 +108,6 @@ final class AuthenticationBrandRenderingTests: XCTestCase {
                 if r < 80 && g > r + 45 && b > r + 30 && g < 160 { darkTealOutlinePixels += 1 }
             }
         }
-        XCTAssertGreaterThan(mintBodyPixels, 1_200, "Brand body was washed out into a selected-control Tint")
-        XCTAssertLessThan(darkTealOutlinePixels, 20, "The decorative brand bubble has a dark control outline")
+        return (mintBodyPixels, darkTealOutlinePixels)
     }
 }

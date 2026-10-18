@@ -26,7 +26,7 @@ Banned pairs:
 
 Dark mode remains out of scope. Semantic role names must remain stable so a future palette can change values without rewriting feature layouts.
 
-The authentication illustration's named DesignSystem material may use translucent highlights, small bubbles and a ground shadow under the bounded contract in `DESIGN_SYSTEM.md`. These noninteractive, accessibility-hidden shapes are not foreground/background pairs for text or controls; this does not relax Feature color rules. All illustration motion stops for Reduce Motion, including after an in-session toggle, and can resume when the preference is disabled.
+The authentication illustration's named DesignSystem material may use translucent highlights, small bubbles and a shadow behind the icon layer under the bounded contract in `DESIGN_SYSTEM.md`. These noninteractive, accessibility-hidden shapes are not foreground/background pairs for text or controls; this does not relax Feature color rules. Reduce Motion skips the opening animation and stops the continuous float; re-enabling motion resumes the float, not the opening animation.
 
 ## Accessibility Groundwork (A11Y-R1..R10)
 
