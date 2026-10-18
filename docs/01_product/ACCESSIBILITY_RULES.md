@@ -26,6 +26,8 @@ Banned pairs:
 
 Dark mode remains out of scope. Semantic role names must remain stable so a future palette can change values without rewriting feature layouts.
 
+The authentication illustration's named DesignSystem material may use translucent highlights, small bubbles and a ground shadow under the bounded contract in `DESIGN_SYSTEM.md`. These noninteractive, accessibility-hidden shapes are not foreground/background pairs for text or controls; this does not relax Feature color rules. All illustration motion stops for Reduce Motion, including after an in-session toggle, and can resume when the preference is disabled.
+
 ## Accessibility Groundwork (A11Y-R1..R10)
 
 - **A11Y-R1 Dynamic Type:** Use semantic text styles and content-sized containers. Do not fix text heights or truncate informational text to one line unless the full value is available elsewhere. Prefer reflow, stacking, `ViewThatFits`, or `isAccessibilitySize`. `minimumScaleFactor` is not an overflow strategy; values below 0.85 are prohibited. Every UI slice must pass AX3 (`.accessibility3`).

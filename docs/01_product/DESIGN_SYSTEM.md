@@ -21,13 +21,25 @@ Executable Feature-code rules and audit commands live in `../04_ios/UI_CODE_GOVE
 - Customer uses mint/teal action roles; Groomer uses coral action roles.
 - Role Fill is a light action surface, Ink is its foreground, Deep is for links, controls, progress and selection outlines, and opaque Tint is for selected/icon surfaces. Exact values and allowed contrast pairs live in `DesignTokens.swift` and `DesignTokenAccessibilityTests.swift`; D-060 supersedes earlier palette proposals.
 - Role color communicates action, selection or role, never domain status or failure. Status uses semantic Text/Fill/Border with a symbol and label; shared screens keep the same status presentation for both roles.
-- No accent-opacity surfaces, gradient buttons or colored action shadows. Only the Customer Hero retains a related-color gradient. Cards share one quiet warm shadow; depth primarily comes from borders. Placeholders and list icon tiles are neutral, with species conveyed by symbols rather than color.
+- No accent-opacity control surfaces, gradient buttons or colored action shadows. The Customer Hero retains a related-color gradient. Cards share one quiet warm shadow; depth primarily comes from borders. Placeholders and list icon tiles are neutral, with species conveyed by symbols rather than color. The authentication brand illustration has the separate, bounded material contract below.
 - Destructive actions use a white surface with semantic error text/border for either role. Errors include an alert symbol and error container; success includes a checkmark. Never use white text on a light role Fill.
 - Clear hierarchy, quiet borders/shadows, content-led imagery, and explicit loading, empty, error, selected, disabled, and success states.
 - Customer remains pet/decision oriented. Groomer remains schedule/action oriented and uses grouped surfaces with row separators rather than card stacks.
 - Native SwiftUI/SF typography and semantic Dynamic Type styles are required.
 
-Avoid dense dashboards, map-first layouts, oversized calendars, decorative animation, nested cards, and raw feature-local color, spacing, radius, shadow, or font values.
+Avoid dense dashboards, map-first layouts, oversized calendars, decorative animation outside the approved brand illustration, nested cards, and raw feature-local color, spacing, radius, shadow, or font values.
+
+### Authentication Brand Illustration
+
+`BeckonBrandBubble` owns the existing mascot bubble and seven surrounding small bubbles. The wordmark, copy, layout and authentication actions remain owned by `AuthenticationView`; no new asset, navigation or account capability is implied.
+
+- Main bubble: mint body, soft translucent highlight, no outline. Do not substitute a selected-control Tint, a solid white highlight circle or a Deep selection border.
+- Ground shadow: a discernible but soft neutral ellipse below the bubble, separated from the wordmark. It is not the shared card shadow and must not alter other surfaces' elevation.
+- Preserve the surrounding small bubbles as light translucent decoration, without hard white outlines or overlap with the wordmark/actions. Do not spread this treatment to operational screens.
+- Main motion is a slow 4-second cycle with at most 4pt vertical displacement; satellites drift slowly. Fixed artwork bounds keep the wordmark and actions stationary. No large falling entrance or elastic bounce.
+- One bounded animation timeline is owned by the artwork. Reduce Motion or an inactive scene stops all decorative motion; leaving the landing removes the artwork. Re-enabling motion must work without remounting the screen.
+- `DesignTokens.BrandIllustration` owns decorative alpha/material values. Feature-local color-opacity, control contrast and status rules remain unchanged. Decorative artwork is hidden from accessibility and cannot intercept touches.
+- Palette/elevation changes require a rendered comparison of the main body, highlight, edge and ground shadow, plus default/AX3 and moving/static checks. Source-audit success alone does not establish visual correctness.
 
 ## Sources And Ownership
 
@@ -46,7 +58,7 @@ Reuse implemented primitives such as action styles, `BeckonSection`, `BeckonGrou
 
 - **UI-R1 Component ownership:** Extract repeated stable presentation when it removes real duplication. Generic visual primitives belong in `DesignSystem/`; reusable business components belong in `SharedFeatures/`; one-feature helpers stay with that feature. Two call sites alone do not justify a new abstraction. Preserve applicable loading, disabled, error, empty, selected and accessibility behavior; do not add style flags that rendering never consumes.
 - **UI-R2 Semantic typography:** Feature text uses `DesignTokens.Typography`; hierarchy comes from semantic style and weight, never new `Font.system(size:)` sites.
-- **UI-R3 Reserved accents:** A screen has at most one role-accent primary-action pattern. Accent communicates action or selection, not decoration or status.
+- **UI-R3 Reserved accents:** A screen has at most one role-accent primary-action pattern. Outside the approved brand illustration and Customer Hero, accent communicates action or selection, not decoration or status.
 - **UI-R4 Semantic color and contrast:** Feature code uses semantic color roles and only approved foreground/background pairs from `ACCESSIBILITY_RULES.md`.
 - **UI-R5 Token spacing and shape:** Keep the 4pt grid and established semantic insets, spacing, radii, and control metrics. Introduce reusable values through tokens first.
 - **UI-R6 Content-first depth:** Let relevant pet, portfolio, and Groomer imagery lead. Use one quiet elevation tier; operational lists remain grouped rather than card-heavy.

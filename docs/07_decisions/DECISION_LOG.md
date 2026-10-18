@@ -18,6 +18,16 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-061
+Date: 2026-10-18
+Task: T-416
+Decision: Keep authentication brand artwork separate from D-060's control surfaces and card elevation. Preserve its small bubbles; use a borderless mint main bubble, translucent highlight, visible soft ground shadow and bounded motion that stops for Reduce Motion/inactive scenes.
+Context: Color migration turned translucent artwork into opaque control colors and reused the flattened card shadow. The user requested repair and explicitly retained the surrounding small bubbles.
+Consequences: One DesignSystem artwork component and named material tokens, no general Feature opacity exception or new motion framework. Keep authentication flows and global control/card tokens unchanged. Require rendered material and motion evidence, not just source checks.
+Linked files: docs/01_product/DESIGN_SYSTEM.md; docs/08_design/UI_IMPLEMENTATION_NOTES.md
+```
+
+```text
 Decision ID: D-060
 Date: 2026-10-17
 Decision: Adopt the UI color handoff's D1-D3: retain light mint/ coral role fills and warm backgrounds; use role Ink on Fill, Deep for text/controls and opaque Tint for selection. Domain status uses shared semantic presentation, independent of viewer role. Exact sRGB values and contrast pairs belong to Swift tokens and tests, not duplicate JSON palettes.

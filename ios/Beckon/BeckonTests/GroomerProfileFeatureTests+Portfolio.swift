@@ -133,7 +133,7 @@ extension GroomerProfileStoreTests {
         await store.load()
 
         #expect(store.portfolioOverviewSummary == "2 work photos")
-        #expect(store.portfolioFitTagSummary(for: firstPhoto) == "Curly / Wavy • Senior Care")
+        #expect(store.portfolioFitTagSummary(for: firstPhoto) == "Curly / Wavy • Senior care")
         #expect(store.portfolioFitTagSummary(for: secondPhoto) == "No fit notes")
     }
 

@@ -136,6 +136,14 @@ enum DesignTokens {
 
     }
 
+    // Decorative material, not a control surface or an informational foreground.
+    enum BrandIllustration {
+        static let body = Colors.customerFill
+        static let highlight = Color(hex: ColorHex.surface, opacity: 0.42)
+        static let satellite = Color(hex: ColorHex.customerFill, opacity: 0.28)
+        static let groundShadow = Color(hex: ColorHex.textPrimary, opacity: 0.20)
+    }
+
     enum Spacing {
         static let xs: CGFloat = 4
         static let sm: CGFloat = 8

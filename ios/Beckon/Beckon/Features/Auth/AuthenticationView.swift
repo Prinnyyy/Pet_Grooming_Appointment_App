@@ -9,11 +9,9 @@ nonisolated enum AuthenticationFocusTarget: String, CaseIterable, Hashable {
 struct AuthenticationView: View {
     @Bindable var store: AuthenticationStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var surface: AuthenticationSurface = .landing
-    @State private var heroHasEntered = false
-    @State private var bubblesAreFloating = false
-    @State private var didStartLandingMotion = false
     @State private var isPasswordVisible = false
     @FocusState private var focusedField: AuthenticationFocusTarget?
 
@@ -41,14 +39,7 @@ struct AuthenticationView: View {
                     )
             }
         }
-        .animation(.spring(response: 0.38, dampingFraction: 0.88), value: surface)
-        .onAppear(perform: startLandingMotion)
-        .onChange(of: reduceMotion) { _, newValue in
-            if newValue {
-                heroHasEntered = true
-                bubblesAreFloating = false
-            }
-        }
+        .animation(reduceMotion ? nil : .spring(response: 0.38, dampingFraction: 0.88), value: surface)
     }
 
     private var landingBackground: some View {
@@ -99,61 +90,26 @@ struct AuthenticationView: View {
     }
 
     private var landingHero: some View {
-        ZStack {
-            FloatingBubbleLayer(
-                isFloating: !reduceMotion && bubblesAreFloating,
-                color: DesignTokens.Colors.customerHeroBubble
-            )
+        VStack(spacing: DesignTokens.Spacing.lg) {
+            BeckonBrandBubble(isMotionEnabled: !reduceMotion && scenePhase == .active)
 
-            VStack(spacing: DesignTokens.Spacing.lg) {
-                ZStack {
-                    Circle()
-                        .fill(DesignTokens.Colors.customerTint)
+            VStack(spacing: DesignTokens.Spacing.sm) {
+                Text("Beckon")
+                    .font(.system(size: 46, weight: .black, design: .rounded))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
 
-                    Circle()
-                        .fill(DesignTokens.Colors.surface)
-                        .frame(width: 68, height: 68)
-                        .offset(x: -34, y: -34)
-
-                    Circle()
-                        .stroke(DesignTokens.Colors.customerDeep, lineWidth: 1)
-
-                    Text("🐶")
-                        .font(.system(size: 62))
-                        .offset(y: 3)
-                        .accessibilityHidden(true)
-                }
-                .frame(width: 156, height: 156)
-                .beckonShadow(DesignTokens.Shadows.softCard)
-                .scaleEffect(heroHasEntered ? 1 : 0.82)
-                .offset(y: heroHasEntered ? 0 : -420)
-                .opacity(heroHasEntered ? 1 : 0)
-                .animation(
-                    reduceMotion
-                        ? nil
-                        : .interpolatingSpring(stiffness: 92, damping: 11)
-                            .delay(0.08),
-                    value: heroHasEntered
-                )
-
-                VStack(spacing: DesignTokens.Spacing.sm) {
-                    Text("Beckon")
-                        .font(.system(size: 46, weight: .black, design: .rounded))
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.82)
-
-                    Text("Pet groomers at your beck and call.")
-                        .font(DesignTokens.Typography.body.weight(.medium))
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .lineSpacing(3)
-                        .frame(maxWidth: 310)
-                }
+                Text("Pet groomers at your beck and call.")
+                    .font(DesignTokens.Typography.body.weight(.medium))
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(3)
+                    .frame(maxWidth: 310)
             }
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, minHeight: 320)
         .accessibilityElement(children: .combine)
     }
 
@@ -248,7 +204,7 @@ struct AuthenticationView: View {
     private var formTopBar: some View {
         HStack {
             Button {
-                withAnimation(.spring(response: 0.34, dampingFraction: 0.9)) {
+                withAnimation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.9)) {
                     surface = .landing
                 }
             } label: {
@@ -350,7 +306,7 @@ struct AuthenticationView: View {
             .focused($focusedField, equals: .password)
 
             Button {
-                withAnimation(.easeOut(duration: 0.14)) {
+                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.14)) {
                     isPasswordVisible.toggle()
                 }
             } label: {
@@ -504,37 +460,15 @@ struct AuthenticationView: View {
     private func openForm(_ mode: AuthenticationMode) {
         store.mode = mode
         isPasswordVisible = false
-        withAnimation(.spring(response: 0.36, dampingFraction: 0.88)) {
+        withAnimation(reduceMotion ? nil : .spring(response: 0.36, dampingFraction: 0.88)) {
             surface = .form
         }
     }
 
     private func switchAuthMode() {
         isPasswordVisible = false
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) {
+        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.9)) {
             store.mode = store.mode == .signIn ? .signUp : .signIn
-        }
-    }
-
-    private func startLandingMotion() {
-        guard !didStartLandingMotion else { return }
-        didStartLandingMotion = true
-
-        guard !reduceMotion else {
-            heroHasEntered = true
-            bubblesAreFloating = false
-            return
-        }
-
-        heroHasEntered = false
-        bubblesAreFloating = false
-
-        withAnimation(.interpolatingSpring(stiffness: 92, damping: 11).delay(0.08)) {
-            heroHasEntered = true
-        }
-
-        withAnimation(.easeInOut(duration: 0.2).delay(0.62)) {
-            bubblesAreFloating = true
         }
     }
 }
@@ -542,116 +476,4 @@ struct AuthenticationView: View {
 private enum AuthenticationSurface {
     case landing
     case form
-}
-
-private struct FloatingBubbleLayer: View {
-    let isFloating: Bool
-    let color: Color
-
-    var body: some View {
-        ZStack {
-            bubble(
-                size: 16,
-                x: -118,
-                y: -54,
-                travel: -30,
-                xTravel: -10,
-
-                delay: 0.08,
-                duration: 3.0
-            )
-            bubble(
-                size: 22,
-                x: 118,
-                y: -34,
-                travel: 34,
-                xTravel: 12,
-
-                delay: 0.24,
-                duration: 3.4
-            )
-            bubble(
-                size: 12,
-                x: -138,
-                y: 68,
-                travel: 26,
-                xTravel: 9,
-
-                delay: 0.44,
-                duration: 3.2
-            )
-            bubble(
-                size: 18,
-                x: 140,
-                y: 82,
-                travel: -32,
-                xTravel: -12,
-
-                delay: 0.14,
-                duration: 3.6
-            )
-            bubble(
-                size: 10,
-                x: 60,
-                y: -112,
-                travel: 24,
-                xTravel: -8,
-
-                delay: 0.34,
-                duration: 2.8
-            )
-            bubble(
-                size: 26,
-                x: -20,
-                y: 104,
-                travel: -22,
-                xTravel: 14,
-
-                delay: 0.56,
-                duration: 4.0
-            )
-            bubble(
-                size: 9,
-                x: 10,
-                y: -136,
-                travel: 18,
-                xTravel: 7,
-
-                delay: 0.18,
-                duration: 3.1
-            )
-        }
-        .frame(width: 360, height: 320)
-        .accessibilityHidden(true)
-    }
-
-    private func bubble(
-        size: CGFloat,
-        x: CGFloat,
-        y: CGFloat,
-        travel: CGFloat,
-        xTravel: CGFloat,
-
-        delay: Double,
-        duration: Double
-    ) -> some View {
-        Circle()
-            .fill(color)
-            .frame(width: size, height: size)
-            .overlay {
-                Circle()
-                    .stroke(DesignTokens.Colors.surface, lineWidth: 1)
-            }
-            .offset(
-                x: x + (isFloating ? xTravel : -xTravel * 0.35),
-                y: y + (isFloating ? travel : -travel * 0.35)
-            )
-            .scaleEffect(isFloating ? 1.16 : 0.86)
-            .animation(
-                .easeInOut(duration: duration)
-                    .delay(delay)
-                    .repeatForever(autoreverses: true),
-                value: isFloating
-            )
-    }
 }

@@ -2,7 +2,7 @@
   "version": 1,
   "scope": "ios/Beckon/Beckon/Features",
   "lastChange": {
-    "reason": "T-413/T-414 semantic shapes and shared badge migration"
+    "reason": "T-416"
   },
   "findings": [
     {
@@ -10,48 +10,6 @@
       "path": "ios/Beckon/Beckon/Features/Auth/AuthenticationBootstrapView.swift",
       "fingerprint": "52360035af6e6f1d141b5eca5b1a05ac15d485c353022cb4dcfbefdc4ad5be0b",
       "expressionHash": "397947b460955eacfe2ced3a2fe0f673822ec17fd3c567b594f8fdf698ebff73",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Auth/AuthenticationView.swift",
-      "fingerprint": "93149211168a4560beb7d804f22515b0e4a3b99349959041e4c448dd0797f287",
-      "expressionHash": "eac6c2f4540f9466697532e23a6e736f6a605f6995f483974425a9959834e3ef",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI102",
-      "path": "ios/Beckon/Beckon/Features/Auth/AuthenticationView.swift",
-      "fingerprint": "5e5ba291022a828570137de2638b79341fe08773800565ad03b82cfb0222e9f5",
-      "expressionHash": "03e786289bd76fb88524c36e61490856b4ee16c4be954efeadf628357967f6c5",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI001",
-      "path": "ios/Beckon/Beckon/Features/Auth/AuthenticationView.swift",
-      "fingerprint": "dcb49c1b47aeda078e083e217c93b6cccc3e2ed596ec79df8fd25506571dd9e8",
-      "expressionHash": "1fba5e06cf3c183b9aa7f613973a0fa942d691c7efa1e2c7ed0a82de7f176797",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI102",
-      "path": "ios/Beckon/Beckon/Features/Auth/AuthenticationView.swift",
-      "fingerprint": "3ed08b1c7c90106ef42539e6274f69aface3abe3bf95b884943a5965e8d5d4c8",
-      "expressionHash": "446dfc5850d961574d129188f41b09cb48e93340621cb312b57027f3ee6a9ada",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Auth/AuthenticationView.swift",
-      "fingerprint": "83ef2e40ad3745b6b4b07bd5262784b4c7735bab81c79c6afe4ea35e4f9f1b8c",
-      "expressionHash": "b0e0ee983e83d5111341c3adc8fdddf3f6ea8535f79887b09608b134e83bc3ea",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI102",
-      "path": "ios/Beckon/Beckon/Features/Auth/AuthenticationView.swift",
-      "fingerprint": "1b97ec5401fe22320e5b67831f1959916aaeab9ad03b321826e7ac7e7d979aed",
-      "expressionHash": "28b9688e70589b1a63267bdde027473782d17d504fb74a10df959dd67f289eba",
       "occurrence": 1
     },
     {
@@ -90,13 +48,6 @@
       "occurrence": 1
     },
     {
-      "ruleID": "UI008",
-      "path": "ios/Beckon/Beckon/Features/Auth/AuthenticationView.swift",
-      "fingerprint": "078b4bcaa729d5fdbb5dbc4aebe940865312864f97b9ac8e90408580f1c94da1",
-      "expressionHash": "df86d38a17d04751b5073d2eb1fbdfd12a2212f6380004872fadc168eb6a8dc3",
-      "occurrence": 2
-    },
-    {
       "ruleID": "UI001",
       "path": "ios/Beckon/Beckon/Features/Auth/AuthenticationView.swift",
       "fingerprint": "7c05e055d17074e3c29c0b2c9fce5cb2c9204c466a4ca96cd406103f51bde51c",
@@ -108,20 +59,6 @@
       "path": "ios/Beckon/Beckon/Features/Auth/AuthenticationView.swift",
       "fingerprint": "d8a5055818e8fd800ec8b280144c41f69b0bf142b530f1abb56615e201c9743b",
       "expressionHash": "4505354a128d353be1c6354592a4484c940ecfafbb54b98c2380bbd2089516a7",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Auth/AuthenticationView.swift",
-      "fingerprint": "9d754fb8c7cc58106ba82f048126be30f628c25d07f081831fb362cb2c1f42b6",
-      "expressionHash": "35fa188814aa177c07aa7f814545c173e9c26553087d0e1fdc071888425c74b1",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI102",
-      "path": "ios/Beckon/Beckon/Features/Auth/AuthenticationView.swift",
-      "fingerprint": "a2ddd89d59c17e2719f74edee730f5077272e27706e83e85d71a20fee32cec9d",
-      "expressionHash": "29e3cb34e0a04c1aab031c5984c30801529cab630610a56e57cbf010a0c794cd",
       "occurrence": 1
     },
     {

@@ -5,6 +5,13 @@ import XCTest
 
 @MainActor
 final class UIColorImplementationSnapshotTests: XCTestCase {
+    func testAuthenticationLanding() async throws {
+        for largeText in [false, true] {
+            try await capture(AuthenticationView(store: AuthenticationStore(repository: AuthSessionRepositoryFake())),
+                name: "authentication-landing", largeText: largeText, captureAllContent: true)
+        }
+    }
+
     func testGroomerAndSharedSurfaces() async throws {
         let groomer = GroomerUIFixture()
         for largeText in [false, true] {
