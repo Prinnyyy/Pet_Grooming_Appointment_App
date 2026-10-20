@@ -53,6 +53,26 @@ node scripts/testops.mjs run matching --scenario request_matching_eval --matrix 
 
 Remote backend execution and cleanup require explicit operator approval, `--execute`, and `TESTOPS_REMOTE_WRITE_APPROVED=1`.
 
+## Pet Flow Preview
+
+Open `ios/Beckon/Beckon/Features/Customer/Pets/CustomerPetsFlowSandbox.swift` in Xcode,
+enable Editor > Canvas, select an iPhone and resume the interactive preview.
+
+- `Pet flow - edit and save`: open a pet card, edit, save, and verify the updated card and existing success toast. Reload reads the same in-memory data; Reset starts a new isolated session.
+- `Pet flow - unconfirmed save`: the first save simulates a network failure without applying the edit. The production form preserves edits and requires explicit reload/confirmation before retrying; later saves succeed.
+- The sandbox reuses the production pet section, form, Store, validation and feedback components. Cancel does not save. The existing Add/Remove/photo actions also use sandbox data.
+- No login or live repository is used. Pet/photo data lives in memory; existing photo-cache and pending-creation code receives a unique directory under `temporaryDirectory/BeckonPetFlowSandbox/`. Reset invalidates old operations and removes that session's files; deinitialization also cleans up. A terminated preview process may leave disposable files in its temporary container.
+- In DEBUG, Xcode's `XCODE_RUNNING_FOR_PREVIEWS=1` flag prevents the app entry from constructing live services. Normal launches and Release builds retain the normal composition. No sandbox route, scheme, signing change or new dependency is needed.
+
+Focused behavior coverage: `PetFlowSandboxTests` and `CustomerPetsStoreTests`.
+Preview is for local UX iteration, not evidence of backend authorization, real persistence, or device integration.
+
+T-417 acceptance (2026-10-20): the two initial regression tests failed on missing revisions and non-persistent preview edits, then the 54-test focused run passed. Xcode Canvas Live Mode verified card-to-editor navigation, editing, cancel, save/return with the production success toast, reload, reset and default/AX3 list layout. The failure preview retained edits and disabled saving; automated tests verified its reload/retry path. No fresh spoken VoiceOver or comprehensive keyboard/device review was performed.
+
+The integrated run passed 835 tests and skipped 46 opt-in tests, with one existing four-second feedback-dismissal timeout. All eight unchanged `BeckonFeedbackCenterTests` passed in an isolated retest using the same built products; other passing results were reused. XcodeBuildMCP result bundles end in `19-08-36-588Z_pid73300_2cc27364.xcresult` (full) and `19-16-49-558Z_pid73300_33fd36d1.xcresult` (retest). The full-run tool timed out at 300 seconds; its original process was allowed to finish and the completed result bundle was read directly, without starting a duplicate run. Debug/Release builds, preflight and context hygiene passed.
+
+Inherited UX observation, not changed by this sandbox: the production Store resets editing identity before sheet dismissal finishes, so the editor title can briefly change to "Add pet" while closing.
+
 ## Debug Event Logs
 
 For local app repros, DEBUG builds expose `Account -> Debug Console` and write structured JSONL events to the booted simulator app container. Use:

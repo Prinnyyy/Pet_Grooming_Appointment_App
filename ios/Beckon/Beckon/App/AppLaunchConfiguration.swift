@@ -126,11 +126,18 @@ struct AppLaunchConfiguration: Equatable, Sendable {
 
     let usesSignedOutAuthSessionRepository: Bool
     let testOps: AppTestOpsConfiguration
+    let isSwiftUIPreview: Bool
 
-    init(arguments: [String] = ProcessInfo.processInfo.arguments) {
+    init(arguments: [String] = ProcessInfo.processInfo.arguments,
+         environment: [String: String] = ProcessInfo.processInfo.environment) {
         usesSignedOutAuthSessionRepository = arguments.contains(
             Self.signedOutAuthSessionArgument
         )
         testOps = AppTestOpsConfiguration(arguments: arguments)
+        #if DEBUG
+        isSwiftUIPreview = environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
+        #else
+        isSwiftUIPreview = false
+        #endif
     }
 }

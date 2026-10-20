@@ -493,7 +493,7 @@ private struct CustomerHomeRequestHeroContentLayout: Layout {
     }
 }
 
-private struct CustomerHomePetsSection: View {
+struct CustomerHomePetsSection: View {
     @Bindable var store: CustomerPetsStore
 
     var body: some View {
@@ -791,11 +791,12 @@ private struct CustomerHomeInlineDescription: View {
 
 #if DEBUG
 #Preview {
+    let repository = CustomerPetsPreviewRepository()
     NavigationStack {
         CustomerPetsView(
-            customerID: UUID(),
+            customerID: repository.customerID,
             displayName: "Lian",
-            repository: CustomerPetsPreviewRepository(),
+            repository: repository,
             requestRepository: CustomerHomePreviewRequestRepository(),
             notificationRepository: CustomerHomePreviewNotificationRepository(),
             bookingRepository: CustomerHomePreviewBookingRepository()
@@ -804,12 +805,18 @@ private struct CustomerHomeInlineDescription: View {
 }
 
 @MainActor
-private final class CustomerPetsPreviewRepository: CustomerPetRepository {
-    private let customerID = UUID()
+final class CustomerPetsPreviewRepository: CustomerPetRepository {
+    let customerID: UUID
+    var mutationDelay: Duration = .milliseconds(450)
+    var failsNextSave = false
+    var isActive = true
     private var storedPets: [CustomerPet]
     private var storedPhotos: [CustomerPetPhoto] = []
+    private var photoBytes: [UUID: Data] = [:]
+    private var creations: [UUID: (draft: CustomerPetDraft, pet: CustomerPet)] = [:]
 
-    init() {
+    init(customerID: UUID = UUID()) {
+        self.customerID = customerID
         let petID = UUID()
         storedPets = [
             CustomerPet(
@@ -825,7 +832,8 @@ private final class CustomerPetsPreviewRepository: CustomerPetRepository {
                 temperament: "Friendly",
                 medicalNotes: nil,
                 groomingNotes: "Sensitive paws",
-                isActive: true
+                isActive: true,
+                revision: UUID()
             ),
             CustomerPet(
                 id: UUID(),
@@ -840,17 +848,20 @@ private final class CustomerPetsPreviewRepository: CustomerPetRepository {
                 temperament: "Playful",
                 medicalNotes: nil,
                 groomingNotes: nil,
-                isActive: true
+                isActive: true,
+                revision: UUID()
             ),
         ]
     }
 
     func pets(customerID: UUID) async throws -> [CustomerPet] {
-        storedPets
+        try requireOwner(customerID)
+        return storedPets
     }
 
     func photos(customerID: UUID) async throws -> [CustomerPetPhoto] {
-        storedPhotos
+        try requireOwner(customerID)
+        return storedPhotos
     }
 
     func createPet(
@@ -858,9 +869,40 @@ private final class CustomerPetsPreviewRepository: CustomerPetRepository {
         operationID: UUID,
         draft: CustomerPetDraft
     ) async throws -> CustomerPetSaveResult {
-        let revision = UUID()
-        let pet = CustomerPet(
-            id: UUID(),
+        try requireOwner(customerID)
+        try await prepareSave()
+        if let previous = creations[operationID] {
+            guard previous.draft == draft else { throw CustomerPetRepositoryError.operationIntentChanged }
+            let current = storedPets.first { $0.id == previous.pet.id }
+            return .init(petID: previous.pet.id, resultRevision: previous.pet.revision!,
+                replayed: true, state: current == nil ? .unavailable : .active, pet: current)
+        }
+        let pet = makePet(id: UUID(), draft: draft)
+        storedPets.insert(pet, at: 0)
+        creations[operationID] = (draft, pet)
+        return .init(petID: pet.id, resultRevision: pet.revision!, replayed: false, state: .active, pet: pet)
+    }
+
+    func updatePet(
+        petID: UUID,
+        expectedRevision: UUID,
+        draft: CustomerPetDraft
+    ) async throws -> CustomerPet {
+        try await prepareSave()
+        guard let index = storedPets.firstIndex(where: { $0.id == petID }) else {
+            throw CustomerPetRepositoryError.petNotFound
+        }
+        guard storedPets[index].revision == expectedRevision else {
+            throw CustomerPetRepositoryError.revisionConflict
+        }
+        let pet = makePet(id: petID, draft: draft)
+        storedPets[index] = pet
+        return pet
+    }
+
+    private func makePet(id: UUID, draft: CustomerPetDraft) -> CustomerPet {
+        CustomerPet(
+            id: id,
             customerID: customerID,
             name: draft.name,
             species: draft.species,
@@ -873,36 +915,22 @@ private final class CustomerPetsPreviewRepository: CustomerPetRepository {
             medicalNotes: draft.medicalNotes,
             groomingNotes: draft.groomingNotes,
             isActive: true,
-            revision: revision
-        )
-        storedPets.insert(pet, at: 0)
-        return .init(petID: pet.id, resultRevision: revision, replayed: false, state: .active, pet: pet)
-    }
-
-    func updatePet(
-        petID: UUID,
-        expectedRevision: UUID,
-        draft: CustomerPetDraft
-    ) async throws -> CustomerPet {
-        guard let pet = storedPets.first(where: { $0.id == petID }) else { throw CustomerPetRepositoryError.petNotFound }
-        return CustomerPet(
-            id: pet.id,
-            customerID: pet.customerID,
-            name: draft.name,
-            species: draft.species,
-            breed: draft.breed,
-            coatType: draft.coatType,
-            size: draft.size,
-            weightLbs: draft.weightLbs,
-            birthday: draft.birthday,
-            temperament: draft.temperament,
-            medicalNotes: draft.medicalNotes,
-            groomingNotes: draft.groomingNotes,
-            isActive: true
+            coatTypeSource: draft.coatTypeConfirmed ? "explicit" : "legacy_unverified",
+            mattingConfirmed: draft.mattingConfirmed,
+            revision: UUID()
         )
     }
 
-    func softDeletePet(_ pet: CustomerPet) async throws {}
+    func softDeletePet(_ pet: CustomerPet) async throws {
+        try requireOwner(pet.customerID)
+        guard let current = storedPets.first(where: { $0.id == pet.id }) else {
+            throw CustomerPetRepositoryError.petNotFound
+        }
+        guard current.revision == pet.revision else { throw CustomerPetRepositoryError.revisionConflict }
+        storedPets.removeAll { $0.id == pet.id }
+        for photo in storedPhotos where photo.petID == pet.id { photoBytes[photo.id] = nil }
+        storedPhotos.removeAll { $0.petID == pet.id }
+    }
 
     func uploadPhoto(
         customerID: UUID,
@@ -911,7 +939,11 @@ private final class CustomerPetsPreviewRepository: CustomerPetRepository {
         contentType: CustomerPetPhotoContentType,
         caption: String?
     ) async throws -> CustomerPetPhoto {
-        CustomerPetPhoto(
+        try requireOwner(customerID)
+        guard storedPets.contains(where: { $0.id == petID }) else {
+            throw CustomerPetRepositoryError.petNotFound
+        }
+        let photo = CustomerPetPhoto(
             id: UUID(),
             petID: petID,
             customerID: customerID,
@@ -922,12 +954,40 @@ private final class CustomerPetsPreviewRepository: CustomerPetRepository {
                 contentType: contentType
             ),
             caption: caption,
-            sortOrder: 0,
-            isPrimary: false
+            sortOrder: storedPhotos.filter { $0.petID == petID }.count,
+            isPrimary: !storedPhotos.contains { $0.petID == petID }
         )
+        storedPhotos.append(photo)
+        photoBytes[photo.id] = data
+        return photo
     }
 
-    func deletePhoto(_ photo: CustomerPetPhoto) async throws {}
+    func photoData(_ photo: CustomerPetPhoto) async throws -> Data {
+        try requireOwner(photo.customerID)
+        guard let bytes = photoBytes[photo.id] else { throw CustomerPetRepositoryError.unavailable }
+        return bytes
+    }
+
+    func deletePhoto(_ photo: CustomerPetPhoto) async throws {
+        try requireOwner(photo.customerID)
+        storedPhotos.removeAll { $0.id == photo.id }
+        photoBytes[photo.id] = nil
+    }
+
+    private func requireOwner(_ id: UUID) throws {
+        guard isActive, !Task.isCancelled else { throw CustomerPetRepositoryError.cancelled }
+        guard id == customerID else { throw CustomerPetRepositoryError.notAllowed }
+    }
+
+    private func prepareSave() async throws {
+        try requireOwner(customerID)
+        try await Task.sleep(for: mutationDelay)
+        try requireOwner(customerID)
+        if failsNextSave {
+            failsNextSave = false
+            throw CustomerPetRepositoryError.networkUnavailable
+        }
+    }
 }
 
 @MainActor
