@@ -13,12 +13,11 @@ struct RoleOnboardingView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                DesignTokens.Colors.appBackground
-                    .ignoresSafeArea()
+                BeckonExpressiveBackdrop()
 
                 ScrollViewReader { scrollProxy in
                     ScrollView {
-                        VStack(spacing: DesignTokens.Spacing.large) {
+                        BeckonCascade(alignment: .center, spacing: DesignTokens.Spacing.large) {
                             header
                             form
                         }
@@ -32,6 +31,8 @@ struct RoleOnboardingView: View {
                     .scrollDismissesKeyboard(.interactively)
                 }
             }
+            .beckonEntranceRhythm(.detail)
+        .environment(\.beckonCustomerDesign, true)
             .navigationTitle("Set up your profile")
             .navigationBarTitleDisplayMode(.inline)
         }
@@ -53,20 +54,20 @@ struct RoleOnboardingView: View {
 
             VStack(spacing: DesignTokens.Spacing.xs) {
                 Text("Set up Beckon")
-                    .font(DesignTokens.Typography.largeTitle.weight(.bold))
+                    .font(DesignTokens.Typography.Expressive.display)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
 
                 Text("Choose the role that matches how you will use the app.")
-                    .font(DesignTokens.Typography.body)
+                    .font(DesignTokens.Typography.Expressive.body)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
             }
 
             if let email = session.email {
                 Text(email)
-                    .font(DesignTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.customerDeep)
+                    .font(DesignTokens.Typography.Expressive.chip)
+                    .foregroundStyle(DesignTokens.Colors.customerInk)
                     .padding(.horizontal, DesignTokens.Spacing.md)
                     .padding(.vertical, DesignTokens.Spacing.sm)
                     .background(DesignTokens.Colors.customerTint)
@@ -161,7 +162,7 @@ struct RoleOnboardingView: View {
         } label: {
             HStack(spacing: DesignTokens.Spacing.md) {
                 Label(title, systemImage: systemImage)
-                    .font(DesignTokens.Typography.body.weight(.semibold))
+                    .font(DesignTokens.Typography.Expressive.headline)
                     .foregroundStyle(roleForeground(role))
                 Spacer()
                 if store.selectedRole == role {
@@ -172,17 +173,17 @@ struct RoleOnboardingView: View {
             .padding(DesignTokens.Spacing.lg)
             .background(roleBackground(role))
             .clipShape(
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
             )
             .overlay {
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
-                    .stroke(
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
+                    .strokeBorder(
                         roleBorder(role),
-                        lineWidth: store.selectedRole == role ? 1.5 : 1
+                        lineWidth: store.selectedRole == role ? DesignTokens.Ledge.edgeWidth + 1 : DesignTokens.Ledge.edgeWidth
                     )
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BeckonLedgeButtonStyle(.card))
         .disabled(store.isSubmitting)
         .accessibilityIdentifier("profile.role.\(role.rawValue)")
     }

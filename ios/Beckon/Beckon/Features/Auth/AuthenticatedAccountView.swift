@@ -7,11 +7,10 @@ struct AuthenticatedAccountView: View {
 
     var body: some View {
         ZStack {
-            DesignTokens.Colors.appBackground
-                .ignoresSafeArea()
+            BeckonExpressiveBackdrop()
 
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: DesignTokens.Layout.sectionSpacing) {
+                BeckonCascade(spacing: DesignTokens.Layout.sectionSpacing) {
                     BeckonPageTitle("Account")
 
                     BeckonAccountIdentityHeader(
@@ -28,7 +27,7 @@ struct AuthenticatedAccountView: View {
                         .accessibilityHidden(true)
                     }
 
-                    BeckonSection("Support") {
+                    BeckonSection("Help") {
                         AccountReleaseLinksSection(accent: profile.role.settingsAccent)
                     }
 
@@ -70,6 +69,8 @@ struct AuthenticatedAccountView: View {
                 .beckonPageInsets()
             }
         }
+        .environment(\.beckonCustomerDesign, true)
+        .beckonEntranceRhythm(.list)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("account.authenticated")
@@ -81,6 +82,7 @@ struct AuthenticatedAccountView: View {
 }
 
 struct AccountReleaseLinksSection: View {
+    @Environment(\.openURL) private var openURL
     var accent: BeckonRoleAccent = .neutral
 
     private let dividerLeadingInset =
@@ -92,19 +94,19 @@ struct AccountReleaseLinksSection: View {
         BeckonGroupedSurface {
             VStack(spacing: 0) {
                 releaseLinkRow(
-                    title: "Privacy policy",
-                    systemImage: "hand.raised",
-                    destination: AppReleaseLinks.privacyPolicy,
-                    accessibilityIdentifier: "account.privacy-policy"
+                    title: "Support",
+                    systemImage: "questionmark.circle",
+                    destination: AppReleaseLinks.support,
+                    accessibilityIdentifier: "account.support"
                 )
 
                 BeckonGroupedDivider(leadingInset: dividerLeadingInset)
 
                 releaseLinkRow(
-                    title: "Support",
-                    systemImage: "questionmark.circle",
-                    destination: AppReleaseLinks.support,
-                    accessibilityIdentifier: "account.support"
+                    title: "Privacy policy",
+                    systemImage: "hand.raised",
+                    destination: AppReleaseLinks.privacyPolicy,
+                    accessibilityIdentifier: "account.privacy-policy"
                 )
             }
         }
@@ -116,7 +118,7 @@ struct AccountReleaseLinksSection: View {
         destination: URL,
         accessibilityIdentifier: String
     ) -> some View {
-        Link(destination: destination) {
+        Button { openURL(destination) } label: {
             BeckonSettingsRowLabel(
                 title: title,
                 systemImage: systemImage,
@@ -124,7 +126,7 @@ struct AccountReleaseLinksSection: View {
                 trailingSystemImage: "arrow.up.right"
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BeckonGuardedPlainButtonStyle())
         .accessibilityIdentifier(accessibilityIdentifier)
     }
 }
@@ -136,55 +138,26 @@ struct AccountDangerActions: View {
     @State private var activeAction: AccountDangerAction?
 
     var body: some View {
-        BeckonCard {
-            VStack(spacing: DesignTokens.Spacing.md) {
-                accountActionButton(
-                    title: deleteAccountTitle,
-                    systemImage: "trash",
-                    accessibilityIdentifier: "auth.delete-account"
-                ) {
-                    showsDeletionWarning = true
-                }
-
-                Divider()
-
-                accountActionButton(
-                    title: signOutTitle,
-                    systemImage: "rectangle.portrait.and.arrow.right",
-                    accessibilityIdentifier: "auth.sign-out"
-                ) {
-                    signOut()
-                }
-            }
+        // Signing out is routine and safe: a normal button. Deleting the account is rare and cannot be undone: a quiet red
+        // action on its own, below, so the two are never one tap apart in the same style.
+        VStack(spacing: DesignTokens.Spacing.sm) {
+            signOutButton
+            deleteAccountButton
         }
-        .confirmationDialog(
-            "Delete Account?",
-            isPresented: $showsDeletionWarning,
-            titleVisibility: .visible
-        ) {
-            Button("Continue", role: .destructive) {
+        // Two questions on purpose: the first says what goes, the second is the point of no return.
+        .designAlertDialog(isPresented: $showsDeletionWarning) {
+            .destructive(title: "Delete Account?",
+                message: "This will remove your profile details, cancel active appointments, and sign you out.",
+                systemImage: "trash.fill", keepTitle: "Cancel", confirmTitle: "Continue", confirmSystemImage: "arrow.right") {
                 showsFinalDeletionConfirmation = true
             }
-
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text(
-                "This will remove your profile details, cancel active appointments, and sign you out."
-            )
         }
-        .alert(
-            "Delete Account Permanently?",
-            isPresented: $showsFinalDeletionConfirmation
-        ) {
-            Button("Delete Account", role: .destructive) {
+        .designAlertDialog(isPresented: $showsFinalDeletionConfirmation) {
+            .destructive(title: "Delete Account Permanently?",
+                message: "This action cannot be undone. Your account data will be anonymized and the sign-in user will be deleted.",
+                systemImage: "trash.fill", keepTitle: "Cancel", confirmTitle: "Delete Account") {
                 deleteAccount()
             }
-
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text(
-                "This action cannot be undone. Your account data will be anonymized and the sign-in user will be deleted."
-            )
         }
     }
 
@@ -200,43 +173,58 @@ struct AccountDangerActions: View {
             : "Sign out"
     }
 
-    private func accountActionButton(
-        title: String,
-        systemImage: String,
-        accessibilityIdentifier: String,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(role: .destructive, action: action) {
+    private var isSigningOut: Bool {
+        authenticationStore.isSubmitting && activeAction == .signOut
+    }
+
+    private var isDeleting: Bool {
+        authenticationStore.isSubmitting && activeAction == .deleteAccount
+    }
+
+    private var signOutButton: some View {
+        Button {
+            signOut()
+        } label: {
             HStack(spacing: DesignTokens.Spacing.sm) {
-                if authenticationStore.isSubmitting
-                    && (
-                        accessibilityIdentifier == "auth.delete-account"
-                        && activeAction == .deleteAccount
-                        || accessibilityIdentifier == "auth.sign-out"
-                        && activeAction == .signOut
-                    )
-                {
+                if isSigningOut {
+                    ProgressView()
+                } else {
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                        .accessibilityHidden(true)
+                }
+                Text(signOutTitle)
+            }
+            .font(DesignTokens.Typography.Expressive.emphasis)
+            .foregroundStyle(DesignTokens.Colors.textPrimary)
+            .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.ledgePrimaryButtonHeight)
+        }
+        .buttonStyle(BeckonLedgeButtonStyle(.card))
+        .disabled(authenticationStore.isSubmitting)
+        .accessibilityIdentifier("auth.sign-out")
+    }
+
+    private var deleteAccountButton: some View {
+        Button(role: .destructive) {
+            showsDeletionWarning = true
+        } label: {
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                if isDeleting {
                     ProgressView()
                         .tint(DesignTokens.Colors.statusErrorText)
                 } else {
-                    Image(systemName: systemImage)
-                        .font(DesignTokens.Typography.action)
-                        .foregroundStyle(DesignTokens.Colors.statusErrorText)
+                    Image(systemName: "trash")
                         .accessibilityHidden(true)
                 }
-
-                Text(title)
-                    .font(DesignTokens.Typography.headline)
-                    .foregroundStyle(DesignTokens.Colors.statusErrorText)
-
-                Spacer(minLength: 0)
+                Text(deleteAccountTitle)
             }
-            .padding(.vertical, DesignTokens.Spacing.xs)
+            .font(DesignTokens.Typography.Expressive.supporting)
+            .foregroundStyle(DesignTokens.Colors.statusErrorText)
+            .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.minimumTouchTarget)
             .contentShape(Rectangle())
         }
-        .buttonStyle(BeckonDestructiveButtonStyle())
+        .buttonStyle(BeckonGuardedPlainButtonStyle())
         .disabled(authenticationStore.isSubmitting)
-        .accessibilityIdentifier(accessibilityIdentifier)
+        .accessibilityIdentifier("auth.delete-account")
     }
 
     private func signOut() {

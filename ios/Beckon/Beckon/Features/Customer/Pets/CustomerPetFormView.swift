@@ -1,5 +1,7 @@
 import PhotosUI
+
 import SwiftUI
+
 import UIKit
 
 nonisolated enum CustomerPetNameInput {
@@ -16,6 +18,8 @@ nonisolated enum CustomerPetFormFocusTarget: String, CaseIterable, Hashable {
     case groomingNotes = "customer.pets.form.grooming-notes.container"
 }
 
+// Pet editor: a profile hero that previews the pet, ledge cards per group, one mint save button.
+// The inputs (fields, chips, sliders, pickers) keep their behavior and stay calm; only chrome and grouping are lively.
 struct CustomerPetFormView: View {
     @Bindable var store: CustomerPetsStore
     @FocusState private var focusedField: CustomerPetFormFocusTarget?
@@ -24,165 +28,125 @@ struct CustomerPetFormView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                DesignTokens.Colors.appBackground
-                    .ignoresSafeArea()
+                BeckonExpressiveBackdrop()
 
                 ScrollViewReader { scrollProxy in
                     ScrollView {
-                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                        BeckonAnnotatedModule(
-                            "Pet Profile",
-                            subtitle: "Pet identity, avatar, breed, and coat details."
-                        ) {
-                            VStack(spacing: DesignTokens.Spacing.md) {
-                                CustomerPetFormPhotoModule(store: store)
+                        BeckonCascade(spacing: DesignTokens.Layout.sectionSpacing) {
+                            CustomerPetFormHero(store: store)
+                                .disabled(store.formIsFrozen)
 
-                                BeckonCard {
-                                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                                        CustomerPetFormLabeledTextField(
-                                            title: "Name",
-                                            placeholder: "Pet name",
-                                            text: $store.formName,
-                                            allowsMultiline: false,
-                                            maximumLength: CustomerPetNameInput.maximumLength,
-                                            focusTarget: .name,
-                                            focusedField: $focusedField
-                                        )
+                            section("About", systemImage: "pawprint.fill") {
+                                CustomerPetFormLabeledTextField(
+                                    title: "Name",
+                                    placeholder: "Pet name",
+                                    text: $store.formName,
+                                    allowsMultiline: false,
+                                    maximumLength: CustomerPetNameInput.maximumLength,
+                                    focusTarget: .name,
+                                    focusedField: $focusedField
+                                )
 
-                                        CustomerPetFormChoiceRow(
-                                            title: "Species",
-                                            subtitle: store.formSpecies.title
-                                        ) {
-                                            ForEach(CustomerPetSpecies.allCases) { species in
-                                                CustomerPetFormChip(
-                                                    title: species.title,
-                                                    isSelected: store.formSpecies == species
-                                                ) {
-                                                    store.updateFormSpecies(species)
-                                                }
-                                            }
+                                CustomerPetFormChoiceRow(title: "Species", subtitle: store.formSpecies.title) {
+                                    ForEach(CustomerPetSpecies.allCases) { species in
+                                        CustomerPetFormChip(title: species.title, isSelected: store.formSpecies == species) {
+                                            store.updateFormSpecies(species)
                                         }
+                                    }
+                                }
 
-                                        CustomerPetFormChoiceRow(
-                                            title: "Breed",
-                                            subtitle: store.formBreed.title
-                                        ) {
-                                            ForEach(CustomerPetBreed.options(for: store.formSpecies)) { breed in
-                                                CustomerPetFormChip(
-                                                    title: breed.title,
-                                                    isSelected: store.formBreed == breed
-                                                ) {
-                                                    store.updateFormBreed(breed)
-                                                }
-                                            }
+                                CustomerPetFormChoiceRow(title: "Breed", subtitle: store.formBreed.title) {
+                                    ForEach(CustomerPetBreed.options(for: store.formSpecies)) { breed in
+                                        CustomerPetFormChip(title: breed.title, isSelected: store.formBreed == breed) {
+                                            store.updateFormBreed(breed)
                                         }
+                                    }
+                                }
 
-                                        CustomerPetFormChoiceRow(
-                                            title: "Coat type",
-                                            subtitle: store.formCoatType.title
-                                        ) {
-                                            ForEach(CustomerPetCoatType.displayOptions) { coatType in
-                                                CustomerPetFormChip(
-                                                    title: coatType.title,
-                                                    isSelected: store.formCoatType == coatType
-                                                ) {
-                                                    store.formCoatType = coatType
-                                                }
-                                            }
+                                CustomerPetFormChoiceRow(title: "Coat type", subtitle: store.formCoatType.title) {
+                                    ForEach(CustomerPetCoatType.displayOptions) { coatType in
+                                        CustomerPetFormChip(title: coatType.title, isSelected: store.formCoatType == coatType) {
+                                            store.formCoatType = coatType
                                         }
                                     }
                                 }
                             }
-                        }
 
-                        .disabled(store.formIsFrozen)
-
-                        BeckonAnnotatedModule(
-                            "Details",
-                            subtitle: "Size, birthday, temperament, and care notes."
-                        ) {
-                            BeckonCard {
-                                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                                    Toggle("Weight Known", isOn: $store.formWeightIsKnown)
-                                        .accessibilityIdentifier("customer.pets.weight-known")
-                                    if store.formWeightIsKnown {
+                            section("Size and age", systemImage: "ruler.fill") {
+                                Toggle("Weight known", isOn: $store.formWeightIsKnown)
+                                    .font(CustomerPetFormTypography.fieldLabel)
+                                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                                    .tint(DesignTokens.Colors.customerDeep)
+                                    .accessibilityIdentifier("customer.pets.weight-known")
+                                if store.formWeightIsKnown {
                                     CustomerPetWeightControl(
                                         weight: $store.formWeightLbs,
                                         weightText: weightText,
-                                        sizeTitle: CustomerPetSizeCode
-                                            .code(forWeightLbs: store.formWeightLbs)
-                                            .title
+                                        sizeTitle: CustomerPetSizeCode.code(forWeightLbs: store.formWeightLbs).title
                                     )
-                                    }
+                                }
 
-                                CustomerPetBirthdayControl(
-                                    isKnown: birthdayKnownBinding,
-                                    date: birthdayBinding
-                                )
+                                CustomerPetBirthdayControl(isKnown: birthdayKnownBinding, date: birthdayBinding)
+                            }
 
-                                CustomerPetFormChoiceRow(
-                                    title: "Temperament",
-                                    subtitle: store.formTemperament.title
-                                ) {
+                            section("Care notes", systemImage: "heart.text.square.fill") {
+                                CustomerPetFormChoiceRow(title: "Temperament", subtitle: store.formTemperament.title) {
                                     ForEach(CustomerPetTemperament.displayOptions) { temperament in
-                                        CustomerPetFormChip(
-                                            title: temperament.title,
-                                            isSelected: store.formTemperament == temperament
-                                        ) {
+                                        CustomerPetFormChip(title: temperament.title, isSelected: store.formTemperament == temperament) {
                                             store.formTemperament = temperament
                                         }
                                     }
                                 }
 
-                                Picker("Coat Matting", selection: $store.formMattingConfirmed) {
-                                    Text("Not sure").tag(Bool?.none)
-                                    Text("No").tag(Bool?.some(false))
-                                    Text("Yes").tag(Bool?.some(true))
+                                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                                    Text("Coat matting")
+                                        .font(CustomerPetFormTypography.fieldLabel)
+                                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                                    Picker("Coat matting", selection: $store.formMattingConfirmed) {
+                                        Text("Not sure").tag(Bool?.none)
+                                        Text("No").tag(Bool?.some(false))
+                                        Text("Yes").tag(Bool?.some(true))
+                                    }
+                                    .pickerStyle(.segmented)
+                                    .accessibilityIdentifier("customer.pets.matting")
                                 }
-                                .accessibilityIdentifier("customer.pets.matting")
 
-                                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                                    CustomerPetFormLabeledTextField(
-                                        title: "Medical notes",
-                                        placeholder: "Allergies, medication, injuries",
-                                        text: $store.formMedicalNotes,
-                                        focusTarget: .medicalNotes,
-                                        focusedField: $focusedField
-                                    )
+                                CustomerPetFormLabeledTextField(
+                                    title: "Medical notes",
+                                    placeholder: "Allergies, medication, injuries",
+                                    text: $store.formMedicalNotes,
+                                    focusTarget: .medicalNotes,
+                                    focusedField: $focusedField
+                                )
 
-                                    CustomerPetFormLabeledTextField(
-                                        title: "Grooming notes",
-                                        placeholder: "Anxiety, coat needs, handling preferences",
-                                        text: $store.formGroomingNotes,
-                                        focusTarget: .groomingNotes,
-                                        focusedField: $focusedField
-                                    )
-                                }
-                                }
+                                CustomerPetFormLabeledTextField(
+                                    title: "Grooming notes",
+                                    placeholder: "Anxiety, coat needs, handling preferences",
+                                    text: $store.formGroomingNotes,
+                                    focusTarget: .groomingNotes,
+                                    focusedField: $focusedField
+                                )
                             }
-                        }
 
-                        .disabled(store.formIsFrozen)
-
-                        if let errorMessage = store.errorMessage {
-                            BeckonErrorBanner(
-                                title: "Check pet details",
-                                message: errorMessage
-                            )
-                            .accessibilityIdentifier("customer.pets.form-error")
-                        }
-                        if store.editNeedsReconciliation {
-                            Button("Reload Saved Pet", systemImage: "arrow.clockwise") {
-                                confirmsReload = true
+                            if let errorMessage = store.errorMessage {
+                                BeckonErrorBanner(title: "Check pet details", message: errorMessage)
+                                    .accessibilityIdentifier("customer.pets.form-error")
                             }
-                            .disabled(store.isSaving)
-                            .accessibilityIdentifier("customer.pets.reload-saved")
-                        }
+                            if store.editNeedsReconciliation {
+                                Button { confirmsReload = true } label: {
+                                    DesignQuietAction(title: "Reload saved pet", systemImage: "arrow.clockwise")
+                                }
+                                .buttonStyle(BeckonGuardedPlainButtonStyle())
+                                .disabled(store.isSaving)
+                                .accessibilityIdentifier("customer.pets.reload-saved")
+                            }
                         }
                         .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                         .padding(.top, DesignTokens.Spacing.lg)
                         .padding(.bottom, DesignTokens.Layout.pageBottomInset)
                     }
+                        .beckonTracksScroll()
+                    .scrollContentBackground(.hidden)
                     .beckonKeyboardAvoidance(
                         focusedTarget: focusedField?.rawValue,
                         using: scrollProxy,
@@ -190,37 +154,59 @@ struct CustomerPetFormView: View {
                     )
                 }
             }
+            .beckonStationaryPageAction { saveBar }
+            .beckonEntranceRhythm(.step)
             .tint(DesignTokens.Colors.customerDeep)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
-            .confirmationDialog("Replace your edits with the saved pet?", isPresented: $confirmsReload,
-                titleVisibility: .visible) {
-                Button("Reload Saved Pet", role: .destructive) { Task { await store.reloadEditedPet() } }
-                Button("Keep Editing", role: .cancel) { }
+            .designAlertDialog(isPresented: $confirmsReload) {
+                .destructive(title: "Replace your edits with the saved pet?",
+                    message: "What you changed on this form will be lost.", systemImage: "arrow.counterclockwise",
+                    keepTitle: "Keep Editing", confirmTitle: "Reload Saved Pet", confirmSystemImage: "arrow.counterclockwise") {
+                    Task { await store.reloadEditedPet() }
+                }
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        store.cancelForm()
-                    }
-                    .disabled(store.isSaving)
+                    Button("Cancel") { store.cancelForm() }
+                        .disabled(store.isSaving)
                 }
                 ToolbarItem(placement: .principal) {
                     Text(store.formTitle)
-                        .font(DesignTokens.Typography.headline)
+                        .font(DesignTokens.Typography.Expressive.emphasis)
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(store.isSaving ? "Saving..." : store.formActionTitle) {
-                        Task {
-                            await store.savePet()
-                        }
-                    }
-                    .disabled(!store.canSaveForm)
-                    .accessibilityIdentifier("customer.pets.form-save")
                 }
             }
         }
+    }
+
+    private func section<Content: View>(_ title: String, systemImage: String,
+                                        @ViewBuilder content: () -> Content) -> some View {
+        DesignSection(title: title, systemImage: systemImage, spacing: DesignTokens.Spacing.lg) { content() }
+            .disabled(store.formIsFrozen)
+    }
+
+    private var saveBar: some View {
+        Button { Task { await store.savePet() } } label: {
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                if store.isSaving { ProgressView().tint(DesignTokens.Colors.customerInk) }
+                Text(store.isSaving ? "Saving..." : store.formActionTitle)
+                    .font(DesignTokens.Typography.Expressive.headline)
+                if !store.isSaving {
+                    Image(systemName: "checkmark").font(DesignTokens.Typography.Expressive.glyph)
+                }
+            }
+            .foregroundStyle(DesignTokens.Colors.customerInk)
+            .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.ledgePrimaryButtonHeight)
+        }
+        .buttonStyle(BeckonLedgeButtonStyle(.pill))
+        .disabled(!store.canSaveForm)
+        .beckonBump(trigger: 0)
+        .accessibilityIdentifier("customer.pets.form-save")
+        .padding(.horizontal, DesignTokens.Layout.pageHorizontalInset)
+        .padding(.vertical, DesignTokens.Layout.actionAreaInset)
+        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
+        .overlay(alignment: .top) { DesignTokens.Colors.borderSoft.frame(height: DesignTokens.Ledge.edgeWidth / 2) }
     }
 
     private var birthdayKnownBinding: Binding<Bool> {
@@ -244,26 +230,35 @@ struct CustomerPetFormView: View {
     private var weightText: String {
         "\(store.formWeightLbs.formatted(.number.precision(.fractionLength(0...2)))) lbs"
     }
-
 }
 
-private struct CustomerPetFormPhotoModule: View {
+/// The pet's profile ticket: avatar, live name and breed, and the photo action. Mint wash so the paw avatar sits on a fill.
+private struct CustomerPetFormHero: View {
     @Bindable var store: CustomerPetsStore
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
-        BeckonPhotoEditorCard(
-            title: "Pet photo",
-            statusText: store.formAvatarPhotoData == nil
-                ? "Add a photo for this pet."
-                : "Photo saved to this pet profile.",
-            showsSavedIndicator: false,
-            savedAccessibilityLabel: "Pet photo saved"
-        ) {
-            CustomerPetFormAvatarPreview(data: store.formAvatarPhotoData)
-                .accessibilityHidden(true)
-        } action: {
+        VStack(spacing: DesignTokens.Spacing.lg) {
+            (typeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.lg))
+                : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.lg))) {
+                CustomerPetFormAvatarPreview(data: store.formAvatarPhotoData)
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text(store.formName.trimmingCharacters(in: .whitespaces).isEmpty ? "Your pup" : store.formName)
+                        .font(DesignTokens.Typography.Expressive.title)
+                        .foregroundStyle(DesignTokens.Colors.customerInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("\(store.formSpecies.title) · \(store.formBreed.title)")
+                        .font(DesignTokens.Typography.Expressive.supporting)
+                        .foregroundStyle(DesignTokens.Colors.customerInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
             CustomerPetFormPhotoPicker(store: store)
         }
+        .designBanner()
+        .accessibilityElement(children: .contain)
     }
 }
 
@@ -286,12 +281,14 @@ private struct CustomerPetFormAvatarPreview: View {
                 .background(DesignTokens.Colors.customerTint)
         }
         .frame(width: 96, height: 96)
-        .background(DesignTokens.Colors.customerTint)
+        .background(DesignTokens.Colors.surface)
         .clipShape(DesignTokens.Shapes.circular)
         .overlay {
             Circle()
-                .stroke(DesignTokens.Colors.customerDeep, lineWidth: 2)
+                .strokeBorder(DesignTokens.Colors.surface, lineWidth: 4)
         }
+        .background(Circle().fill(DesignTokens.Colors.customerDeep).offset(y: DesignTokens.Ledge.control))
+        .padding(.bottom, DesignTokens.Ledge.control)
         .accessibilityHidden(true)
     }
 }
@@ -361,7 +358,7 @@ private struct CustomerPetFormChip: View {
                 .font(CustomerPetFormTypography.fieldValue)
                 .foregroundStyle(
                     isSelected
-                        ? DesignTokens.Colors.customerDeep
+                        ? DesignTokens.Colors.customerInk
                         : DesignTokens.Colors.textSecondary
                 )
                 .lineLimit(1)
@@ -371,7 +368,7 @@ private struct CustomerPetFormChip: View {
                     Capsule()
                         .fill(
                             isSelected
-                                ? DesignTokens.Colors.customerTint
+                                ? DesignTokens.Colors.customerFill
                                 : DesignTokens.Colors.surface
                         )
                 }
@@ -379,13 +376,13 @@ private struct CustomerPetFormChip: View {
                     Capsule()
                         .strokeBorder(
                             isSelected
-                                ? DesignTokens.Colors.customerDeep
+                                ? DesignTokens.Colors.customerFillPressed
                                 : DesignTokens.Colors.border,
-                            lineWidth: isSelected ? 1.5 : 1
+                            lineWidth: isSelected ? 2 : 1
                         )
                 }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BeckonGuardedPlainButtonStyle())
         .id(title)
     }
 }
@@ -515,13 +512,13 @@ private struct CustomerPetFormPhotoPicker: View {
             selection: $selectedPhotoItem,
             matching: .images
         ) {
-            Label(
-                avatarActionTitle,
-                systemImage: "camera"
-            )
+            Label(avatarActionTitle, systemImage: "camera.fill")
+                .font(DesignTokens.Typography.Expressive.emphasis)
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
                 .lineLimit(1)
+                .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.minimumTouchTarget)
         }
-        .buttonStyle(BeckonSecondaryButtonStyle(accent: .customer))
+        .buttonStyle(BeckonLedgePressStyle(.card))
         .disabled(store.isSaving)
         .onChange(of: selectedPhotoItem) { _, newItem in
             guard let newItem else { return }

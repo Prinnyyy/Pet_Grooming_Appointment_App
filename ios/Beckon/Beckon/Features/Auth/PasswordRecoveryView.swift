@@ -6,10 +6,10 @@ struct PasswordRecoveryView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+                BeckonCascade(spacing: DesignTokens.Spacing.xl) {
                     switch store.recoveryState {
                     case let .newPassword(session):
-                        Text("New password").font(DesignTokens.Typography.featureTitle)
+                        Text("New password").font(DesignTokens.Typography.Expressive.display)
                         if let email = session.email { Text(email).foregroundStyle(.secondary) }
                         SecureField("New password", text: $store.recoveryPassword)
                             .textContentType(.newPassword).beckonFormField()
@@ -21,12 +21,12 @@ struct PasswordRecoveryView: View {
                             Task { await store.saveRecoveredPassword() }
                         }.buttonStyle(BeckonPrimaryButtonStyle())
                     case .complete:
-                        Label("Password changed", systemImage: "checkmark.circle").font(DesignTokens.Typography.sectionTitle)
+                        Label("Password changed", systemImage: "checkmark.circle").font(DesignTokens.Typography.Expressive.title)
                         Text("Use your new password the next time you sign in.")
                         Button("Done", systemImage: "checkmark") { Task { await store.closePasswordRecovery() } }
                             .buttonStyle(BeckonPrimaryButtonStyle())
                     default:
-                        Text(store.recoveryState == .emailSent ? "Check your email" : "Reset password").font(DesignTokens.Typography.featureTitle)
+                        Text(store.recoveryState == .emailSent ? "Check your email" : "Reset password").font(DesignTokens.Typography.Expressive.display)
                         if store.recoveryState == .emailSent {
                             Text("If an account exists for this email, a reset link will arrive shortly. Open it on this device.")
                         }
@@ -47,7 +47,9 @@ struct PasswordRecoveryView: View {
                 .padding(DesignTokens.Spacing.screenHorizontal)
                 .disabled(store.isRecovering)
             }
-            .background(DesignTokens.Colors.appBackground)
+            .background { BeckonExpressiveBackdrop() }
+            .beckonEntranceRhythm(.detail)
+        .environment(\.beckonCustomerDesign, true)
             .navigationTitle("Password recovery")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

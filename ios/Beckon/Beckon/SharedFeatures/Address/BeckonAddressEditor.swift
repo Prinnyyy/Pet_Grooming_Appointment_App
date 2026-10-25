@@ -215,7 +215,7 @@ struct BeckonAddressEditor: View {
                         .padding(.horizontal, DesignTokens.Spacing.md)
                         .padding(.vertical, DesignTokens.Spacing.sm)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(BeckonGuardedPlainButtonStyle())
                     .accessibilityLabel([candidate.primaryText, candidate.secondaryText]
                         .filter { !$0.isEmpty }
                         .joined(separator: ", "))
@@ -433,7 +433,7 @@ private struct BeckonAddressReviewSheet: View {
                     .background(DesignTokens.Colors.surface)
                     .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(BeckonGuardedPlainButtonStyle())
             }
         }
         .accessibilityIdentifier(BeckonAddressEditorSelectors.manualChoices)

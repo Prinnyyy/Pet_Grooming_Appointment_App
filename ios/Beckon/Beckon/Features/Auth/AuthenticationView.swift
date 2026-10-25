@@ -13,6 +13,9 @@ struct AuthenticationView: View {
 
     @State private var surface: AuthenticationSurface = .landing
     @State private var heroHasEntered = false
+    /// Which way the next surface's blocks come from: up when the app opens, from the right going into the form, from the left
+    /// going back, like the steps of the request wizard.
+    @State private var travel = BeckonEntranceTravel.rise
     @State private var isPasswordVisible = false
     @FocusState private var focusedField: AuthenticationFocusTarget?
 
@@ -20,27 +23,22 @@ struct AuthenticationView: View {
         ZStack {
             landingBackground
 
+            // Between the two surfaces only the page fades; the blocks of each surface bring the motion (the wizard's rule).
             switch surface {
             case .landing:
                 landingSurface
-                    .transition(
-                        .asymmetric(
-                            insertion: .opacity,
-                            removal: .opacity.combined(with: .scale(scale: 0.98))
-                        )
-                    )
+                    .id(surface)
+                    .transition(.opacity)
 
             case .form:
                 authFormSurface
-                    .transition(
-                        .asymmetric(
-                            insertion: .move(edge: .trailing).combined(with: .opacity),
-                            removal: .move(edge: .trailing).combined(with: .opacity)
-                        )
-                    )
+                    .id(surface)
+                    .transition(.opacity)
             }
         }
-        .animation(reduceMotion ? nil : .spring(response: 0.38, dampingFraction: 0.88), value: surface)
+        .environment(\.beckonCustomerDesign, true)
+        .beckonEntranceRhythm(.step, travel: travel)
+        .beckonAnimation(DesignTokens.Motion.reduced, value: surface)
         .onAppear {
             guard !heroHasEntered else { return }
             withAnimation(reduceMotion ? nil : .interpolatingSpring(stiffness: 92, damping: 14).delay(0.08)) {
@@ -50,16 +48,7 @@ struct AuthenticationView: View {
     }
 
     private var landingBackground: some View {
-        LinearGradient(
-            colors: [
-                DesignTokens.Colors.appBackground,
-                DesignTokens.Colors.surface,
-                DesignTokens.Colors.iconTileFill
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-        .ignoresSafeArea()
+        BeckonExpressiveBackdrop()
     }
 
     private var landingSurface: some View {
@@ -91,6 +80,7 @@ struct AuthenticationView: View {
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: proxy.size.height)
                 .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                .beckonEntranceClock()
             }
         }
         .accessibilityIdentifier("auth.landing")
@@ -101,21 +91,24 @@ struct AuthenticationView: View {
             BeckonBrandBubble(isMotionEnabled: !reduceMotion && scenePhase == .active,
                 hasEntered: heroHasEntered || reduceMotion)
 
+            // The bubble lands with its own spring (heroHasEntered); the words follow it as the first block.
             VStack(spacing: DesignTokens.Spacing.sm) {
                 Text("Beckon")
-                    .font(.system(size: 46, weight: .black, design: .rounded))
+                    .font(DesignTokens.Typography.Expressive.display)
+                    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
                     .multilineTextAlignment(.center)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
 
                 Text("Pet groomers at your beck and call.")
-                    .font(DesignTokens.Typography.body.weight(.medium))
+                    .font(DesignTokens.Typography.Expressive.body)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
                     .multilineTextAlignment(.center)
                     .lineSpacing(3)
                     .frame(maxWidth: 310)
             }
+            .beckonEntrance(0)
         }
         .frame(maxWidth: .infinity, minHeight: 320)
         .accessibilityElement(children: .combine)
@@ -137,15 +130,16 @@ struct AuthenticationView: View {
                 openForm(.signIn)
             } label: {
                 Text("I already have an account")
-                    .font(DesignTokens.Typography.body.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .font(DesignTokens.Typography.Expressive.emphasis)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.minimumTouchTarget)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(BeckonLedgeButtonStyle(.card))
             .disabled(store.isSubmitting)
             .accessibilityIdentifier("auth.already-have-account")
         }
         .frame(maxWidth: 430)
+        .beckonEntrance(1)
     }
 
     private var authFormSurface: some View {
@@ -163,12 +157,14 @@ struct AuthenticationView: View {
                     )
 
                     formHeader
+                        .beckonEntrance(0)
 
                     #if DEBUG
                     if store.mode == .signIn {
                         Spacer(minLength: DesignTokens.Spacing.lg)
 
                         debugQuickLoginActions
+                            .beckonEntrance(1)
 
                         Spacer(minLength: DesignTokens.Spacing.xl)
                     } else {
@@ -179,10 +175,12 @@ struct AuthenticationView: View {
                     #endif
 
                     authFields
+                        .beckonEntrance(1)
 
                     Spacer(minLength: fieldsToActionsSpacing)
 
                     authActions
+                        .beckonEntrance(2)
 
                     feedback
                         .padding(.top, DesignTokens.Spacing.lg)
@@ -198,6 +196,7 @@ struct AuthenticationView: View {
                     .frame(minHeight: proxy.size.height, alignment: .top)
                     .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                     .padding(.top, DesignTokens.Spacing.md)
+                    .beckonEntranceClock()
                 }
                 .beckonKeyboardAvoidance(
                     focusedTarget: focusedField?.rawValue,
@@ -212,22 +211,15 @@ struct AuthenticationView: View {
     private var formTopBar: some View {
         HStack {
             Button {
-                withAnimation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.9)) {
-                    surface = .landing
-                }
+                travel = .back
+                surface = .landing
             } label: {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .frame(width: 42, height: 42)
-                    .background(DesignTokens.Colors.surface)
-                    .clipShape(DesignTokens.Shapes.circular)
-                    .overlay {
-                        Circle()
-                            .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
-                    }
+                    .font(DesignTokens.Typography.Expressive.glyph)
+                    .foregroundStyle(DesignTokens.Colors.customerDeep)
+                    .frame(width: DesignTokens.Metrics.ledgeRoundControl, height: DesignTokens.Metrics.ledgeRoundControl)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(BeckonLedgeButtonStyle(.round))
             .accessibilityIdentifier("auth.back-to-landing")
             .accessibilityLabel("Home")
 
@@ -238,13 +230,13 @@ struct AuthenticationView: View {
     private var formHeader: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             Text(formTitle)
-                .font(.system(size: 42, weight: .black, design: .rounded))
+                .font(DesignTokens.Typography.Expressive.display)
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
                 .lineLimit(2)
                 .minimumScaleFactor(0.82)
 
             Text(formSubtitle)
-                .font(.system(size: 19, weight: .medium, design: .rounded))
+                .font(DesignTokens.Typography.Expressive.body)
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
                 .lineSpacing(4)
                 .fixedSize(horizontal: false, vertical: true)
@@ -274,9 +266,12 @@ struct AuthenticationView: View {
             .beckonKeyboardFocusTarget(AuthenticationFocusTarget.password.rawValue)
 
             if store.mode == .signIn {
-                Button("Forgot Password?", systemImage: "key") {
+                Button {
                     Task { await store.beginPasswordRecovery() }
+                } label: {
+                    DesignQuietAction(title: "Forgot password?", systemImage: "key.fill")
                 }
+                .buttonStyle(BeckonGuardedPlainButtonStyle())
                 .disabled(store.isSubmitting || store.isRecovering)
                 .accessibilityIdentifier("auth.forgot-password")
             }
@@ -314,7 +309,7 @@ struct AuthenticationView: View {
             .focused($focusedField, equals: .password)
 
             Button {
-                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.14)) {
+                withAnimation(DesignTokens.Motion.reduced) {
                     isPasswordVisible.toggle()
                 }
             } label: {
@@ -322,7 +317,7 @@ struct AuthenticationView: View {
                     .font(DesignTokens.Typography.body.weight(.bold))
                     .foregroundStyle(DesignTokens.Colors.customerDeep)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(BeckonGuardedPlainButtonStyle())
             .accessibilityIdentifier("auth.password-visibility")
         }
         .beckonFormField()
@@ -395,7 +390,7 @@ struct AuthenticationView: View {
     private var feedback: some View {
         if let noticeMessage = store.noticeMessage {
             Label(noticeMessage, systemImage: "envelope.badge")
-                .font(DesignTokens.Typography.caption.weight(.semibold))
+                .font(DesignTokens.Typography.Expressive.chip)
                 .foregroundStyle(DesignTokens.Colors.customerDeep)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(DesignTokens.Spacing.md)
@@ -457,8 +452,8 @@ struct AuthenticationView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text(title)
-                .font(DesignTokens.Typography.body.weight(.bold))
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                .font(DesignTokens.Typography.Expressive.emphasis)
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
 
             content()
         }
@@ -468,14 +463,13 @@ struct AuthenticationView: View {
     private func openForm(_ mode: AuthenticationMode) {
         store.mode = mode
         isPasswordVisible = false
-        withAnimation(reduceMotion ? nil : .spring(response: 0.36, dampingFraction: 0.88)) {
-            surface = .form
-        }
+        travel = .forward
+        surface = .form
     }
 
     private func switchAuthMode() {
         isPasswordVisible = false
-        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.9)) {
+        withAnimation(reduceMotion ? DesignTokens.Motion.reduced : DesignTokens.Motion.swap) {
             store.mode = store.mode == .signIn ? .signUp : .signIn
         }
     }

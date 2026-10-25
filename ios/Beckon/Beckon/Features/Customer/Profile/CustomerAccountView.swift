@@ -30,11 +30,10 @@ struct CustomerAccountView: View {
 
     var body: some View {
         ZStack {
-            DesignTokens.Colors.appBackground
-                .ignoresSafeArea()
+            BeckonExpressiveBackdrop()
 
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: DesignTokens.Layout.sectionSpacing) {
+                BeckonCascade(spacing: DesignTokens.Layout.sectionSpacing) {
                     BeckonPageTitle("Account")
 
                     BeckonAccountIdentityHeader(
@@ -51,29 +50,30 @@ struct CustomerAccountView: View {
                         )
                     }
 
-                    BeckonSection("Profile") {
-                        BeckonGroupedSurface {
-                            BeckonSettingsNavigationRow(
-                                title: "Profile settings",
-                                summary: "Photo, nickname, contact, and address",
-                                systemImage: "person.crop.circle",
-                                accent: .customer
+                    // What the person uses most, as two tiles: their own details and the groomers they saved.
+                    DesignShortcutRow {
+                        DesignShortcutTile(
+                            title: "Profile settings",
+                            summary: "Photo, nickname, contact, and address",
+                            systemImage: "person.crop.circle"
+                        ) {
+                            CustomerProfileSettingsView(store: store)
+                        }
+
+                        if let marketplace {
+                            DesignShortcutTile(
+                                title: "Saved groomers",
+                                summary: "Groomers you have hearted",
+                                systemImage: "heart"
                             ) {
-                                CustomerProfileSettingsView(store: store)
+                                CustomerFavoriteGroomersView(marketplace: marketplace)
                             }
+                            .accessibilityIdentifier("account.saved-groomers")
                         }
                     }
 
-                    BeckonSection("Support") {
+                    BeckonSection("Help") {
                         AccountReleaseLinksSection(accent: .customer)
-                    }
-
-                    if let marketplace {
-                        BeckonSettingsNavigationRow(title: "Saved groomers", summary: nil,
-                            systemImage: "heart", accent: .customer) {
-                            CustomerFavoriteGroomersView(marketplace: marketplace)
-                        }
-                        .accessibilityIdentifier("account.saved-groomers")
                     }
 
                     if let errorMessage = authenticationStore.errorMessage {
@@ -113,6 +113,7 @@ struct CustomerAccountView: View {
                 }
                 .beckonPageInsets()
             }
+                .beckonTracksScroll()
         }
         .task {
             await store.load()
@@ -120,6 +121,7 @@ struct CustomerAccountView: View {
         .background {
             CustomerProfileStatusView(store: store)
         }
+        .environment(\.beckonCustomerDesign, true)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("customer.account")

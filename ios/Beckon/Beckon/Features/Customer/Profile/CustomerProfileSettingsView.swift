@@ -1,5 +1,7 @@
 import PhotosUI
+
 import SwiftUI
+
 import UIKit
 
 nonisolated enum CustomerProfileFocusTarget: String, CaseIterable, Hashable {
@@ -16,9 +18,12 @@ struct CustomerProfileSettingsView: View {
     var body: some View {
         ScrollViewReader { scrollProxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                // A settings page: the photo leads, then Contact, Address and Save, one block each.
+                BeckonCascade(spacing: DesignTokens.Spacing.lg) {
                 CustomerAvatarEditorSection(store: store)
 
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                BeckonLedgeHeading(title: "Contact", systemImage: "person.crop.circle.fill")
                 BeckonCard {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                         CustomerProfileTextField(
@@ -53,13 +58,12 @@ struct CustomerProfileSettingsView: View {
                         .keyboardType(.phonePad)
                     }
                 }
+                }
 
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                BeckonLedgeHeading(title: "Address", systemImage: "house.fill")
                 BeckonCard {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                        Text("Address")
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-
                         BeckonAddressEditor(
                             state: store.addressEditorState,
                             onFieldFocused: { target in
@@ -69,13 +73,14 @@ struct CustomerProfileSettingsView: View {
                         )
                     }
                 }
+                }
 
                 Button {
                     Task {
                         await store.saveProfile()
                     }
                 } label: {
-                    Text(store.isSaving ? "Saving..." : "Save Profile")
+                    Text(store.isSaving ? "Saving..." : "Save profile")
                 }
                 .buttonStyle(BeckonPrimaryButtonStyle(accent: .customer))
                 .disabled(store.isSaving || store.isUploading)
@@ -91,12 +96,14 @@ struct CustomerProfileSettingsView: View {
                 .padding(.top, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.xl)
             }
+                .beckonTracksScroll()
             .beckonKeyboardAvoidance(
                 focusedTarget: focusedField?.rawValue ?? addressFocusTarget,
                 using: scrollProxy
             )
         }
-        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
+        .background { BeckonExpressiveBackdrop() }
+        .beckonEntranceRhythm(.detail)
         .navigationTitle("Profile settings")
         .navigationBarTitleDisplayMode(.inline)
         .scrollDismissesKeyboard(.interactively)
@@ -126,7 +133,7 @@ struct CustomerAvatarImage: View {
         .clipShape(DesignTokens.Shapes.circular)
         .overlay {
             Circle()
-                .stroke(DesignTokens.Colors.customerDeep, lineWidth: 2)
+                .strokeBorder(DesignTokens.Colors.surface, lineWidth: 4)
         }
         .accessibilityHidden(true)
     }
@@ -177,9 +184,9 @@ private struct CustomerAvatarEditorSection: View {
                 .accessibilityHidden(true)
         } action: {
             PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                Label(photoActionTitle, systemImage: "camera")
+                Label(photoActionTitle, systemImage: "camera.fill")
             }
-            .buttonStyle(BeckonSecondaryButtonStyle(accent: .customer))
+            .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
             .disabled(store.isBusy)
             .accessibilityIdentifier("customer.profile.avatar.upload")
         }
@@ -229,7 +236,7 @@ private struct CustomerProfileTextField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text(title)
-                .font(DesignTokens.Typography.caption)
+                .font(DesignTokens.Typography.Expressive.label)
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
 
             TextField(prompt, text: $text)
@@ -237,47 +244,6 @@ private struct CustomerProfileTextField: View {
                 .beckonFormField()
         }
         .beckonKeyboardFocusTarget(focusTarget.rawValue)
-    }
-}
-
-private struct CustomerProfileStatePicker: View {
-    let title: String
-    @Binding var selection: USStateCode?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text(title)
-                .font(DesignTokens.Typography.caption)
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-
-            Menu {
-                Button("No State") {
-                    selection = nil
-                }
-
-                ForEach(USStateCode.allCases) { state in
-                    Button(state.rawValue) {
-                        selection = state
-                    }
-                }
-            } label: {
-                HStack {
-                    Text(selection?.rawValue ?? "State")
-                        .foregroundStyle(
-                            selection == nil
-                                ? DesignTokens.Colors.textSecondary
-                                : DesignTokens.Colors.textPrimary
-                        )
-
-                    Spacer(minLength: DesignTokens.Spacing.xs)
-
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                }
-                .beckonFormField()
-            }
-        }
     }
 }
 

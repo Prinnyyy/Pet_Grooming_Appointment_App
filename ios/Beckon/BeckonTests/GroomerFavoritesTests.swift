@@ -4,6 +4,29 @@ import Testing
 
 @MainActor
 struct GroomerFavoritesTests {
+    @Test func undoRemovalRestoresTheLoadedFavoriteInItsPlace() async {
+        let repo = FavoritesRepositoryFake()
+        let ids = [UUID(), UUID()]
+        let favorites = ids.map { id in
+            FavoriteGroomer(groomerID: id, favoritedAt: Date(), profile: nil, availability: .available,
+                eligibility: nil, favoriteState: .init(isFavorite: true, revision: UUID()), invitationState: .notSent)
+        }
+        repo.page = .init(items: favorites, nextCursor: nil, revision: "1", asOf: Date())
+        let store = GroomerFavoritesStore(customerID: UUID(), repository: repo)
+        await store.load(scope: nil)
+        await store.setFavorite(ids[0], enabled: false)
+        #expect(store.items.map(\.id) == [ids[1]])
+        await store.setFavorite(ids[0], enabled: true)
+        #expect(store.items.map(\.id) == ids)
+        #expect(store.error == nil)
+
+        await store.setFavorite(ids[0], enabled: false)
+        repo.error = .networkUnavailable
+        await store.setFavorite(ids[0], enabled: true)
+        #expect(store.items.map(\.id) == [ids[1]])
+        #expect(store.error == .networkUnavailable)
+    }
+
     @Test func confirmedFavoriteOutranksAReadThatStartedBeforeTheWrite() async {
         let repo = FavoritesRepositoryFake()
         let store = GroomerFavoritesStore(customerID: UUID(), repository: repo)

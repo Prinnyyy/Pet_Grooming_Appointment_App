@@ -491,7 +491,7 @@ private struct BeckonKeyboardDoneAccessoryControl: View {
                 )
                 .contentShape(Circle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BeckonGuardedPlainButtonStyle())
         .accessibilityLabel("Done")
         .accessibilityIdentifier("beckon.keyboard.done")
     }
@@ -817,6 +817,8 @@ extension View {
 }
 
 struct BeckonFieldGroup<Content: View>: View {
+    @Environment(\.beckonCustomerDesign) private var customerDesign
+
     let label: String
     let supportingText: String?
     let errorText: String?
@@ -837,7 +839,7 @@ struct BeckonFieldGroup<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text(label)
-                .font(DesignTokens.Typography.fieldLabel)
+                .font(customerDesign ? DesignTokens.Typography.Expressive.emphasis : DesignTokens.Typography.fieldLabel)
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
 
             content

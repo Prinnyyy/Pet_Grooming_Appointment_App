@@ -16,6 +16,8 @@ nonisolated struct ChatConversationListPresentation: Equatable, Sendable {
 }
 
 struct ChatConversationsView: View {
+    @Environment(\.beckonCustomerDesign) private var customerDesign
+
     @Environment(\.scenePhase) private var scenePhase
     private let participantID: UUID
     private let role: UserRole
@@ -50,8 +52,11 @@ struct ChatConversationsView: View {
 
     var body: some View {
         ZStack {
-            DesignTokens.Colors.appBackground
-                .ignoresSafeArea()
+            if customerDesign {
+                BeckonExpressiveBackdrop()
+            } else {
+                DesignTokens.Colors.appBackground.ignoresSafeArea()
+            }
 
             conversationsContent
         }
@@ -98,6 +103,48 @@ struct ChatConversationsView: View {
 
     @ViewBuilder
     private var conversationsContent: some View {
+        if customerDesign { customerConversationsContent } else { groomerConversationsContent }
+    }
+
+    @ViewBuilder private var customerConversationsContent: some View {
+        if store.isLoadingConversations, store.conversations.isEmpty {
+            ScrollView {
+                BeckonLoadingView(
+                    title: "Loading conversations…",
+                    message: "Checking accepted bookings for participant chats.",
+                    accent: role.beckonLoadingAccent
+                )
+                .accessibilityIdentifier("chat.conversations.loading")
+                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                .padding(.vertical, DesignTokens.Spacing.xl)
+            }
+                .beckonTracksScroll()
+        } else {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                    conversationWorkspace
+
+                    if store.canLoadMoreConversations || store.isLoadingMoreConversations {
+                        BeckonLoadMoreButton(
+                            isLoading: store.isLoadingMoreConversations,
+                            accent: role.beckonSecondaryAccent,
+                            accessibilityIdentifier: "chat.conversations.load-more"
+                        ) {
+                            await store.loadNextConversationsPage()
+                        }
+                    }
+                }
+                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                .padding(.top, DesignTokens.Spacing.xl)
+                .padding(.bottom, DesignTokens.Spacing.xl + DesignTokens.Spacing.xl)
+                .beckonEntranceClock()
+            }
+                .beckonTracksScroll()
+            .accessibilityIdentifier("chat.conversations.list")
+        }
+    }
+
+    @ViewBuilder private var groomerConversationsContent: some View {
         if store.isLoadingConversations, store.conversations.isEmpty {
             ScrollView {
                 BeckonLoadingView(
@@ -134,6 +181,27 @@ struct ChatConversationsView: View {
 
     @ViewBuilder
     private var conversationWorkspace: some View {
+        if customerDesign { customerConversationWorkspace } else { groomerConversationWorkspace }
+    }
+
+    @ViewBuilder private var customerConversationWorkspace: some View {
+        ChatMessagesTitle(presentation.title)
+            .beckonEntrance(0)
+
+        if store.conversations.isEmpty {
+            emptyConversationsState
+                .beckonEntrance(1)
+        } else {
+            LazyVStack(spacing: DesignTokens.Spacing.md) {
+                ForEach(Array(store.conversations.enumerated()), id: \.element.id) { index, conversation in
+                    conversationLink(conversation)
+                        .beckonEntrance(1 + min(index, 4))
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private var groomerConversationWorkspace: some View {
         ChatMessagesTitle(presentation.title)
 
         if store.conversations.isEmpty {
@@ -147,7 +215,26 @@ struct ChatConversationsView: View {
         }
     }
 
+    @ViewBuilder
     private var emptyConversationsState: some View {
+        if customerDesign { customerEmptyConversationsState } else { groomerEmptyConversationsState }
+    }
+
+    @ViewBuilder private var customerEmptyConversationsState: some View {
+        DesignPupPeek {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                Text("No conversations yet")
+                    .font(DesignTokens.Typography.Expressive.title)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                Text("Accepted bookings create participant conversations.")
+                    .designSupportingText()
+            }
+            .designCardBody()
+        }
+        .accessibilityIdentifier("chat.conversations.empty")
+    }
+
+    @ViewBuilder private var groomerEmptyConversationsState: some View {
         BeckonEmptyState(
             title: "No conversations yet",
             message: "Accepted bookings create participant conversations.",
@@ -157,7 +244,33 @@ struct ChatConversationsView: View {
         .accessibilityIdentifier("chat.conversations.empty")
     }
 
+    @ViewBuilder
     private func conversationLink(_ conversation: ChatConversation) -> some View {
+        if customerDesign { customerConversationLink(conversation) } else { groomerConversationLink(conversation) }
+    }
+
+    @ViewBuilder private func customerConversationLink(_ conversation: ChatConversation) -> some View {
+        NavigationLink {
+            ChatThreadView(
+                participantID: participantID,
+                role: role,
+                conversation: conversation,
+                store: store
+            )
+        } label: {
+            ChatConversationRow(
+                conversation: conversation,
+                role: role,
+                store: store
+            )
+        }
+        .buttonStyle(BeckonLedgeButtonStyle(.card))
+        .accessibilityIdentifier(
+            conversationAccessibilityIdentifier(conversation)
+        )
+    }
+
+    @ViewBuilder private func groomerConversationLink(_ conversation: ChatConversation) -> some View {
         NavigationLink {
             ChatThreadView(
                 participantID: participantID,
@@ -196,11 +309,26 @@ struct ChatConversationsView: View {
 }
 
 private struct ChatConversationRow: View {
+    @Environment(\.beckonCustomerDesign) private var customerDesign
+
     let conversation: ChatConversation
     let role: UserRole
     let store: ChatStore
 
+    @ViewBuilder
     var body: some View {
+        if customerDesign { customerBody } else { groomerBody }
+    }
+
+    @ViewBuilder private var customerBody: some View {
+        rowContent
+            .padding(DesignTokens.Spacing.md)
+            .multilineTextAlignment(.leading)
+            .accessibilityElement(children: .combine)
+            .accessibilityValue(store.hasUnreadMessages(in: conversation) ? "Unread" : "Read")
+    }
+
+    @ViewBuilder private var groomerBody: some View {
         BeckonCard {
             rowContent
         }
@@ -208,7 +336,70 @@ private struct ChatConversationRow: View {
         .accessibilityValue(store.hasUnreadMessages(in: conversation) ? "Unread" : "Read")
     }
 
+    @ViewBuilder
     private var rowContent: some View {
+        if customerDesign { customerRowContent } else { groomerRowContent }
+    }
+
+    @ViewBuilder private var customerRowContent: some View {
+        HStack(
+            alignment: .center,
+            spacing: DesignTokens.Spacing.lg
+        ) {
+            BeckonProfileAvatar(
+                data: conversation.counterpartAvatarPhotoData,
+                tone: role == .customer ? .groomer : .customer,
+                size: presentation.avatarSize,
+                cornerRadius: DesignTokens.CornerRadius.inset,
+                placeholderSize: 24
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.inset, style: .continuous)
+                    .strokeBorder(DesignTokens.Colors.customerFill, lineWidth: DesignTokens.Ledge.edgeWidth + 1))
+
+            VStack(
+                alignment: .leading,
+                spacing: DesignTokens.Spacing.sm
+            ) {
+                Text(conversation.listTitle(for: role))
+                    .font(store.hasUnreadMessages(in: conversation)
+                        ? DesignTokens.Typography.Expressive.headline : DesignTokens.Typography.Expressive.emphasis)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+
+                Text(store.previewText(for: conversation))
+                    .font(DesignTokens.Typography.Expressive.supporting)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .lineLimit(presentation.previewLineLimit)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            VStack(
+                alignment: .trailing,
+                spacing: DesignTokens.Spacing.sm
+            ) {
+                if store.hasUnreadMessages(in: conversation) {
+                    Circle()
+                        .fill(DesignTokens.Colors.unreadDot)
+                        .frame(width: 10, height: 10)
+                        .accessibilityHidden(true)
+                }
+
+                Text(ChatDateFormatting.relativeSummary(from: conversation.updatedAt))
+                    .font(DesignTokens.Typography.Expressive.chip)
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
+
+                if conversation.isReadOnly() {
+                    BeckonMetaChip(text: "Read-only", systemImage: "lock.fill")
+                }
+            }
+
+        }
+    }
+
+    @ViewBuilder private var groomerRowContent: some View {
         HStack(
             alignment: .center,
             spacing: DesignTokens.Spacing.lg
@@ -276,13 +467,29 @@ private struct ChatConversationRow: View {
 }
 
 private struct ChatMessagesTitle: View {
+    @Environment(\.beckonCustomerDesign) private var customerDesign
+
     let title: String
 
     init(_ title: String) {
         self.title = title
     }
 
+    @ViewBuilder
     var body: some View {
+        if customerDesign { customerBody } else { groomerBody }
+    }
+
+    @ViewBuilder private var customerBody: some View {
+        Text(title)
+            .font(DesignTokens.Typography.Expressive.display)
+            .foregroundStyle(DesignTokens.Colors.textPrimary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, DesignTokens.Spacing.sm)
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    @ViewBuilder private var groomerBody: some View {
         Text(title)
             .font(.system(size: 36, weight: .bold))
             .foregroundStyle(DesignTokens.Colors.textPrimary)
@@ -341,7 +548,7 @@ struct ChatThreadView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .bottom) {
-            ChatComposerView(
+            ChatComposerBar(
                 draft: $draft,
                 isFocused: $isComposing,
                 isSending: store.isSendingMessage(for: conversation.id),
@@ -494,6 +701,8 @@ struct ChatThreadView: View {
 }
 
 private struct ChatThreadHeader: View {
+    @Environment(\.beckonCustomerDesign) private var customerDesign
+
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let title: String
     let subtitle: String
@@ -502,7 +711,66 @@ private struct ChatThreadHeader: View {
     let isComposing: Bool
     let dismiss: DismissAction
 
+    @ViewBuilder
     var body: some View {
+        if customerDesign { customerBody } else { groomerBody }
+    }
+
+    @ViewBuilder private var customerBody: some View {
+        HStack(spacing: DesignTokens.Spacing.lg) {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(DesignTokens.Typography.Expressive.glyph)
+                    .foregroundStyle(DesignTokens.Colors.customerDeep)
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(BeckonLedgeButtonStyle(.round))
+            .accessibilityLabel("Back")
+
+            if !dynamicTypeSize.isAccessibilitySize {
+              BeckonProfileAvatar(
+                data: avatarPhotoData,
+                tone: role == .customer ? .groomer : .customer,
+                size: 56,
+                cornerRadius: DesignTokens.CornerRadius.inset
+            )
+              .accessibilityHidden(true)
+            }
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(title)
+                    .font(DesignTokens.Typography.Expressive.title)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .lineLimit(isComposing && dynamicTypeSize.isAccessibilitySize ? 1 : nil)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+
+                if !isComposing || !dynamicTypeSize.isAccessibilitySize {
+                    HStack(spacing: DesignTokens.Spacing.xs) {
+                        Circle()
+                            .fill(subtitle == "Read-only" ? DesignTokens.Colors.textTertiary : DesignTokens.Colors.customerDeep)
+                            .frame(width: 9, height: 9)
+                            .accessibilityHidden(true)
+
+                        Text(subtitle)
+                            .font(DesignTokens.Typography.Expressive.chip)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+        .padding(.top, DesignTokens.Spacing.lg)
+        .padding(.bottom, DesignTokens.Spacing.md)
+        .background(DesignTokens.Colors.customerTint)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("chat.thread")
+    }
+
+    @ViewBuilder private var groomerBody: some View {
         HStack(spacing: DesignTokens.Spacing.lg) {
             Button {
                 dismiss()
@@ -559,6 +827,8 @@ private struct ChatThreadHeader: View {
 }
 
 private struct ChatMessageRow: View {
+    @Environment(\.beckonCustomerDesign) private var customerDesign
+
     let message: ChatMessage
     let isOutgoing: Bool
     let role: UserRole
@@ -573,7 +843,43 @@ private struct ChatMessageRow: View {
         }
     }
 
+    @ViewBuilder
     private var textRow: some View {
+        if customerDesign { customerTextRow } else { groomerTextRow }
+    }
+
+    @ViewBuilder private var customerTextRow: some View {
+        HStack(alignment: .bottom) {
+            if isOutgoing {
+                Spacer(minLength: 82)
+            }
+
+            VStack(alignment: isOutgoing ? .trailing : .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(message.body ?? "")
+                    .font(DesignTokens.Typography.Expressive.body)
+                    .foregroundStyle(isOutgoing ? DesignTokens.Colors.customerInk : DesignTokens.Colors.textPrimary)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.vertical, DesignTokens.Spacing.md)
+                    .background {
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .fill(isOutgoing ? DesignTokens.Colors.customerFill : DesignTokens.Colors.surface)
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .strokeBorder(isOutgoing ? DesignTokens.Colors.customerFillPressed : DesignTokens.Colors.border,
+                                lineWidth: DesignTokens.Ledge.edgeWidth)
+                    }
+            }
+            .frame(maxWidth: 330, alignment: isOutgoing ? .trailing : .leading)
+            .accessibilityElement(children: .combine)
+
+            if !isOutgoing {
+                Spacer(minLength: 82)
+            }
+        }
+    }
+
+    @ViewBuilder private var groomerTextRow: some View {
         HStack(alignment: .bottom) {
             if isOutgoing {
                 Spacer(minLength: 82)
@@ -606,6 +912,35 @@ private struct ChatMessageRow: View {
 
     @ViewBuilder
     private var bookingCardRow: some View {
+        if customerDesign { customerBookingCardRow } else { groomerBookingCardRow }
+    }
+
+    @ViewBuilder private var customerBookingCardRow: some View {
+        if let booking = message.booking,
+           let bookingStore {
+            NavigationLink {
+                ChatBookingDetailDestination(
+                    bookingID: booking.id,
+                    role: role,
+                    store: bookingStore
+                )
+            } label: {
+                ChatBookingMessageCard(
+                    booking: bookingStore.booking(withID: booking.id) ?? booking,
+                    role: role,
+                    isOutgoing: isOutgoing
+                )
+            }
+            .buttonStyle(BeckonLedgeButtonStyle(.card))
+            .accessibilityIdentifier(
+                "chat.message.booking.\(booking.id.uuidString.lowercased())"
+            )
+        } else {
+            BeckonLedgeNote(systemImage: "calendar.badge.exclamationmark", text: "Booking details are unavailable.")
+        }
+    }
+
+    @ViewBuilder private var groomerBookingCardRow: some View {
         if let booking = message.booking,
            let bookingStore {
             NavigationLink {
@@ -655,12 +990,78 @@ private struct ChatBookingDetailDestination: View {
 }
 
 private struct ChatBookingMessageCard: View {
+    @Environment(\.beckonCustomerDesign) private var customerDesign
+
     @Environment(\.dynamicTypeSize) private var typeSize
     let booking: Booking
     let role: UserRole
     let isOutgoing: Bool
 
+    @ViewBuilder
     var body: some View {
+        if customerDesign { customerBody } else { groomerBody }
+    }
+
+    @ViewBuilder private var customerBody: some View {
+        HStack(alignment: .bottom) {
+            if isOutgoing && !typeSize.isAccessibilitySize {
+                Spacer(minLength: 42)
+            }
+
+            Group {
+                let layout = typeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
+                    : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.md))
+                layout {
+                    if !typeSize.isAccessibilitySize {
+                        DesignIconDisc(
+                            systemImage: booking.status.isCancellation
+                                ? "calendar.badge.exclamationmark"
+                                : "calendar.badge.checkmark",
+                            size: .touch,
+                            font: DesignTokens.Typography.Expressive.glyph)
+                    }
+
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text(booking.status.title)
+                            .font(DesignTokens.Typography.Expressive.headline)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                        Text(booking.scheduledTimeSummary)
+                            .font(DesignTokens.Typography.Expressive.supporting)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .lineLimit(typeSize.isAccessibilitySize ? nil : 2)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text("Booking \(booking.referenceCode) • \(booking.priceSummary)")
+                            .font(DesignTokens.Typography.Expressive.chip)
+                            .foregroundStyle(DesignTokens.Colors.textTertiary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if !typeSize.isAccessibilitySize {
+                        Image(systemName: "chevron.right")
+                            .font(DesignTokens.Typography.Expressive.label)
+                            .foregroundStyle(DesignTokens.Colors.textTertiary)
+                            .accessibilityHidden(true)
+                    }
+                }
+            }
+            .padding(DesignTokens.Spacing.md)
+            .frame(maxWidth: 360)
+
+            if !isOutgoing && !typeSize.isAccessibilitySize {
+                Spacer(minLength: 42)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "\(booking.status.title), \(booking.scheduledTimeSummary), \(booking.priceSummary)"
+        )
+        .accessibilityHint("Opens booking details")
+    }
+
+    @ViewBuilder private var groomerBody: some View {
         HStack(alignment: .bottom) {
             if isOutgoing && !typeSize.isAccessibilitySize {
                 Spacer(minLength: 42)
@@ -727,7 +1128,9 @@ private struct ChatBookingMessageCard: View {
     }
 }
 
-private struct ChatComposerView: View {
+private struct ChatComposerBar: View {
+    @Environment(\.beckonCustomerDesign) private var customerDesign
+
     @Binding var draft: String
     @FocusState.Binding var isFocused: Bool
     let isSending: Bool
@@ -739,7 +1142,86 @@ private struct ChatComposerView: View {
 
     private var hasDraft: Bool { !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
+    @ViewBuilder
     var body: some View {
+        if customerDesign { customerBody } else { groomerBody }
+    }
+
+    @ViewBuilder private var customerBody: some View {
+        Group {
+            if isReadOnly {
+                HStack(alignment: .top, spacing: DesignTokens.Spacing.sm) {
+                    Image(systemName: "lock.fill")
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .padding(.top, 2)
+                        .accessibilityHidden(true)
+
+                    Text(readOnlyMessage)
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.vertical, DesignTokens.Spacing.md)
+                .background {
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
+                        .fill(DesignTokens.Colors.iconTileFill)
+                }
+                .accessibilityIdentifier("chat.message.read-only")
+            } else {
+                HStack(alignment: .bottom, spacing: DesignTokens.Spacing.md) {
+                    TextField(placeholder, text: $draft, axis: .vertical)
+                        .focused($isFocused)
+                        .font(DesignTokens.Typography.body)
+                        .lineLimit(1...4)
+                        .padding(.horizontal, DesignTokens.Spacing.lg)
+                        .padding(.vertical, DesignTokens.Spacing.md)
+                        .background(DesignTokens.Colors.iconTileFill)
+                        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous))
+                        .accessibilityIdentifier("chat.message.body")
+                        .accessibilityLabel("Message")
+
+                    Button {
+                        Task {
+                            await send()
+                        }
+                    } label: {
+                        ZStack {
+                            if isSending {
+                                ProgressView()
+                                    .tint(accent.ink)
+                            } else {
+                                Image(systemName: "paperplane.fill")
+                                    .font(DesignTokens.Typography.Expressive.glyph)
+                                    .foregroundStyle(hasDraft ? DesignTokens.Colors.customerInk : DesignTokens.Colors.textTertiary)
+                                    .offset(x: -1, y: 1)
+                            }
+                        }
+                        .frame(width: DesignTokens.Metrics.ledgeRoundControl, height: DesignTokens.Metrics.ledgeRoundControl)
+                    }
+                    .buttonStyle(BeckonLedgeButtonStyle(hasDraft || isSending ? .pill : .round))
+                    .disabled(isSending || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .accessibilityIdentifier("chat.message.send")
+                    .accessibilityLabel(isSending ? "Sending message" : "Send message")
+                }
+            }
+        }
+        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+        .padding(.vertical, DesignTokens.Spacing.md)
+        .background {
+            DesignTokens.Colors.appBackground
+                .ignoresSafeArea(edges: .bottom)
+        }
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(DesignTokens.Colors.borderSoft)
+                .frame(height: 1)
+        }
+    }
+
+    @ViewBuilder private var groomerBody: some View {
         Group {
             if isReadOnly {
                 HStack(alignment: .top, spacing: DesignTokens.Spacing.sm) {

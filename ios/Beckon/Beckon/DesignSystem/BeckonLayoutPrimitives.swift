@@ -105,13 +105,27 @@ extension View {
 }
 
 struct BeckonPageTitle: View {
+    @Environment(\.beckonCustomerDesign) private var customerDesign
+
     private let title: String
 
     init(_ title: String) {
         self.title = title
     }
 
-    var body: some View {
+    @ViewBuilder var body: some View {
+        if customerDesign { customerBody } else { existingBody }
+    }
+
+    private var customerBody: some View {
+        Text(title)
+            .font(DesignTokens.Typography.Expressive.display)
+            .foregroundStyle(DesignTokens.Colors.textPrimary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    private var existingBody: some View {
         Text(title)
             .font(DesignTokens.Typography.pageTitle)
             .foregroundStyle(DesignTokens.Colors.textPrimary)
@@ -162,13 +176,30 @@ extension BeckonSection where Trailing == EmptyView {
 }
 
 struct BeckonGroupedSurface<Content: View>: View {
+    @Environment(\.beckonCustomerDesign) private var customerDesign
+
     private let content: Content
 
     init(@ViewBuilder content: () -> Content) {
         self.content = content()
     }
 
-    var body: some View {
+    @ViewBuilder var body: some View {
+        if customerDesign { customerBody } else { existingBody }
+    }
+
+    private var customerBody: some View {
+        content
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: DesignTokens.CornerRadius.card,
+                    style: .continuous
+                )
+            )
+            .beckonLedge(.card)
+    }
+
+    private var existingBody: some View {
         content
             .background(DesignTokens.Colors.surface)
             .clipShape(
@@ -198,6 +229,8 @@ struct BeckonGroupedDivider: View {
 }
 
 struct BeckonAccountIdentityHeader<Avatar: View>: View {
+    @Environment(\.beckonCustomerDesign) private var customerDesign
+
     let displayName: String
     let detailText: String
     let roleTitle: String
@@ -221,7 +254,44 @@ struct BeckonAccountIdentityHeader<Avatar: View>: View {
         self.avatar = avatar()
     }
 
-    var body: some View {
+    @ViewBuilder var body: some View {
+        if customerDesign { customerBody } else { existingBody }
+    }
+
+    private var customerBody: some View {
+        HStack(spacing: DesignTokens.Spacing.lg) {
+            avatar
+                .frame(
+                    width: BeckonAccountLayoutPolicy.identityAvatarSize,
+                    height: BeckonAccountLayoutPolicy.identityAvatarSize
+                )
+                .clipShape(Circle())
+                .overlay(Circle().strokeBorder(DesignTokens.Colors.surface, lineWidth: 4))
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(displayName)
+                    .font(DesignTokens.Typography.Expressive.title)
+                    .foregroundStyle(DesignTokens.Colors.customerInk)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(detailText)
+                    .font(DesignTokens.Typography.Expressive.supporting)
+                    .foregroundStyle(DesignTokens.Colors.customerInk)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                BeckonRoleBadge(
+                    title: roleTitle,
+                    systemImage: roleSystemImage,
+                    accent: roleAccent
+                )
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .designBanner()
+        .accessibilityElement(children: .combine)
+    }
+
+    private var existingBody: some View {
         HStack(spacing: DesignTokens.Spacing.lg) {
             avatar
                 .frame(
@@ -253,6 +323,8 @@ struct BeckonAccountIdentityHeader<Avatar: View>: View {
 }
 
 struct BeckonSettingsRowLabel: View {
+    @Environment(\.beckonCustomerDesign) private var customerDesign
+
     let title: String
     let summary: String?
     let systemImage: String
@@ -273,7 +345,44 @@ struct BeckonSettingsRowLabel: View {
         self.trailingSystemImage = trailingSystemImage
     }
 
-    var body: some View {
+    @ViewBuilder var body: some View {
+        if customerDesign { customerBody } else { existingBody }
+    }
+
+    private var customerBody: some View {
+        HStack(spacing: DesignTokens.Spacing.md) {
+            Image(systemName: systemImage)
+                .font(DesignTokens.Typography.Expressive.glyph)
+                .foregroundStyle(accent.darkColor)
+                .frame(width: DesignTokens.Metrics.ledgeIconTile, height: DesignTokens.Metrics.ledgeIconTile)
+                .background(accent.tint, in: Circle())
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(title)
+                    .font(DesignTokens.Typography.Expressive.emphasis)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                if let summary {
+                    Text(summary)
+                        .font(DesignTokens.Typography.Expressive.chip)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Image(systemName: trailingSystemImage)
+                .font(DesignTokens.Typography.Expressive.label)
+                .foregroundStyle(DesignTokens.Colors.textTertiary)
+                .accessibilityHidden(true)
+        }
+        .padding(.horizontal, DesignTokens.Layout.rowHorizontalInset)
+        .padding(.vertical, DesignTokens.Layout.rowVerticalInset)
+        .frame(minHeight: DesignTokens.Metrics.minimumTouchTarget)
+        .contentShape(Rectangle())
+    }
+
+    private var existingBody: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             Image(systemName: systemImage)
                 .font(DesignTokens.Typography.cardTitle)
@@ -338,11 +447,13 @@ struct BeckonSettingsNavigationRow<Destination: View>: View {
                 accent: accent
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BeckonGuardedPlainButtonStyle())
     }
 }
 
 struct BeckonSectionHeading<Trailing: View>: View {
+    @Environment(\.beckonCustomerDesign) private var customerDesign
+
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let title: String
     let subtitle: String?
@@ -358,7 +469,33 @@ struct BeckonSectionHeading<Trailing: View>: View {
         self.trailing = trailing()
     }
 
-    var body: some View {
+    @ViewBuilder var body: some View {
+        if customerDesign { customerBody } else { existingBody }
+    }
+
+    private var customerBody: some View {
+        headingLayout {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(title)
+                    .font(DesignTokens.Typography.Expressive.section)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .accessibilityAddTraits(.isHeader)
+
+                if let subtitle {
+                    Text(subtitle)
+                        .font(DesignTokens.Typography.Expressive.supporting)
+                        .foregroundStyle(DesignTokens.Colors.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            trailing
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private var existingBody: some View {
         headingLayout {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(title)

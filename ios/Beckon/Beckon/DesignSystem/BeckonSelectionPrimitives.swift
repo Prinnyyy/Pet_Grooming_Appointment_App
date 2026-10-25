@@ -52,6 +52,6 @@ struct BeckonSelectionCard<Content: View>: View {
                 .contentShape(Rectangle())
                 .frame(minHeight: DesignTokens.Metrics.minimumTouchTarget)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BeckonGuardedPlainButtonStyle())
     }
 }

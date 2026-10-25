@@ -10,7 +10,7 @@ Only dynamic task and recovery facts. Git owns branch, worktree and completion h
     "status": "active",
     "goal": "Adopt the approved customer prototype UI into production while preserving real data, navigation and accessibility contracts",
     "plan": "docs/superpowers/plans/2026-10-25-customer-ui-adoption.md",
-    "next_action": "Home/Requests/detail/offers compiled and focused tests passed; adopt six-step wizard/picker next, then remaining screen areas. Integrated runtime/accessibility/Release acceptance remains open; see plan execution record",
+    "next_action": "All screen areas adopted with scoped shared styles and focused tests; switch sandbox hosts to real views, remove obsolete UI, then integrated runtime/accessibility/Release and canonical documentation acceptance. See plan execution record",
     "preserve": ["Pre-existing dirty contents and hashes: artifacts/evidence/T-420/pre-adoption/manifest.json", "Prototype and CLAUDE_sandbox are read-only except completion checkboxes; local signing stays uncommitted"],
     "authorization": ["User approved production adoption and scoped validated work-package commits; use current main branch"]
   },
