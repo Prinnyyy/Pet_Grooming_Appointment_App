@@ -5,6 +5,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 import {
+  LEDGE_TIER_PATHS,
   auditSwiftSource,
   compareWithBaseline,
   maskSwiftNonCode,
@@ -262,4 +263,49 @@ test("CLI relocate moves an unchanged subset and retains source findings", () =>
     ["UI001", sourcePath],
     ["UI004", destinationPath],
   ]);
+});
+
+test("UI015 keeps expressive motion in DesignSystem and skips legacy motion sites", () => {
+  const source = `Circle()
+    .keyframeAnimator(initialValue: 0) { content, value in content } keyframes: { _ in }
+    .animation(.spring(response: 0.3), value: flag)
+    .animation(.bouncy, value: flag)
+    TimelineView(.animation) { _ in Color.clear }
+    TimelineView(.periodic(from: .now, by: 1)) { _ in Color.clear }
+    .beckonAnimation(DesignTokens.Motion.swap, value: flag)
+    // .repeatForever()
+    Text(".phaseAnimator")`;
+  const findings = auditSwiftSource({ filePath: "ios/Beckon/Beckon/Features/Customer/Example.swift", source })
+    .filter(f => f.ruleID === "UI015");
+  assert.equal(findings.length, 4);
+  assert.ok(findings.every(f => f.severity === "error"));
+  assert.equal(auditSwiftSource({ filePath: "ios/Beckon/Beckon/Features/Auth/AuthenticationView.swift", source })
+    .filter(f => f.ruleID === "UI015").length, 0);
+});
+
+test("UI016 rejects Feature-local rounded type but not the Expressive token roles", () => {
+  const source = `Text(title).font(DesignTokens.Typography.Expressive.hero)
+    Text(title).font(.system(.title, design: .rounded, weight: .black))
+    Text(title).fontDesign(.rounded)
+    // design: .rounded
+    Text("design: .rounded")`;
+  const findings = auditSwiftSource({ filePath: "ios/Beckon/Beckon/Features/Customer/Example.swift", source })
+    .filter(f => f.ruleID === "UI016");
+  assert.equal(findings.length, 2);
+  assert.ok(findings.every(f => f.severity === "error"));
+});
+
+test("UI017 allows ledge surfaces only in declared Tier L/M screens", () => {
+  const source = `Button {} label: { Text("Go") }.buttonStyle(BeckonLedgeButtonStyle(.card))
+    Text(title).beckonLedge(.pill)
+    // .beckonLedge(.card)
+    Text(".beckonLedge(.card)")`;
+  const other = auditSwiftSource({ filePath: "ios/Beckon/Beckon/Features/Groomer/Home/GroomerHomeView.swift", source })
+    .filter(f => f.ruleID === "UI017");
+  assert.ok(other.length >= 2);
+  assert.ok(other.every(f => f.severity === "error"));
+  for (const allowed of LEDGE_TIER_PATHS) {
+    assert.equal(auditSwiftSource({ filePath: `ios/Beckon/Beckon/${allowed}`, source })
+      .filter(f => f.ruleID === "UI017").length, 0);
+  }
 });

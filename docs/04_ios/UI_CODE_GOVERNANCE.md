@@ -36,6 +36,9 @@ node scripts/ui-consistency-audit.mjs strict ios/Beckon/Beckon/Features/Customer
 | UI012 | error | `Colors.<token>.opacity(...)` | Opaque Tint, status Fill or neutral surface |
 | UI013 | error | Role Fill or legacy status fill in foreground/tint | Role Deep or semantic Text |
 | UI014 | error | Direct `tone:` argument on a Feature status chip | Shared `BeckonStatusPresentation` |
+| UI015 | error | Expressive motion primitive (`keyframeAnimator`, `phaseAnimator`, `repeatForever`, `TimelineView(.animation)`, spring literals) in Feature code | `beckonEntrance`, `beckonAnimation` or a DesignSystem component |
+| UI016 | error | Feature-local `design: .rounded` or `.fontDesign(.rounded)` | `DesignTokens.Typography.Expressive.<role>` |
+| UI017 | error | `BeckonLedge*` surface outside the Tier L/M allowlist | Tier C primitives, or declare the screen in `SCREEN_INVENTORY.md` and `LEDGE_TIER_PATHS` |
 | UI101 | warning | Fixed frame with Dynamic Type risk | Content-sized or adaptive layout |
 | UI102 | warning | Offset or negative spacing repair | Alignment or layout container |
 | UI201 | review | Repeated visual modifier stack | Review for a semantic component |
@@ -76,6 +79,8 @@ Wildcards, missing reasons, alternate wording, detached directives, and exceptio
 
 ## Review Boundary
 
+For isolated Preview experiments, [Sandbox Workflow](../05_workflow/SWIFTUI_FLOW_SANDBOX_WORKFLOW.md#acceptance) owns acceptance. The design and ownership principles below still apply, but the full review matrices apply only to actual production UI changes, not unchanged components reused by a sandbox. This does not exempt production edits or permit suppressing source-audit findings.
+
 Feature views compose UI and own focus; Stores and flow state own validation, async work and business transitions. `DesignSystem` owns recurring typography, spacing, alignment, color, shape, elevation, control dimensions, and presentation feedback. `SharedFeatures` owns reusable business components, consuming DesignSystem without reversing that dependency. Its existing shared primitives retain their component-level geometry review; moving a feature there is not an exemption for unresolved UI defects. The source ratchet still scans Features, not all UI layers. Reviewers must check shared component reuse, Dynamic Type, VoiceOver, contrast, localization, safe areas, focus, and native control behavior.
 
 ### Keyboard and Focus Review
@@ -103,5 +108,7 @@ The UI audit enforces the deterministic boundary: `UI009` rejects feature-level 
 Code review must account for at least one low single-line field and one multiline field when the screen has both, plus docked/floating/hardware keyboard outcomes in the shared contract tests. Runtime interaction remains user validation unless explicitly requested. Source audit warnings remain review signals; the one shared keyboard boundary is not an invitation to suppress UI102 elsewhere.
 
 ## Migration Status
+
+T-420/D-064 adopts the customer scope listed in `SCREEN_INVENTORY.md`. `LEDGE_TIER_PATHS` now explicitly includes those feature files and the approved shared branches. `beckonCustomerDesign` controls shared visual adoption; do not use the path allowance to restyle groomer branches. The old deck/list and their dead motion state are removed. Existing unrelated debt is retained in the ratchet; adopted changes may only remove or preserve it, never baseline new errors.
 
 T-312/Q-120 completes the first reference slice: Customer Home, Requests, Request Wizard, and Account have zero strict errors and passed default/Accessibility 3 compact/large integration checks. Remaining repository debt, reviewed geometry, concentrations, and migration ordering live in `UI_CONSISTENCY_DEBT.md`.

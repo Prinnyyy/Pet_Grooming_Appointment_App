@@ -29,7 +29,7 @@ test('business address state is outside the visual primitive layer', () => {
 });
 
 test('customer and groomer fit evidence use the same visual component', () => {
-  for (const path of ['Features/Customer/Requests/CustomerRequestDetailView.swift', 'Features/Groomer/Requests/GroomerRequestsView.swift']) {
+  for (const path of ['Features/Customer/Requests/CustomerOfferDetailView.swift', 'Features/Customer/Requests/CustomerRequestOffersView.swift', 'Features/Groomer/Requests/GroomerRequestsView.swift']) {
     const view = source(path);
     assert.match(view, /BeckonFitEvidenceBlock\(/);
     assert.doesNotMatch(view, /private struct (CustomerOffer|Groomer)FitEvidenceBlock/);

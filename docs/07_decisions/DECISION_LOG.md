@@ -18,6 +18,36 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-064
+Date: 2026-10-25
+Task: T-420
+Decision: Adopt the reviewed customer prototype across production customer pages, plus authentication, shared account actions and booking confirmations. Extend D-063's ledge/rounded treatment to customer form chrome, settings and dialogs; input and thread content remain calm. Shared Bookings/Chat/kit consumers select customer appearance explicitly, preserving groomer layouts.
+Context: The user approved the complete prototype and its six-step request flow, feedback layers, active-request root, customer booking journey, pet-removal confirmation and saved-groomer Undo. The prototype is a visual source; Stores, repositories, authorization, recovery, error copy and identifiers remain production contracts.
+Consequences: CustomerTabView owns plain-cut routing and active-tab wizard presentation. Step/detail/list entrance families replay only while active and onscreen; Reduce Motion fades. Request creation ends in one selectable groomer list with explicit pool consent and a server-enforced five-outstanding limit. Capacity is labelled unknown until reliable quote evidence is complete; extrema badges require complete current offers. Closed requests live in history. Toast timing belongs to the feedback center; page-owned Undo uses the existing favorite mutation. Decision alerts and dismissible modals share the kit. Sandbox hosts use real views with existing isolated mocks; frozen prototype sources stay untouched. No backend, persistence capability, signing or groomer-layout redesign.
+Linked files: docs/superpowers/plans/2026-10-25-customer-ui-adoption.md, docs/01_product/LIVELY_UI_SPEC.md, docs/01_product/SCREEN_INVENTORY.md, ios/Beckon/Beckon/DesignSystem/DesignDialog.swift.
+```
+
+```text
+Decision ID: D-063
+Date: 2026-10-23
+Task: T-419
+Decision: Adopt the Lively style as a tiered, Customer-side extension of the design contract: ledge surfaces, SF Rounded expressive type and bounded motion for Tier L (Customer Home, empty and celebration states) and Tier M (Customer request, booking and pet lists and details). Tier C (forms, chat, settings, payments, destructive confirmations, every Groomer screen) keeps the existing calm contract.
+Context: The user approved the sandbox prototype as the direction and asked for adoption starting with Customer Home. The prior contract forbade decorative animation outside the brand illustration, allowed one quiet shadow tier, and required semantic system type.
+Consequences: DesignTokens gains Ledge, Motion, expressive CornerRadius and Metrics, and Typography.Expressive. DesignSystem gains the ledge surfaces, entrance and motion modifiers, journey, expressive components and the illustration layer. Customer Home, the Home request summary and the Customer notification bell use them; D-062's Playful sandbox hooks are retired. Audit rules UI015 (motion), UI016 (rounded type) and UI017 (ledge tier allowlist) hold the boundary; a new surface variant, type role, spring, decorative loop or Tier L/M screen is a spec change plus a Decision Log entry. White on the unread dot becomes an approved pair. Amends the Design System visual direction, UI-R2/R3/R6, A11Y-R1 and the approved pairs as listed in the spec.
+Linked files: docs/01_product/LIVELY_UI_SPEC.md, docs/01_product/DESIGN_SYSTEM.md, ios/Beckon/Beckon/DesignSystem/BeckonLedge.swift, scripts/ui-consistency-audit-core.mjs.
+```
+
+```text
+Decision ID: D-062
+Date: 2026-10-20
+Task: T-418
+Decision: Route isolated SwiftUI Flow Sandbox work through one lightweight workflow instead of production lifecycle and closeout gates.
+Context: T-417 took about 28 minutes; repeated Canvas interaction and broad/redundant validation delayed a small local UX experiment. The user requested distinct execution rules.
+Consequences: Default to local Preview delivery, focused isolation/state evidence and one core walkthrough; no automatic full regression, duplicate build, task paperwork or Git delivery. Escalate actual production-affecting changes only. Preserve data isolation, user work and authorization. AGENTS, Development Guide, build instructions and the docs index route to one authority.
+Linked files: docs/05_workflow/SWIFTUI_FLOW_SANDBOX_WORKFLOW.md.
+```
+
+```text
 Decision ID: D-061
 Date: 2026-10-18
 Task: T-416

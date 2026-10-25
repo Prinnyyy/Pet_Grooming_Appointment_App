@@ -9,6 +9,7 @@ Pre-routing source snapshot: `../09_frozen/design_notes/T-347_2026-07-13/DESIGN_
 - Always start here for visual style, shared SwiftUI primitives, tokens, or screenshot-driven UI.
 - Add `ACCESSIBILITY_RULES.md` when changing user-visible UI, controls, images, text, status, or async feedback.
 - Add `FORM_INTERACTION_RULES.md` only for text entry, focus, keyboard avoidance, scrolling editors, or sheet gestures.
+- Add `LIVELY_UI_SPEC.md` for any Tier L/M (expressive) Customer UI: ledge surfaces, rounded type, entrance and idle motion, the pup illustration. Screens not declared there are Tier C and keep this file's contract unchanged (D-063, extended by D-064).
 - Use `../08_design/UI_IMPLEMENTATION_NOTES.md` to locate current screenshots and design evidence.
 - Use `../08_design/GROOMER_UI_REDESIGN.md` for the Groomer workspace contract or a focused R-039 regression.
 - Use `../ui-redesign/README.md` only when an explicit Figma/inventory task requires the heavy redesign evidence package.
@@ -21,13 +22,13 @@ Executable Feature-code rules and audit commands live in `../04_ios/UI_CODE_GOVE
 - Customer uses mint/teal action roles; Groomer uses coral action roles.
 - Role Fill is a light action surface, Ink is its foreground, Deep is for links, controls, progress and selection outlines, and opaque Tint is for selected/icon surfaces. Exact values and allowed contrast pairs live in `DesignTokens.swift` and `DesignTokenAccessibilityTests.swift`; D-060 supersedes earlier palette proposals.
 - Role color communicates action, selection or role, never domain status or failure. Status uses semantic Text/Fill/Border with a symbol and label; shared screens keep the same status presentation for both roles.
-- No accent-opacity control surfaces, gradient buttons or colored action shadows. The Customer Hero retains a related-color gradient. Cards share one quiet warm shadow; depth primarily comes from borders. Placeholders and list icon tiles are neutral, with species conveyed by symbols rather than color. The authentication brand illustration has the separate, bounded material contract below.
+- No accent-opacity control surfaces, gradient buttons or colored action shadows. The Customer Hero retains a related-color gradient. Tier C cards share one quiet warm shadow; depth primarily comes from borders. Tier L/M tappable surfaces use the opaque ledge from `LIVELY_UI_SPEC.md`, never a blur or glow. Customer profile placeholders use the role Tint/Deep pair; other placeholders and list icon tiles retain their role-scoped treatment. Species is conveyed by symbols rather than color. The authentication brand illustration has the separate, bounded material contract below.
 - Destructive actions use a white surface with semantic error text/border for either role. Errors include an alert symbol and error container; success includes a checkmark. Never use white text on a light role Fill.
 - Clear hierarchy, quiet borders/shadows, content-led imagery, and explicit loading, empty, error, selected, disabled, and success states.
 - Customer remains pet/decision oriented. Groomer remains schedule/action oriented and uses grouped surfaces with row separators rather than card stacks.
-- Native SwiftUI/SF typography and semantic Dynamic Type styles are required.
+- Native SwiftUI/SF typography and semantic Dynamic Type styles are required. Tier L/M may use the SF Rounded `DesignTokens.Typography.Expressive` roles, which are still semantic text styles.
 
-Avoid dense dashboards, map-first layouts, oversized calendars, decorative animation outside the approved brand illustration, nested cards, and raw feature-local color, spacing, radius, shadow, or font values.
+Avoid dense dashboards, map-first layouts, oversized calendars, decorative animation outside the approved brand illustration and the Tier L expressive illustration layer, nested cards, and raw feature-local color, spacing, radius, shadow, or font values.
 
 ### Authentication Brand Illustration
 
@@ -44,7 +45,7 @@ Avoid dense dashboards, map-first layouts, oversized calendars, decorative anima
 ## Sources And Ownership
 
 - Swift tokens: `ios/Beckon/Beckon/DesignSystem/DesignTokens.swift`
-- Shared primitives: `ios/Beckon/Beckon/DesignSystem/`
+- Shared primitives: `ios/Beckon/Beckon/DesignSystem/`; expressive kit: `BeckonLedge.swift`, `BeckonMotion.swift`, `BeckonExpressiveComponents.swift`, `BeckonJourney.swift`, `DesignKit.swift`, `DesignDialog.swift`, `DesignSnackbar.swift`, `FeedbackTimingPolicy.swift`, `BeckonExpressiveIllustration.swift`
 - Shared business UI and reusable flow state: `ios/Beckon/Beckon/SharedFeatures/` (Address, Notifications, Matching)
 - Historical prototype palette: `../09_frozen/design_notes/design_tokens_2026-10-17.json` (not an implementation source)
 - Screen ownership: `SCREEN_INVENTORY.md`
@@ -58,10 +59,10 @@ Reuse implemented primitives such as action styles, `BeckonSection`, `BeckonGrou
 
 - **UI-R1 Component ownership:** Extract repeated stable presentation when it removes real duplication. Generic visual primitives belong in `DesignSystem/`; reusable business components belong in `SharedFeatures/`; one-feature helpers stay with that feature. Two call sites alone do not justify a new abstraction. Preserve applicable loading, disabled, error, empty, selected and accessibility behavior; do not add style flags that rendering never consumes.
 - **UI-R2 Semantic typography:** Feature text uses `DesignTokens.Typography`; hierarchy comes from semantic style and weight, never new `Font.system(size:)` sites.
-- **UI-R3 Reserved accents:** A screen has at most one role-accent primary-action pattern. Outside the approved brand illustration and Customer Hero, accent communicates action or selection, not decoration or status.
+- **UI-R3 Reserved accents:** A screen has at most one role-accent primary-action pattern. Outside the approved brand illustration, the Customer Hero and the Tier L illustration layer, accent communicates action or selection, not decoration or status.
 - **UI-R4 Semantic color and contrast:** Feature code uses semantic color roles and only approved foreground/background pairs from `ACCESSIBILITY_RULES.md`.
 - **UI-R5 Token spacing and shape:** Keep the 4pt grid and established semantic insets, spacing, radii, and control metrics. Introduce reusable values through tokens first.
-- **UI-R6 Content-first depth:** Let relevant pet, portfolio, and Groomer imagery lead. Use one quiet elevation tier; operational lists remain grouped rather than card-heavy.
+- **UI-R6 Content-first depth:** Let relevant pet, portfolio, and Groomer imagery lead. Use the quiet elevation tier (Tier C) or the ledge (Tier L/M), never both on one surface; operational lists remain grouped rather than card-heavy.
 - **UI-R7 Complete async states:** Every async surface provides truthful loading, empty, error, and success presentation with a useful next action or retry.
 - **UI-R8 Screen archetypes:** Classify screens as List/Feed, Detail, Wizard, Thread, Editor, or Workspace and follow a consistent hierarchy/action/accessibility contract for that archetype.
 
@@ -69,11 +70,11 @@ Reuse implemented primitives such as action styles, `BeckonSection`, `BeckonGrou
 
 ### Request-Scoped Groomer Browsing
 
-T-399 adopts private request-scoped discovery, not a new public directory or direct-booking flow. The carousel, full list, details and favorites compose `GroomerCandidateSummaryView`/`GroomerCandidateActionsView` within Customer features. Professional-fit evidence reuses `BeckonFitEvidenceBlock` without a numeric match score. Swiping is reversible browsing; invitation, favorite and optional pool consent are separate explicit controls. Multiple controls in a native List row use explicit button styles so one tap cannot invoke another action. Loading/error states must not masquerade as an empty candidate list.
+T-420 (D-064) uses one request-scoped selectable groomer list in wizard step six and the Invite more sheet. Sort and Saved filters, profile details, favorites, invitation selections and pool consent are explicit controls. The former swipe deck and separate full-list page are retired. `GroomerChoiceRow`, `GroomerSelectionActions`, `GroomerPoolCard`, `GroomerCandidateSummaryView` and `GroomerCandidateActionsView` stay Customer-owned; professional-fit evidence reuses `BeckonFitEvidenceBlock` without a numeric score. Existing Stores/repositories own ranking, pagination, authorization and mutations.
 
-T-401 uses the feature-local `GroomerDiscoveryCardDeck`: stable card surfaces, reversible tilt, explicit groomer/more identity, and one tail action opening the existing full list. Only the front card is interactive or accessible; Reduce Motion removes rotation and elastic motion. Previous/next buttons remain available. List navigation preserves the entry card, including the tail. Saved Groomers stays below browsing actions.
+The request wizard's fixed header and bottom action bar surround the scrolling form. Pet choices keep a selection-indicator slot and separate name, breed and weight rows. Step six uses the same motion/chrome and Done routes through the tab shell to the new request. Requests root shows active requests; closed requests belong in history. Never infer invitation capacity from every offered invitation: pending selectable offers count, unusable offers do not; partial evidence shows capacity as checked on send. Offer minima badges require a complete, current quote set.
 
-The request wizard progress band is a fixed sibling of its scrolling form, separated by a divider. Its height follows Dynamic Type. Pet choice cards keep a permanent selection-indicator slot and separate name, breed and weight rows; selecting a pet changes styling, never text geometry. Accessibility sizes stack the avatar above the full-width text.
+Customer booking detail composes ticket, path, next step, review, Manage booking and collapsible record. Shared note/time confirmations retain real validation and recovery inside custom dialogs. Removing a pet requires confirmation; removing a favorite offers a page-owned Undo through the existing reversible mutation. Shared account actions order routine sign-out above quiet destructive deletion. Customer appearance is scoped through `beckonCustomerDesign`; groomer layout remains unchanged except the explicitly shared account actions and booking dialogs.
 
 Start with `../06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`. Map visible modules to current screens, Stores, repositories, and models before editing. Classify each as visual-only, existing-feature rewire, reusable primitive, or new feature. Stop for approval before persistence, schema, backend, navigation, role capability, or deferred product changes.
 

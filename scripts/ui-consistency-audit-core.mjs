@@ -15,12 +15,57 @@ export const UI_RULES = Object.freeze([
   { id: "UI012", severity: "error", category: "color-opacity", message: "Use an opaque semantic fill instead of token opacity." },
   { id: "UI013", severity: "error", category: "color-contrast", message: "Use role Deep or semantic Text colors for foregrounds and tint." },
   { id: "UI014", severity: "error", category: "status-presentation", message: "Use a shared BeckonStatusPresentation, not a Feature-owned tone." },
+  { id: "UI015", severity: "error", category: "expressive-motion", message: "Expressive motion belongs to DesignSystem; use Beckon motion modifiers and DesignTokens.Motion." },
+  { id: "UI016", severity: "error", category: "rounded-type", message: "Rounded type comes from DesignTokens.Typography.Expressive, not Feature-local fonts." },
+  { id: "UI017", severity: "error", category: "ledge-tier", message: "Ledge surfaces are Tier L/M only; declare the screen in SCREEN_INVENTORY.md and the LEDGE_TIER_PATHS allowlist." },
   { id: "UI101", severity: "warning", category: "fixed-geometry", message: "Review fixed geometry for dynamic text risk." },
   { id: "UI102", severity: "warning", category: "layout-patch", message: "Review offset or negative spacing as a layout repair." },
   { id: "UI201", severity: "review", category: "duplicate-stack", message: "Review repeated visual modifier stacks for a semantic component." },
 ]);
 
 const ruleByID = new Map(UI_RULES.map((rule) => [rule.id, rule]));
+
+// Spec: docs/01_product/LIVELY_UI_SPEC.md. Screens that may use ledge surfaces (Tier L or M). Adding a screen is a
+// deliberate act: record its tier in SCREEN_INVENTORY.md and a Decision Log entry, then add it here.
+export const LEDGE_TIER_PATHS = Object.freeze([
+  "Features/Customer/Home/CustomerHomeView.swift",
+  "Features/Customer/Pets/CustomerPetFormView.swift",
+  "Features/Customer/Profile/CustomerAccountView.swift",
+  "Features/Customer/Profile/CustomerProfileSettingsView.swift",
+  "Features/Customer/Notifications/CustomerNotificationsView.swift",
+  "Features/Customer/Favorites/CustomerFavoriteGroomersView.swift",
+  "Features/Customer/Requests/CustomerRequestsView.swift",
+  "Features/Customer/Requests/CustomerRequestsDashboardView.swift",
+  "Features/Customer/Requests/CustomerRequestDetailView.swift",
+  "Features/Customer/Requests/CustomerRequestOffersView.swift",
+  "Features/Customer/Requests/CustomerOfferDetailView.swift",
+  "Features/Customer/Requests/CustomerRequestReach.swift",
+  "Features/Customer/Requests/CustomerRequestWizardView.swift",
+  "Features/Customer/Requests/CustomerRequestWizardChrome.swift",
+  "Features/Customer/Discovery/CustomerGroomerDiscoveryView.swift",
+  "Features/Customer/Discovery/CustomerGroomerDetailView.swift",
+  "Features/Customer/Discovery/GroomerChoice.swift",
+  "Features/Customer/Discovery/GroomerCandidateActionsView.swift",
+  "Features/Customer/Discovery/GroomerCandidateSummaryView.swift",
+  "Features/Bookings/BookingsView.swift",
+  "Features/Bookings/CustomerBookingDetailContent.swift",
+  "Features/Bookings/BookingActionDialogs.swift",
+  "Features/Bookings/AppointmentReminderDestinationView.swift",
+  "Features/Chat/ChatView.swift",
+  "Features/Auth/AuthenticatedAccountView.swift",
+  "Features/Auth/AuthenticationView.swift",
+  "Features/Auth/PasswordRecoveryView.swift",
+  "Features/Auth/RoleOnboardingView.swift",
+]);
+// Legacy motion and rounded-type sites that predate the expressive contract; they are not Tier L/M screens.
+const LEGACY_EXPRESSIVE_PATHS = Object.freeze([
+  "Features/Auth/AuthenticationView.swift",
+]);
+
+function pathMatches(filePath, paths) {
+  const normalized = filePath.replaceAll("\\", "/");
+  return paths.some((candidate) => normalized.endsWith(candidate));
+}
 const exactFixedGeometryDirective = "// beckon-ui-audit: allow UI101 -- Fixed square media crop; text is outside this frame.";
 
 function hash(value) {
@@ -241,6 +286,13 @@ export function auditSwiftSource({ filePath, source }) {
     } });
   addMatches(findings, { masked, source, filePath, ruleID: "UI014", pattern: /\bBeckonStatusChip\s*\(/g, replacement: "SharedFeatures status presentation",
     predicate: (_, index) => /(?:^|,)\s*tone\s*:/.test(directArguments(masked, masked.indexOf("(", index))) });
+  if (!pathMatches(filePath, LEGACY_EXPRESSIVE_PATHS)) {
+    addMatches(findings, { masked, source, filePath, ruleID: "UI015", pattern: /\.(?:repeatForever|keyframeAnimator|phaseAnimator|spring|interpolatingSpring)\s*\(|\.(?:bouncy|snappy)\b|\bTimelineView\s*\(\s*\.animation\b/g, replacement: "beckonEntrance / beckonAnimation / DesignSystem component" });
+    addMatches(findings, { masked, source, filePath, ruleID: "UI016", pattern: /\bdesign\s*:\s*\.rounded\b|\.fontDesign\s*\(\s*\.rounded\b/g, replacement: "DesignTokens.Typography.Expressive.<role>" });
+  }
+  if (!pathMatches(filePath, LEDGE_TIER_PATHS)) {
+    addMatches(findings, { masked, source, filePath, ruleID: "UI017", pattern: /\bBeckonLedge(?:ButtonStyle|Surface)\b|\.beckonLedge\s*\(/g, replacement: "Existing Tier C primitives, or declare the screen Tier L/M" });
+  }
   addMatches(findings, { masked, source, filePath, ruleID: "UI101", pattern: /\.frame\s*\([^)]*\b(?:width|height)\s*:\s*(?:\d+(?:\.\d+)?|DesignTokens\.)/g, replacement: "Content-sized layout", exception: hasFixedGeometryException });
   addMatches(findings, { masked, source, filePath, ruleID: "UI102", pattern: /\.offset\s*\(/g, replacement: "Alignment or layout container" });
   addMatches(findings, { masked, source, filePath, ruleID: "UI102", pattern: /\.(?:padding|spacing)\s*\([^)]*?\b-\d+(?:\.\d+)?\b/g, replacement: "Non-negative semantic spacing" });

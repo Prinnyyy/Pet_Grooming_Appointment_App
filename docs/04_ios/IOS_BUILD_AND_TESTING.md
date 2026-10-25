@@ -1,5 +1,7 @@
 # iOS Build and Testing
 
+For isolated interactive Preview work, [Sandbox Workflow](../05_workflow/SWIFTUI_FLOW_SANDBOX_WORKFLOW.md) determines required checks. The commands below are available tools, not a mandatory sandbox checklist.
+
 ## Defaults
 
 - Project: `ios/Beckon/Beckon.xcodeproj`
@@ -53,6 +55,16 @@ node scripts/testops.mjs run matching --scenario request_matching_eval --matrix 
 
 Remote backend execution and cleanup require explicit operator approval, `--execute`, and `TESTOPS_REMOTE_WRITE_APPROVED=1`.
 
+## Customer Home Preview
+
+Open `ios/Beckon/Beckon/Features/Customer/Pets/CustomerHomeFlowSandbox.swift` and resume `Customer Home - all modules` in Canvas. It uses the complete production Home View: greeting/notifications, request entry, pets, active request, next booking and conditional recovery components. The existing pet sandbox session supplies editing, feedback and isolated storage; Reload and Reset affect only this session.
+
+The footer switches the fixture request between Posted, Offers and Booked, and Reload replays the entrance. The complete customer index in `FlowSandbox/Customer/CustomerFlowSandbox.swift` now hosts adopted production views, with screen/state fixtures for the six-step wizard, selectable groomer list, offers, bookings, messages and account. The frozen `FlowSandbox/Prototype/` snapshots remain a design reference; they are not the host's runtime UI.
+
+Local session repositories support publication, invitations, pool state, bookings and messages without real accounts or services. Request creation preserves the entered draft, assigns a new request ID and scopes invitations/pool state per request; replay of the same operation remains idempotent. Missing form values are supplied only through the DEBUG sandbox advance hook. The normal App retains required-field validation and real repositories. The wizard's Done action opens Requests, as in the adopted App. Preferences stay in memory, temporary pending-publication files remain session-scoped, and reminders/address lookup cannot call real services.
+
+Current adoption evidence and its limits are recorded in the [T-420 plan](../superpowers/plans/2026-10-25-customer-ui-adoption.md). T-418 Original/Playful and T-419 Home-only evidence are historical and do not certify the later all-customer adoption. For opt-in local UI acceptance, use `CustomerUIAdoptionAcceptanceTests/testLocalCustomerJourney` with the existing `--beckon-ui-test-signed-out-auth` test-host argument and `BECKON_UI_ADOPTION=1`; the test replaces the window root with the isolated host and restores it afterward. Do not set `XCODE_RUNNING_FOR_PREVIEWS` for hosted Simulator tests: that Canvas-specific flag prevents this interactive host from rendering.
+
 ## Pet Flow Preview
 
 Open `ios/Beckon/Beckon/Features/Customer/Pets/CustomerPetsFlowSandbox.swift` in Xcode,
@@ -67,7 +79,7 @@ enable Editor > Canvas, select an iPhone and resume the interactive preview.
 Focused behavior coverage: `PetFlowSandboxTests` and `CustomerPetsStoreTests`.
 Preview is for local UX iteration, not evidence of backend authorization, real persistence, or device integration.
 
-T-417 acceptance (2026-10-20): the two initial regression tests failed on missing revisions and non-persistent preview edits, then the 54-test focused run passed. Xcode Canvas Live Mode verified card-to-editor navigation, editing, cancel, save/return with the production success toast, reload, reset and default/AX3 list layout. The failure preview retained edits and disabled saving; automated tests verified its reload/retry path. No fresh spoken VoiceOver or comprehensive keyboard/device review was performed.
+T-417 historical acceptance (2026-10-20), not a required checklist for later sandbox iterations: the two initial regression tests failed on missing revisions and non-persistent preview edits, then the 54-test focused run passed. Xcode Canvas Live Mode verified card-to-editor navigation, editing, cancel, save/return with the production success toast, reload, reset and default/AX3 list layout. The failure preview retained edits and disabled saving; automated tests verified its reload/retry path. No fresh spoken VoiceOver or comprehensive keyboard/device review was performed.
 
 The integrated run passed 835 tests and skipped 46 opt-in tests, with one existing four-second feedback-dismissal timeout. All eight unchanged `BeckonFeedbackCenterTests` passed in an isolated retest using the same built products; other passing results were reused. XcodeBuildMCP result bundles end in `19-08-36-588Z_pid73300_2cc27364.xcresult` (full) and `19-16-49-558Z_pid73300_33fd36d1.xcresult` (retest). The full-run tool timed out at 300 seconds; its original process was allowed to finish and the completed result bundle was read directly, without starting a duplicate run. Debug/Release builds, preflight and context hygiene passed.
 

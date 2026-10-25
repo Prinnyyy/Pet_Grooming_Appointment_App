@@ -7,9 +7,9 @@ const read = path => readFileSync(new URL(path, root), "utf8");
 
 test("Home request summaries use one action with explicit progress and review semantics", () => {
   const source = read("Features/Customer/Requests/CustomerRequestsDashboardView.swift");
-  const summary = source.split("struct CustomerRequestActionCardSummary: View {")[1]
-    .split("private struct CustomerRequestProgressCard:")[0];
-  assert.match(summary, /CustomerRequestSummaryProgress/);
+  const summary = source.split("struct CustomerRequestSummaryCard: View {")[1]
+    .split("struct CustomerRequestCard:")[0];
+  assert.match(summary, /BeckonJourney\(stage: step, offerCount: card\.loadedOfferCount\)/);
   assert.match(summary, /presentation\.accessibilityLabel/);
   assert.match(summary, /Text\("Review"\)/);
   assert.doesNotMatch(summary, /\bButton\s*[{(]/);
@@ -34,10 +34,14 @@ test("Groomer Home uses a role badge, shared count badges and non-color availabi
   assert.doesNotMatch(home, /let tint: Color|Colors\.groomerInk/);
 });
 
-test("shared message surfaces do not change color with the viewer role", () => {
-  const chat = read("Features/Chat/ChatView.swift");
-  assert.doesNotMatch(chat, /chatAccent|Colors\.(?:customer|groomer)(?:Tint|Fill|Ink)/);
-  assert.match(chat, /isOutgoing \? DesignTokens\.Colors\.iconTileFill/);
+test("adopted customer message colors remain scoped away from groomer message surfaces", () => {
+  const row = read("Features/Chat/ChatView.swift").split("private struct ChatMessageRow: View {")[1].split("private struct ChatBookingDetailDestination:")[0];
+  assert.match(row, /if customerDesign \{ customerTextRow \} else \{ groomerTextRow \}/);
+  const customer = row.split("private var customerTextRow:")[1]?.split("private var groomerTextRow:")[0] ?? row.split("private func groomerBody")[0];
+  assert.match(customer, /Colors\.customerFill/);
+  const groomer = row.split("private var groomerTextRow:")[1] ?? "";
+  assert.match(groomer, /isOutgoing \? DesignTokens\.Colors\.iconTileFill/);
+  assert.doesNotMatch(groomer, /Colors\.(?:customer|groomer)(?:Tint|Fill|Ink)/);
 });
 
 test("Groomer sign out uses the shared destructive style", () => {
@@ -45,8 +49,13 @@ test("Groomer sign out uses the shared destructive style", () => {
   assert.match(account, /BeckonDestructiveButtonStyle/);
 });
 
-test("destructive booking actions keep their style in both entry and confirmation", () => {
+test("groomer destructive entries retain their style and shared confirmations use destructive dialog actions", () => {
   const fulfillment = read("Features/Bookings/BookingFulfillmentSection.swift");
-  assert.equal([...fulfillment.matchAll(/if action\.isDestructive/g)].length, 2);
-  assert.equal([...fulfillment.matchAll(/BeckonDestructiveButtonStyle\(\)/g)].length, 2);
+  assert.match(fulfillment, /if action\.isDestructive/);
+  assert.match(fulfillment, /BeckonDestructiveButtonStyle\(\)/);
+  assert.match(fulfillment, /bookingFulfillmentDialog\(action: \$selectedAction\)/);
+  const dialogs = read("Features/Bookings/BookingActionDialogs.swift");
+  assert.match(dialogs, /if item\.isDestructive/);
+  assert.match(dialogs, /\.destructive\(title: item\.title/);
+  assert.match(dialogs, /confirmIdentifier: "booking\.fulfillment\.confirm"/);
 });
