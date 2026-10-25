@@ -1,5 +1,17 @@
 import SwiftUI
 
+private struct ShowRequestsKey: EnvironmentKey {
+    static let defaultValue: (@MainActor (UUID?) -> Void)? = nil
+}
+
+extension EnvironmentValues {
+    /// Result routing belongs to the tab shell, including requests published inside a sheet.
+    var showRequests: (@MainActor (UUID?) -> Void)? {
+        get { self[ShowRequestsKey.self] }
+        set { self[ShowRequestsKey.self] = newValue }
+    }
+}
+
 struct CustomerTabView: View {
     @Environment(\.appDebugEventRecorder) private var debugRecorder
     let customerID: UUID?
@@ -21,6 +33,7 @@ struct CustomerTabView: View {
     @State private var bookingsStore: BookingsStore?
     @State private var marketplace: CustomerMarketplaceSession?
     @State private var feedbackCenter = BeckonFeedbackCenter()
+
 
     init(
         customerID: UUID? = nil,
@@ -87,6 +100,7 @@ struct CustomerTabView: View {
                     destination(for: tab)
                         .background(DesignTokens.Colors.appBackground)
                 }
+                .beckonEntranceActive(selection == tab)
                 .foregroundRefreshable(
                     isEnabled: tab == .requests && selection == .requests
                         && requestStore?.isShowingWizard == false && requestStore?.discoveryFlow == nil,
@@ -122,6 +136,10 @@ struct CustomerTabView: View {
         .toolbarBackground(.visible, for: .tabBar)
         .environment(\.beckonFeedbackCenter, feedbackCenter)
         .environment(\.openBookingChat, openBookingChat)
+        .environment(\.showRequests, { requestID in
+            focusedRequestID = requestID
+            select(.requests)
+        })
         .environment(\.customerMarketplaceSession, marketplace)
         .overlay(alignment: .bottom) {
             BeckonGlobalFeedbackOverlay(center: feedbackCenter)
@@ -133,7 +151,7 @@ struct CustomerTabView: View {
                 return requestStore?.errorMessage
             }
             marketplace?.createRequest = { [weak requestStore] in
-                selection = .requests
+                select(.requests)
                 requestStore?.startCreate()
             }
             feedbackCenter.setDebugRecorder(debugRecorder)
@@ -191,9 +209,7 @@ struct CustomerTabView: View {
                 chatStore: chatStore,
                 onActiveRequestSelected: { requestID in
                     focusedRequestID = requestID
-                    withAnimation(.easeInOut(duration: 0.22)) {
-                        selection = .requests
-                    }
+                    select(.requests)
                 },
                 onBookingChatSelected: openBookingChat,
                 sessionIsCurrent: acceptanceSessionIsCurrent
@@ -228,6 +244,7 @@ struct CustomerTabView: View {
                 customerProfileRepository: customerProfileRepository,
                 debugRecorder: debugRecorder,
                 store: bookingsStore,
+                isActiveTab: selection == .bookings,
                 onOpenChat: openBookingChat
             )
         } else if tab == .messages,
@@ -257,9 +274,13 @@ struct CustomerTabView: View {
 
     private func openBookingChat(_ booking: Booking) {
         focusedConversationBookingID = booking.id
-        withAnimation(.easeInOut(duration: 0.22)) {
-            selection = .messages
-        }
+        select(.messages)
+    }
+
+    private func select(_ tab: CustomerTab) {
+        var cut = Transaction(animation: nil)
+        cut.disablesAnimations = true
+        withTransaction(cut) { selection = tab }
     }
 
     private var notificationUnreadCount: Int {

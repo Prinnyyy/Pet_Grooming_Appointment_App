@@ -18,6 +18,8 @@ final class CustomerDialogPresentationTests: XCTestCase {
         probe.open?()
         try await wait { probe.appearances == 1 }
         XCTAssertNotNil(host.presentedViewController)
+        // onAppear fires before the entrance reaches a visible frame; capture the settled modal, not that first frame.
+        try await Task.sleep(for: .milliseconds(600))
         let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct BookingsView: View {
     private let role: UserRole
+    private let isActiveTab: Bool
     private let customerProfileRepository: (any CustomerProfileRepository)?
     private let onOpenChat: (Booking) -> Void
     @State private var store: BookingsStore
@@ -10,8 +11,10 @@ struct BookingsView: View {
     @State private var selectedScheduleDayKey: String?
     @Binding private var focusedBooking: Booking?
 
+
     init(role: UserRole, store: BookingsStore, focusedBooking: Binding<Booking?> = .constant(nil), onOpenChat: @escaping (Booking) -> Void = { _ in }) {
         self.role = role
+        isActiveTab = true
         self.customerProfileRepository = nil
         self.onOpenChat = onOpenChat
         _store = State(initialValue: store)
@@ -30,9 +33,11 @@ struct BookingsView: View {
         debugRecorder: AppDebugEventRecorder? = nil,
         store: BookingsStore? = nil,
         focusedBooking: Binding<Booking?> = .constant(nil),
+        isActiveTab: Bool = true,
         onOpenChat: @escaping (Booking) -> Void = { _ in }
     ) {
         self.role = role
+        self.isActiveTab = isActiveTab
         self.customerProfileRepository = customerProfileRepository
         self.onOpenChat = onOpenChat
         _focusedBooking = focusedBooking
@@ -329,9 +334,13 @@ struct BookingsView: View {
     private var requestWizardPresented: Binding<Bool> {
         Binding(
             get: {
-                requestStore?.isShowingWizard == true
+                CustomerRequestWizardPresentationOwnership.shouldPresent(
+                    storeRequested: requestStore?.isShowingWizard == true,
+                    isActiveTab: isActiveTab
+                )
             },
             set: { isPresented in
+                guard isActiveTab else { return }
                 if !isPresented {
                     requestStore?.cancelWizard()
                 }
