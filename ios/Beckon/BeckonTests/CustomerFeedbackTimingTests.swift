@@ -43,10 +43,17 @@ struct CustomerFeedbackTimingTests {
         center.showProgress(progress)
         let notice = center.showNotice("Sent.")
         #expect(center.promptExpiresAt == nil)
+        let releasedAt = Date()
         center.clearProgress(matching: progress)
-        try await Task.sleep(for: .milliseconds(400))
+        let deadline = ContinuousClock.now + .seconds(10)
+        while center.notice?.id != notice && ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(10))
+        }
         #expect(center.notice?.id == notice)
-        #expect((center.remainingPromptSeconds ?? 0) > 3.5)
+        let expiresAt = try #require(center.promptExpiresAt)
+        // Assert the timer's origin, not how quickly this test gets its MainActor turn.
+        #expect(expiresAt.timeIntervalSince(releasedAt) >= FeedbackTimingPolicy.seconds(.notice, "Sent."))
+        #expect(expiresAt.timeIntervalSinceNow <= FeedbackTimingPolicy.seconds(.notice, "Sent."))
         center.clearNotice(id: notice)
         #expect(center.promptExpiresAt == nil)
     }

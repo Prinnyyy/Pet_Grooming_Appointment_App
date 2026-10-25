@@ -7,13 +7,10 @@ final class CustomerGroomerDiscoveryStore {
     private(set) var scope: GroomerDiscoveryScope
     private(set) var actionScope: GroomerDiscoveryScope
     private(set) var sort: GroomerDiscoverySort = .fit
-    private(set) var isShowingAll = false
     private(set) var isLoading = false
     private(set) var isLoadingMore = false
     private(set) var error: RequestDiscoveryError?
     private(set) var page: RankedPage<DiscoveredGroomer>?
-    var deckSelection: GroomerDiscoveryDeckSelection?
-    private(set) var deckRevision = UUID()
 
     private var entities: [UUID: DiscoveredGroomer] = [:]
     private var orderedIDs: [UUID] = []
@@ -29,17 +26,11 @@ final class CustomerGroomerDiscoveryStore {
     }
 
     var candidates: [DiscoveredGroomer] { orderedIDs.compactMap { entities[$0] } }
-    var recommended: [DiscoveredGroomer] { orderedIDs.prefix(8).compactMap { entities[$0] } }
     var pendingCount: Int { page?.pendingCount ?? 0 }
     var canLoadMore: Bool {
         sessionIsValid && !isLoading && !isLoadingMore && page?.nextCursor != nil
             && page.map { $0.validUntil > Date() } == true && error?.invalidatesBrowse != true
     }
-
-    func showAll() {
-        isShowingAll = true
-    }
-    func showRecommendations() { isShowingAll = false }
 
     func load() async {
         guard sessionIsValid else { return }
@@ -127,15 +118,7 @@ final class CustomerGroomerDiscoveryStore {
             }
             for item in result.items { entities[item.id] = item; orderedIDs.append(item.id) }
             page = result
-            if cursor == nil { deckRevision = UUID() }
-            if recommended.isEmpty {
-                deckSelection = nil
-            } else if case .groomer(let id) = deckSelection,
-                      recommended.contains(where: { $0.id == id }) {
-                // A refresh may reorder candidates without changing the visible identity.
-            } else if deckSelection != .more {
-                deckSelection = recommended.first.map { .groomer($0.id) }
-            }
+
         } catch {
             guard sessionIsValid, operation == generation else { return }
             if error is CancellationError || (error as? RequestDiscoveryError) == .cancelled { return }
@@ -149,7 +132,5 @@ final class CustomerGroomerDiscoveryStore {
         entities = [:]
         orderedIDs = []
         page = nil
-        deckSelection = nil
-        deckRevision = UUID()
     }
 }

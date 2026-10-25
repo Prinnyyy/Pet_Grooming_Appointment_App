@@ -46,6 +46,7 @@ struct CustomerPetsFlowSandbox: View {
             BeckonGlobalFeedbackOverlay(center: session.feedbackCenter,
                 bottomPadding: BeckonGlobalFeedbackOverlay.sheetBottomClearance)
         }
+        .environment(\.beckonCustomerDesign, true)
         .tint(DesignTokens.Colors.customerDeep)
         .preferredColorScheme(.light)
         .task { await store.load() }
@@ -61,8 +62,7 @@ final class CustomerPetsFlowSandboxSession {
     let store: CustomerPetsStore
     let feedbackCenter = BeckonFeedbackCenter()
 
-    init(failsFirstSave: Bool = false) {
-        let repository = CustomerPetsPreviewRepository()
+    init(failsFirstSave: Bool = false, repository: CustomerPetsPreviewRepository = CustomerPetsPreviewRepository()) {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("BeckonPetFlowSandbox", isDirectory: true)
             .appendingPathComponent(UUID().uuidString, isDirectory: true)

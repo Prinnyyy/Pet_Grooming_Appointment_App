@@ -291,12 +291,11 @@ extension CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
-    func requestWizardStepLabelUsesProgressTrackWidth() {
+    func requestWizardRegularTextKeepsMultiColumnChoices() {
         let layout = CustomerRequestWizardProgressLayout(
             dynamicTypeSize: .large
         )
 
-        #expect(CustomerRequestWizardHeaderLayout.progressTrackLeadingOffset == 0)
         #expect(layout.usesSingleColumnChoices == false)
     }
 

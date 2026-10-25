@@ -93,6 +93,7 @@ struct CustomerGroomerDiscoveryView: View {
             }
             if flow.store.page == nil { await load() }
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("customer.discovery")
     }
 

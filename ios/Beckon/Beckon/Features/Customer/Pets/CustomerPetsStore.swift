@@ -43,6 +43,11 @@ final class CustomerPetsStore {
 #endif
 
     var hasPendingCreation: Bool { creationStorage.pending != nil }
+    #if DEBUG
+    func seedSandboxPendingCreation(operationID: UUID) throws {
+        try creationStorage.begin(.init(customerID: customerID, operationID: operationID, draft: makeDraft()))
+    }
+    #endif
     var hasCreationRecoveryError: Bool { creationStorage.recoveryError != nil }
     var formIsFrozen: Bool { isSaving || isUploading || (editingPetID == nil && hasPendingCreation) }
 

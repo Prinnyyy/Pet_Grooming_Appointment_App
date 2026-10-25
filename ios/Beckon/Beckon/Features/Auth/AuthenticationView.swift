@@ -19,6 +19,15 @@ struct AuthenticationView: View {
     @State private var isPasswordVisible = false
     @FocusState private var focusedField: AuthenticationFocusTarget?
 
+    #if DEBUG
+    init(store: AuthenticationStore) { self.store = store }
+
+    init(sandboxStore: AuthenticationStore, showsForm: Bool) {
+        store = sandboxStore
+        _surface = State(initialValue: showsForm ? .form : .landing)
+    }
+    #endif
+
     var body: some View {
         ZStack {
             landingBackground
@@ -232,8 +241,7 @@ struct AuthenticationView: View {
             Text(formTitle)
                 .font(DesignTokens.Typography.Expressive.display)
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .lineLimit(2)
-                .minimumScaleFactor(0.82)
+                .fixedSize(horizontal: false, vertical: true)
 
             Text(formSubtitle)
                 .font(DesignTokens.Typography.Expressive.body)

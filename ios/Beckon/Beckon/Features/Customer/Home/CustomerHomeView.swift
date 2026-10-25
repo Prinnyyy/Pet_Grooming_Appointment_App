@@ -774,18 +774,39 @@ private struct CustomerHomeStatusView: View {
 }
 
 #if DEBUG
-#Preview {
-    let repository = CustomerPetsPreviewRepository()
-    NavigationStack {
-        CustomerHomeView(
-            customerID: repository.customerID,
-            displayName: "Lian",
-            repository: repository,
-            requestRepository: CustomerHomePreviewRequestRepository(),
-            notificationRepository: CustomerHomePreviewNotificationRepository(),
-            bookingRepository: CustomerHomePreviewBookingRepository()
-        )
+extension CustomerHomeView {
+    init(sandbox: CustomerSandboxSession, isActiveTab: Bool = true,
+         onSelectRequest: @escaping (UUID) -> Void, onOpenChat: @escaping (Booking) -> Void = { _ in }) {
+        displayName = sandbox.accountRepository.details.nickname
+        self.isActiveTab = isActiveTab
+        customerProfileRepository = sandbox.accountRepository
+        onActiveRequestSelected = onSelectRequest
+        onBookingChatSelected = onOpenChat
+        chatStore = sandbox.chat
+        _petStore = State(initialValue: sandbox.pets.store)
+        _requestStore = State(initialValue: sandbox.requests)
+        _bookingStore = State(initialValue: sandbox.bookings)
+        _notificationStore = State(initialValue: sandbox.notifications)
     }
+
+    init(previewSession: CustomerHomeFlowSandboxSession, onSelectRequest: @escaping (UUID) -> Void) {
+        displayName = "Lian"
+        isActiveTab = true
+        customerProfileRepository = nil
+        onActiveRequestSelected = onSelectRequest
+        onBookingChatSelected = { _ in previewSession.pets.feedbackCenter.showError(
+            .init(scope: .page("customer.home"), sourceKey: "home.preview.chat",
+                title: "Chat unavailable", message: "Messaging is not connected in this local preview.")) }
+        chatStore = nil
+        _petStore = State(initialValue: previewSession.pets.store)
+        _requestStore = State(initialValue: previewSession.requests)
+        _bookingStore = State(initialValue: previewSession.bookings)
+        _notificationStore = State(initialValue: previewSession.notifications)
+    }
+}
+
+#Preview("Customer Home") {
+    CustomerHomeFlowSandbox()
 }
 
 @MainActor
@@ -794,7 +815,8 @@ final class CustomerPetsPreviewRepository: CustomerPetRepository {
     var mutationDelay: Duration = .milliseconds(450)
     var failsNextSave = false
     var isActive = true
-    private var storedPets: [CustomerPet]
+    var sandboxBoundary: CustomerSandboxBoundary?
+    private(set) var storedPets: [CustomerPet]
     private var storedPhotos: [CustomerPetPhoto] = []
     private var photoBytes: [UUID: Data] = [:]
     private var creations: [UUID: (draft: CustomerPetDraft, pet: CustomerPet)] = [:]
@@ -839,11 +861,13 @@ final class CustomerPetsPreviewRepository: CustomerPetRepository {
     }
 
     func pets(customerID: UUID) async throws -> [CustomerPet] {
+        try await sandboxBoundary?.check()
         try requireOwner(customerID)
         return storedPets
     }
 
     func photos(customerID: UUID) async throws -> [CustomerPetPhoto] {
+        try await sandboxBoundary?.check()
         try requireOwner(customerID)
         return storedPhotos
     }
@@ -972,71 +996,79 @@ final class CustomerPetsPreviewRepository: CustomerPetRepository {
             throw CustomerPetRepositoryError.networkUnavailable
         }
     }
+
+    func configureSandbox(state: CustomerSandboxState, boundary: CustomerSandboxBoundary) {
+        sandboxBoundary = boundary
+        storedPets = state == .empty ? [] : [CustomerSandboxFixtures.pet(longNames: state == .longNames), CustomerSandboxFixtures.pet(1)]
+        if state == .photos {
+            let photo = CustomerPetPhoto(id: CustomerSandboxFixtures.id(91), petID: CustomerSandboxFixtures.id(10),
+                customerID: customerID, storageBucket: "sandbox", storagePath: "fixture.png", caption: nil, sortOrder: 0, isPrimary: true)
+            storedPhotos = [photo]; photoBytes[photo.id] = CustomerSandboxFixtures.imageData
+        }
+    }
 }
 
 @MainActor
-private final class CustomerHomePreviewRequestRepository: CustomerRequestRepository {
+final class CustomerHomePreviewRequestRepository: CustomerRequestRepository {
+    private(set) var storedRequests: [CustomerGroomingRequest]
+
+    init(pet: CustomerPet, now: Date = Date()) {
+        storedRequests = [CustomerGroomingRequest(
+            id: UUID(), customerID: pet.customerID, petID: pet.id,
+            petSnapshot: GroomingRequestPetSnapshot(id: pet.id, name: pet.name, species: pet.species,
+                breed: pet.breed, coatType: pet.coatType, size: pet.size, weightLbs: pet.weightLbs,
+                birthday: pet.birthday, temperament: pet.temperament, medicalNotes: pet.medicalNotes,
+                groomingNotes: pet.groomingNotes, snapshotAt: now.ISO8601Format()),
+            photoSnapshot: [], serviceType: .fullGroom, serviceNotes: "Trim and brush out. Please be gentle around the paws.",
+            preferredStart: now.addingTimeInterval(3 * 86400).ISO8601Format(),
+            preferredEnd: now.addingTimeInterval(3 * 86400 + 7200).ISO8601Format(),
+            locationMode: .groomerComesToCustomer, streetAddress: "123 Pine Street",
+            city: "Seattle", state: "WA", zipCode: "98101", travelRadiusMiles: nil,
+            status: .open, expiresAt: now.addingTimeInterval(2 * 86400).ISO8601Format(),
+            createdAt: now.ISO8601Format(), updatedAt: now.ISO8601Format(),
+            preferenceTimeZoneIdentifier: "America/Los_Angeles", termsRevision: UUID())]
+    }
+
+    /// Preview-only: moves the fixture request through its stages so Home can be inspected in each one.
+    func setPreviewStatus(_ status: GroomingRequestStatus) {
+        guard !storedRequests.isEmpty else { return }
+        storedRequests[0] = storedRequests[0].replacing(status: status, updatedAt: Date().ISO8601Format())
+    }
+
     func rankedOffers(customerID: UUID, requestID: UUID, page: RankedPageRequest<CustomerOfferSort>) async throws -> RankedPage<CustomerOfferReview> {
         let now = Date()
-        return RankedPage(items: [], rankingRevision: "preview", scoreAsOf: now,
+        let values = try await offers(customerID: customerID, requestID: requestID)
+        return RankedPage(items: values, rankingRevision: "preview", scoreAsOf: now,
             validUntil: now.addingTimeInterval(300), algorithmVersion: "matching-v1",
             requestedMode: page.mode.rawValue, effectiveMode: page.mode.rawValue,
-            pendingCount: 0, assessmentCount: 0, nextCursor: nil)
+            pendingCount: values.count, assessmentCount: 0, nextCursor: nil)
     }
     func requests(customerID: UUID) async throws -> [CustomerGroomingRequest] {
-        [
-            CustomerGroomingRequest(
-                id: UUID(),
-                customerID: customerID,
-                petID: UUID(),
-                petSnapshot: GroomingRequestPetSnapshot(
-                    id: UUID(),
-                    name: "Mochi",
-                    species: "Dog",
-                    breed: "Toy Poodle",
-                    coatType: nil,
-                    size: "S",
-                    weightLbs: 18,
-                    birthday: nil,
-                    temperament: "Gentle",
-                    medicalNotes: nil,
-                    groomingNotes: "Sensitive paws",
-                    snapshotAt: "2026-06-20T12:00:00Z"
-                ),
-                photoSnapshot: [],
-                serviceType: .fullGroom,
-                serviceNotes: "Trim and brush out.",
-                preferredStart: "2026-06-24T16:00:00Z",
-                preferredEnd: "2026-06-24T18:00:00Z",
-                locationMode: .groomerComesToCustomer,
-                streetAddress: "123 Pine Street",
-                city: "Seattle",
-                state: "WA",
-                zipCode: "98101",
-                travelRadiusMiles: nil,
-                status: .open,
-                expiresAt: "2026-06-23T12:00:00Z",
-                createdAt: "2026-06-20T12:00:00Z",
-                updatedAt: "2026-06-20T12:00:00Z"
-            ),
-        ]
+        storedRequests.filter { $0.customerID == customerID }
+    }
+
+    func request(customerID: UUID, requestID: UUID) async throws -> CustomerGroomingRequest {
+        guard let request = storedRequests.first(where: { $0.id == requestID && $0.customerID == customerID }) else {
+            throw CustomerRequestRepositoryError.requestNotFound
+        }
+        return request
     }
 
     func offers(
         customerID: UUID,
         requestID: UUID
     ) async throws -> [CustomerOfferReview] {
-        []
+        guard let request = storedRequests.first(where: { $0.id == requestID && $0.customerID == customerID }),
+              request.status == .hasOffers else { return [] }
+        return CustomerSandboxFixtures.offers(for: request)
     }
 
     func createRequest(
         customerID: UUID,
         draft: GroomingRequestDraft
     ) async throws -> GroomingRequestPublishResult {
-        GroomingRequestPublishResult(
-            requestID: UUID(),
-            matchCount: 2
-        )
+        // Home previews do not simulate publication or claim a successful transaction.
+        throw CustomerRequestRepositoryError.unavailable
     }
 
     func uploadRequestPhoto(
@@ -1065,55 +1097,100 @@ private final class CustomerHomePreviewRequestRepository: CustomerRequestReposit
     func cancelRequest(
         requestID: UUID
     ) async throws -> CancelGroomingRequestResult {
-        CancelGroomingRequestResult(
+        guard let index = storedRequests.firstIndex(where: { $0.id == requestID }) else {
+            throw CustomerRequestRepositoryError.requestNotFound
+        }
+        let timestamp = Date().ISO8601Format()
+        storedRequests[index] = storedRequests[index].replacing(status: .cancelled, updatedAt: timestamp)
+        return CancelGroomingRequestResult(
             requestID: requestID,
             requestStatus: .cancelled,
-            cancelledTimestamp: "2026-06-20T14:00:00Z"
+            cancelledTimestamp: timestamp
         )
     }
 }
 
 @MainActor
-private final class CustomerHomePreviewNotificationRepository: CustomerNotificationRepository {
+final class CustomerHomePreviewNotificationRepository: CustomerNotificationRepository {
+    private var items: [CustomerNotification]
+
+    init(request: CustomerGroomingRequest, booking: Booking) {
+        items = [
+            CustomerNotification(id: UUID(), customerID: request.customerID, kind: .requestPublished,
+                title: "Your grooming request is live", body: "Your request for \(request.petSnapshot.name) is ready for groomers.",
+                isRead: false, createdAt: request.createdAt, readAt: nil,
+                relatedRequestID: request.id, relatedBookingID: nil, relatedOfferID: nil),
+            CustomerNotification(id: UUID(), customerID: booking.customerID, kind: .bookingConfirmed,
+                title: "Your appointment is confirmed", body: "View the details of your upcoming appointment.",
+                isRead: false, createdAt: booking.createdAt, readAt: nil,
+                relatedRequestID: booking.requestID, relatedBookingID: booking.id, relatedOfferID: nil),
+        ]
+    }
+
     func notifications(customerID: UUID) async throws -> [CustomerNotification] {
-        []
+        items.filter { $0.customerID == customerID }
     }
 
     func markRead(notificationID: UUID) async throws -> CustomerNotification {
-        throw CustomerNotificationRepositoryError.unavailable
+        guard let index = items.firstIndex(where: { $0.id == notificationID }) else {
+            throw CustomerNotificationRepositoryError.notificationNotFound
+        }
+        items[index] = items[index].replacingReadState(isRead: true, readAt: Date().ISO8601Format())
+        return items[index]
     }
 
     func markAllRead(customerID: UUID) async throws -> [CustomerNotification] {
-        []
+        items = items.map { $0.customerID == customerID
+            ? $0.replacingReadState(isRead: true, readAt: Date().ISO8601Format()) : $0 }
+        return items.filter { $0.customerID == customerID }
     }
 }
 
 @MainActor
-private final class CustomerHomePreviewBookingRepository: BookingRepository {
+final class CustomerHomePreviewBookingRepository: BookingRepository {
+    let sample: Booking
+
+    init(pet: CustomerPet, requestID: UUID = UUID(), now: Date = Date()) {
+        sample = Booking(id: UUID(), requestID: requestID, offerID: UUID(), customerID: pet.customerID,
+            groomerID: UUID(), scheduledStart: now.addingTimeInterval(86400).ISO8601Format(),
+            scheduledEnd: now.addingTimeInterval(86400 + 5400).ISO8601Format(), priceEstimate: 120,
+            status: .confirmed, cancelledBy: nil, cancelledAt: nil, completedAt: nil, completedBy: nil,
+            createdAt: now.ISO8601Format(), updatedAt: now.ISO8601Format(), review: nil,
+            serviceType: .fullGroom,
+            requestPetSnapshot: GroomingRequestPetSnapshot(id: pet.id, name: pet.name, species: pet.species,
+                breed: pet.breed, coatType: pet.coatType, size: pet.size, weightLbs: pet.weightLbs,
+                birthday: pet.birthday, temperament: pet.temperament, medicalNotes: pet.medicalNotes,
+                groomingNotes: pet.groomingNotes, snapshotAt: now.ISO8601Format()),
+            groomerBusinessName: "Pine Street Grooming", locationMode: .groomerComesToCustomer,
+            customerStreetAddress: "123 Pine Street", customerCity: "Seattle", customerState: "WA",
+            customerZipCode: "98101", serviceTimeZoneIdentifier: "America/Los_Angeles")
+    }
+
+    func nearestBooking(participantID: UUID, role: UserRole, now: Date) async throws -> Booking? {
+        guard participantID == sample.customerID, role == .customer,
+              let start = GroomingRequestDateFormatting.parsedDate(from: sample.scheduledStart), start > now else { return nil }
+        return sample
+    }
+
+    func bookings(bookingIDs: [UUID]) async throws -> [Booking] {
+        bookingIDs.contains(sample.id) ? [sample] : []
+    }
+
+    func fulfillmentEvents(bookingID: UUID) async throws -> [BookingFulfillmentEvent] {
+        guard bookingID == sample.id else { throw BookingRepositoryError.bookingNotFound }
+        return []
+    }
+
+    func reschedule(bookingID: UUID) async throws -> BookingRescheduleResult {
+        guard bookingID == sample.id else { throw BookingRepositoryError.bookingNotFound }
+        return .init(booking: sample, proposal: nil, receipt: nil)
+    }
+
     func bookings(
         participantID: UUID,
         role: UserRole
     ) async throws -> [Booking] {
-        [
-            Booking(
-                id: UUID(),
-                requestID: UUID(),
-                offerID: UUID(),
-                customerID: participantID,
-                groomerID: UUID(),
-                scheduledStart: "2026-06-26T21:30:00Z",
-                scheduledEnd: "2026-06-26T23:00:00Z",
-                priceEstimate: 120,
-                status: .confirmed,
-                cancelledBy: nil,
-                cancelledAt: nil,
-                completedAt: nil,
-                completedBy: nil,
-                createdAt: "2026-06-20T12:00:00Z",
-                updatedAt: "2026-06-20T12:00:00Z",
-                review: nil
-            ),
-        ]
+        participantID == sample.customerID && role == .customer ? [sample] : []
     }
 
     func acceptOffer(

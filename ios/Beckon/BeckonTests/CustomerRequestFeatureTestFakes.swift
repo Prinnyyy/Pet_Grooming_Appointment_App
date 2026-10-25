@@ -379,6 +379,7 @@ final class CustomerRequestBookingRepositoryFake: BookingRepository {
     var bookingsResult: Result<[Booking], BookingRepositoryError>
     var acceptResult: Result<AcceptGroomerOfferResult, BookingRepositoryError>
     var acceptDelayNanoseconds: UInt64
+    var beforeAcceptResult: (@MainActor () async -> Void)?
     var acceptanceLookupResult: Result<AcceptGroomerOfferResult?, BookingRepositoryError> = .success(nil)
     private(set) var acceptanceLookupCallCount = 0
     var requestBookingResult: Result<Booking?, BookingRepositoryError> = .success(nil)
@@ -419,6 +420,7 @@ final class CustomerRequestBookingRepositoryFake: BookingRepository {
     ) async throws -> AcceptGroomerOfferResult {
         acceptCallCount += 1
         lastAcceptedOfferID = offerID
+        await beforeAcceptResult?()
         if acceptDelayNanoseconds > 0 {
             try await Task.sleep(nanoseconds: acceptDelayNanoseconds)
         }

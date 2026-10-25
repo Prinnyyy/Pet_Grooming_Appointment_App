@@ -54,7 +54,7 @@ final class UIColorImplementationSnapshotTests: XCTestCase {
         let request = CustomerRequestsStoreTests.request(customerID: UUID(), petID: UUID(), status: .hasOffers)
         for size: DynamicTypeSize in [.large, .accessibility3] {
             let card = UIHostingController(rootView: Button {} label: {
-                CustomerRequestActionCardSummary(card: .init(request: request, handoff: nil, loadedOfferCount: 3))
+                CustomerRequestSummaryCard(card: .init(request: request, handoff: nil, loadedOfferCount: 3))
             }.buttonStyle(.plain).environment(\.dynamicTypeSize, size))
             let measured = card.sizeThatFits(in: CGSize(width: 320, height: 10_000))
             XCTAssertLessThanOrEqual(measured.width, 320)
@@ -86,7 +86,7 @@ final class UIColorImplementationSnapshotTests: XCTestCase {
             try await capture(ScrollView {
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     ForEach(Array(cards.enumerated()), id: \.offset) { _, card in
-                        Button {} label: { CustomerRequestActionCardSummary(card: card) }.buttonStyle(.plain)
+                        Button {} label: { CustomerRequestSummaryCard(card: card) }.buttonStyle(.plain)
                     }
                 }.beckonPageInsets()
             }.background(DesignTokens.Colors.appBackground), name: "customer-request-states",

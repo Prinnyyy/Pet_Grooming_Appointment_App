@@ -107,6 +107,7 @@ struct GroomerSelectionControl: View {
     var replyBy: Date?
     var onWithdraw: (() -> Void)?
     let action: () -> Void
+    var groomerID: UUID?
 
     var body: some View {
         if invitation != .notSent {
@@ -124,6 +125,7 @@ struct GroomerSelectionControl: View {
             }
             .buttonStyle(BeckonLedgeButtonStyle(isSelected ? .pill : .card))
             .opacity(canSelect ? 1 : 0.55)
+            .accessibilityIdentifier(groomerID.map { "discovery.select.\($0.uuidString)" } ?? "discovery.select")
             .accessibilityLabel("Select \(name)")
             .accessibilityHint(isSelected ? "Removes this groomer from your request."
                 : canSelect ? "Adds this groomer to your request."
@@ -181,6 +183,7 @@ struct GroomerSelectionControl: View {
             }
             .buttonStyle(BeckonGuardedPlainButtonStyle())
             .accessibilityLabel("Withdraw invitation to \(name)")
+                .accessibilityIdentifier(groomerID.map { "discovery.withdraw.\($0.uuidString)" } ?? "discovery.withdraw")
             .accessibilityHint("Frees a spot. You can't invite this groomer again for this request.")
         }
     }
@@ -260,8 +263,7 @@ struct GroomerSelectionActions: View {
             GroomerFavoriteButton(isFavorite: isFavorite, action: onFavorite)
                 .accessibilityIdentifier("discovery.favorite.\(id.uuidString)")
             GroomerSelectionControl(name: name, isSelected: isSelected, invitation: invitation, canSelect: canSelect,
-                replyBy: replyBy, onWithdraw: onWithdraw, action: onToggle)
-                .accessibilityIdentifier("discovery.select.\(id.uuidString)")
+                replyBy: replyBy, onWithdraw: onWithdraw, action: onToggle, groomerID: id)
         }
         .disabled(disabled)
     }

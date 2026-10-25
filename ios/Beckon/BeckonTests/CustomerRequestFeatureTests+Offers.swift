@@ -777,8 +777,7 @@ extension CustomerRequestsStoreTests {
                     offerStatus: .acceptedByCustomer,
                     requestStatus: .booked
                 )
-            ),
-            acceptDelayNanoseconds: 100_000_000
+            )
         )
         let store = CustomerRequestsStore(
             customerID: customerID,
@@ -787,16 +786,23 @@ extension CustomerRequestsStoreTests {
             bookingRepository: bookingRepository
         )
 
-        async let first = store.accept(
-            offerReview: offerReview,
-            for: request
-        )
-        await Task.yield()
-        async let second = store.accept(
-            offerReview: offerReview,
-            for: request
-        )
-        let handoffs = await [first, second]
+        var resumeAcceptance: CheckedContinuation<Void, Never>?
+        bookingRepository.beforeAcceptResult = {
+            guard bookingRepository.acceptCallCount == 1 else { return }
+            await withCheckedContinuation { resumeAcceptance = $0 }
+        }
+        let first = Task { await store.accept(offerReview: offerReview, for: request) }
+        defer { resumeAcceptance?.resume(); first.cancel() }
+        let deadline = ContinuousClock.now + .seconds(10)
+        while resumeAcceptance == nil && ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        let resume = try #require(resumeAcceptance)
+        // The first RPC is still suspended when the second tap arrives, regardless of test-machine load.
+        let second = await store.accept(offerReview: offerReview, for: request)
+        resumeAcceptance = nil
+        resume.resume()
+        let handoffs = [await first.value, second]
 
         #expect(bookingRepository.acceptCallCount == 1)
         #expect(handoffs.compactMap { $0 }.count == 1)

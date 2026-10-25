@@ -4,41 +4,29 @@ import Testing
 
 @MainActor
 struct CustomerGroomerDiscoveryTests {
-    @Test func refreshRetainsIdentityButInvalidatesInFlightMotion() async {
+    @Test func refreshReplacesCandidateOrderAndClearsAnEmptyResult() async {
         let repository = DiscoveryRepositoryFake()
         let first = candidate(1), second = candidate(2)
-        repository.pages = [.success(page([first, second])), .success(page([second, first])),
-                            .success(page([first])), .success(page([]))]
+        repository.pages = [.success(page([first, second])), .success(page([second, first])), .success(page([]))]
         let store = CustomerGroomerDiscoveryStore(scope: scope(), repository: repository)
         await store.load()
-        store.deckSelection = .groomer(second.id)
-        let revision = store.deckRevision
+        #expect(store.candidates.map(\.id) == [first.id, second.id])
         await store.load()
-        #expect(store.deckSelection == .groomer(second.id))
-        #expect(store.deckRevision != revision)
+        #expect(store.candidates.map(\.id) == [second.id, first.id])
         await store.load()
-        #expect(store.deckSelection == .groomer(first.id))
-        store.deckSelection = .more
-        await store.load()
-        #expect(store.deckSelection == nil)
-        #expect(store.recommended.isEmpty)
+        #expect(store.candidates.isEmpty)
     }
 
-    @Test func tailRefreshAndSessionInvalidationCannotRestoreOldSelection() async {
+    @Test func invalidatedSessionCannotReloadOldCandidates() async {
         let repository = DiscoveryRepositoryFake()
-        repository.pages = [.success(page([candidate(1)])), .success(page([candidate(1)]))]
+        repository.pages = [.success(page([candidate(1)]))]
         let store = CustomerGroomerDiscoveryStore(scope: scope(), repository: repository)
         await store.load()
-        store.deckSelection = .more
-        await store.load()
-        #expect(store.deckSelection == .more)
-        let revision = store.deckRevision
         store.invalidateSession()
-        #expect(store.deckSelection == nil)
-        #expect(store.deckRevision != revision)
+        #expect(store.candidates.isEmpty)
         await store.load()
-        #expect(store.deckSelection == nil)
-        #expect(repository.reads.count == 2)
+        #expect(store.candidates.isEmpty)
+        #expect(repository.reads.count == 1)
     }
 
     @Test(arguments: [false, true])
@@ -74,19 +62,6 @@ struct CustomerGroomerDiscoveryTests {
         #expect((marketplace.publication.pending != nil) == fails)
         #expect((store.errorMessage != nil) == fails)
         if !fails { #expect(store.publishResult?.requestID == request.id) }
-    }
-
-    @Test func returningFromTheTailListPreservesTheTail() async {
-        let repository = DiscoveryRepositoryFake()
-        let items = (1...8).map { candidate($0) }
-        repository.pages = [.success(page(items))]
-        let store = CustomerGroomerDiscoveryStore(scope: scope(), repository: repository)
-        await store.load()
-        store.deckSelection = .more
-        store.showAll()
-        store.showRecommendations()
-        #expect(store.deckSelection == .more)
-        #expect(repository.reads.count == 1)
     }
 
     @Test func avatarRevocationRejectsAnOlderResponseEvenWhenThePathIsReused() async {
@@ -131,12 +106,11 @@ struct CustomerGroomerDiscoveryTests {
         }
         let store = CustomerGroomerDiscoveryStore(scope: scope(), repository: repository)
         await store.load()
-        let first = store.recommended.map(\.id)
-        store.showAll()
+        let first = store.candidates.map(\.id)
         while store.canLoadMore { await store.loadNextPage() }
         #expect(store.candidates.map(\.id) == items.map(\.id))
-        #expect(first == Array(items.prefix(8)).map(\.id))
-        #expect(store.recommended.map(\.id) == first)
+        #expect(first == Array(items.prefix(25)).map(\.id))
+        #expect(Array(store.candidates.prefix(first.count)).map(\.id) == first)
         #expect(Set(store.candidates.map(\.id)).count == count)
     }
 
@@ -191,13 +165,9 @@ struct CustomerGroomerDiscoveryTests {
                             .success(page([items[25]]))]
         let store = CustomerGroomerDiscoveryStore(scope: scope(), repository: repository)
         await store.load()
-        #expect(store.recommended.map(\.id) == Array(items.prefix(8)).map(\.id))
-        store.deckSelection = .groomer(items[4].id)
-        store.showAll()
+        #expect(store.candidates.map(\.id) == Array(items.prefix(25)).map(\.id))
         await store.loadNextPage()
         #expect(store.candidates.map(\.id) == items.map(\.id))
-        store.showRecommendations()
-        #expect(store.deckSelection == .groomer(items[4].id))
         #expect(repository.reads.count == 2)
     }
 
@@ -206,7 +176,7 @@ struct CustomerGroomerDiscoveryTests {
         repository.pages = [.success(page([candidate(1)], pending: 2))]
         let store = CustomerGroomerDiscoveryStore(scope: scope(), repository: repository)
         await store.load()
-        #expect(store.recommended.count == 1)
+        #expect(store.candidates.count == 1)
         #expect(store.pendingCount == 2)
         #expect(store.error == nil)
     }
@@ -263,7 +233,7 @@ struct CustomerGroomerDiscoveryTests {
         repository.pages = [.success(page([assessment]))]
         let store = CustomerGroomerDiscoveryStore(scope: scope(), repository: repository)
         await store.load()
-        #expect(store.recommended.map(\.id) == [base.id])
+        #expect(store.candidates.map(\.id) == [base.id])
         #expect(store.error == nil)
         #expect(!assessment.eligibility.isOfferable)
     }
@@ -285,12 +255,10 @@ struct CustomerGroomerDiscoveryTests {
         let preview = scope()
         let store = CustomerGroomerDiscoveryStore(scope: preview, repository: repository)
         await store.load()
-        store.deckSelection = .groomer(candidate(1).id)
         let requestScope = GroomerDiscoveryScope.request(id: UUID(), termsRevision: UUID())
         store.publicationConfirmed(requestScope: requestScope)
         #expect(store.scope == preview)
         #expect(store.actionScope == requestScope)
-        #expect(store.deckSelection == .groomer(candidate(1).id))
         #expect(store.canLoadMore)
         #expect(repository.reads.count == 1)
     }

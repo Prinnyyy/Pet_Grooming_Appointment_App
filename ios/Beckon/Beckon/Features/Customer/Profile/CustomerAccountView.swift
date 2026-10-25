@@ -7,6 +7,15 @@ struct CustomerAccountView: View {
     @Bindable var authenticationStore: AuthenticationStore
     @State private var store: CustomerProfileStore
 
+    #if DEBUG
+    init(sandbox: CustomerSandboxSession) {
+        session = sandbox.authSession
+        profile = sandbox.marketplaceProfile
+        authenticationStore = sandbox.authentication
+        _store = State(initialValue: sandbox.profile)
+    }
+    #endif
+
     init(
         session: AuthSessionSnapshot,
         profile: MarketplaceProfile,

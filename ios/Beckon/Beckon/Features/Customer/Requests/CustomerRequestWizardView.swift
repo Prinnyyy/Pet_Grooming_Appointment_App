@@ -189,7 +189,9 @@ struct CustomerRequestWizardFitInputPresentation: Equatable {
 
 struct CustomerRequestWizardView: View {
     @Environment(\.beckonFeedbackCenter) private var feedbackCenter
-
+    #if DEBUG
+    @Environment(\.sandboxRequestAdvance) private var sandboxRequestAdvance
+    #endif
     @Bindable var store: CustomerRequestsStore
 
     private let onAddPet: (() -> Void)?
@@ -617,6 +619,7 @@ struct CustomerRequestWizardView: View {
 
     // Same wording the original bottom bar uses.
     private var designPrimaryTitle: String {
+        if let sandboxPrimaryActionTitle { return sandboxPrimaryActionTitle }
         if store.isSubmitting { return "Publishing..." }
         if store.isRecoveringPublication { return "Resume Request" }
         if flow.currentStep == .time && store.requestCalendar == nil { return "Confirm Address" }
@@ -629,6 +632,15 @@ struct CustomerRequestWizardView: View {
             isSubmitting: store.isSubmitting,
             isAwaitingAddressConfirmation: flow.isContinuingAfterAddressConfirmation
         )
+    }
+
+    private var sandboxPrimaryActionTitle: String? {
+        #if DEBUG
+        if sandboxRequestAdvance != nil {
+            return flow.currentStep == .review ? "Choose groomers" : "Continue"
+        }
+        #endif
+        return nil
     }
 
     private var reviewPresentation: CustomerRequestWizardReviewPresentation {
@@ -700,7 +712,12 @@ struct CustomerRequestWizardView: View {
     private func continueForward() {
         travel = .forward
         globallyPresentedErrorMessage = nil
-
+        #if DEBUG
+        if let sandboxRequestAdvance {
+            sandboxRequestAdvance(flow)
+            return
+        }
+        #endif
         Task {
             if await flow.continueForward() { publish() }
         }

@@ -26,6 +26,7 @@ struct CustomerTabView: View {
     let acceptanceSessionIsCurrent: @MainActor () -> Bool
     @State private var selection: CustomerTab = .home
     @State private var focusedRequestID: UUID?
+    @State private var requestsNavigationRevision = 0
     @State private var focusedConversationBookingID: UUID?
     @State private var notificationStore: CustomerNotificationsStore?
     @State private var chatStore: ChatStore?
@@ -33,7 +34,29 @@ struct CustomerTabView: View {
     @State private var bookingsStore: BookingsStore?
     @State private var marketplace: CustomerMarketplaceSession?
     @State private var feedbackCenter = BeckonFeedbackCenter()
+    #if DEBUG
+    private var sandbox: CustomerSandboxSession?
 
+    init(sandbox: CustomerSandboxSession) {
+        self.sandbox = sandbox
+        customerID = CustomerSandboxFixtures.customerID
+        customerDisplayName = sandbox.accountRepository.details.nickname
+        customerProfileRepository = sandbox.accountRepository
+        petRepository = sandbox.pets.repository
+        requestRepository = sandbox.marketplaceRepository
+        notificationRepository = sandbox.notificationRepository
+        bookingRepository = sandbox.bookingRepository
+        chatRepository = sandbox.chatRepository
+        accountContent = AnyView(CustomerAccountView(sandbox: sandbox))
+        acceptanceSessionIsCurrent = { sandbox.boundary.isActive }
+        _notificationStore = State(initialValue: sandbox.notifications)
+        _chatStore = State(initialValue: sandbox.chat)
+        _requestStore = State(initialValue: sandbox.requests)
+        _bookingsStore = State(initialValue: sandbox.bookings)
+        _marketplace = State(initialValue: sandbox.marketplace)
+        _feedbackCenter = State(initialValue: sandbox.feedback)
+    }
+    #endif
 
     init(
         customerID: UUID? = nil,
@@ -100,6 +123,7 @@ struct CustomerTabView: View {
                     destination(for: tab)
                         .background(DesignTokens.Colors.appBackground)
                 }
+                .id(tab == .requests ? requestsNavigationRevision : 0)
                 .beckonEntranceActive(selection == tab)
                 .foregroundRefreshable(
                     isEnabled: tab == .requests && selection == .requests
@@ -138,8 +162,7 @@ struct CustomerTabView: View {
         .environment(\.beckonCustomerDesign, true)
         .environment(\.openBookingChat, openBookingChat)
         .environment(\.showRequests, { requestID in
-            focusedRequestID = requestID
-            select(.requests)
+            showRequest(requestID)
         })
         .environment(\.customerMarketplaceSession, marketplace)
         .overlay(alignment: .bottom) {
@@ -189,6 +212,23 @@ struct CustomerTabView: View {
 
     @ViewBuilder
     private func destination(for tab: CustomerTab) -> some View {
+        #if DEBUG
+        if let sandbox, tab == .home {
+            CustomerHomeView(sandbox: sandbox, isActiveTab: selection == .home, onSelectRequest: { id in
+                showRequest(id)
+            }, onOpenChat: openBookingChat)
+        } else if let sandbox, tab == .bookings {
+            BookingsView(sandbox: sandbox, isActiveTab: selection == .bookings, onOpenChat: openBookingChat)
+        } else {
+            standardDestination(for: tab)
+        }
+        #else
+        standardDestination(for: tab)
+        #endif
+    }
+
+    @ViewBuilder
+    private func standardDestination(for tab: CustomerTab) -> some View {
         if tab == .home,
            let customerID,
            let petRepository,
@@ -209,8 +249,7 @@ struct CustomerTabView: View {
                 requestStore: requestStore,
                 chatStore: chatStore,
                 onActiveRequestSelected: { requestID in
-                    focusedRequestID = requestID
-                    select(.requests)
+                    showRequest(requestID)
                 },
                 onBookingChatSelected: openBookingChat,
                 sessionIsCurrent: acceptanceSessionIsCurrent
@@ -276,6 +315,18 @@ struct CustomerTabView: View {
     private func openBookingChat(_ booking: Booking) {
         focusedConversationBookingID = booking.id
         select(.messages)
+    }
+
+    /// Destination-based links can leave Requests inside history/detail. A publication or Home
+    /// shortcut explicitly targets its root card; keep the Store and reset only that navigation tree.
+    private func showRequest(_ requestID: UUID?) {
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            requestsNavigationRevision &+= 1
+            focusedRequestID = requestID
+            select(.requests)
+        }
     }
 
     private func select(_ tab: CustomerTab) {

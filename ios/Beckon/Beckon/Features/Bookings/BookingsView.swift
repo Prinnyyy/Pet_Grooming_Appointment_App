@@ -11,6 +11,18 @@ struct BookingsView: View {
     @State private var selectedScheduleDayKey: String?
     @Binding private var focusedBooking: Booking?
 
+    #if DEBUG
+    init(sandbox: CustomerSandboxSession, isActiveTab: Bool = true, onOpenChat: @escaping (Booking) -> Void = { _ in }) {
+        role = .customer
+        self.isActiveTab = isActiveTab
+        customerProfileRepository = sandbox.accountRepository
+        self.onOpenChat = onOpenChat
+        _store = State(initialValue: sandbox.bookings)
+        _requestStore = State(initialValue: sandbox.requests)
+        _focusedBooking = .constant(nil)
+        _selectedScope = State(initialValue: [.completed, .reviewed, .cancelled, .unfulfilled].contains(sandbox.state) ? .past : .upcoming)
+    }
+    #endif
 
     init(role: UserRole, store: BookingsStore, focusedBooking: Binding<Booking?> = .constant(nil), onOpenChat: @escaping (Booking) -> Void = { _ in }) {
         self.role = role

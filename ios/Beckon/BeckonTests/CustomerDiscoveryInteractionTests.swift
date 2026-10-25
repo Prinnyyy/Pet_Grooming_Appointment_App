@@ -12,7 +12,7 @@ final class CustomerDiscoveryInteractionTests: XCTestCase {
             .appendingPathComponent("t401-interaction.json")
         let environment = ProcessInfo.processInfo.environment
         if environment["BECKON_LOCAL_INTERACTION"] == "1" || environment["TEST_RUNNER_BECKON_LOCAL_INTERACTION"] == "1" {
-            try Data(#"{"wizard":false,"largeText":false,"count":8,"measureMotion":true}"#.utf8).write(to: marker)
+            try Data(#"{"wizard":false,"largeText":false,"count":8}"#.utf8).write(to: marker)
         }
         guard FileManager.default.fileExists(atPath: marker.path) else {
             throw XCTSkip("Opt-in Simulator interaction fixture not configured")
@@ -63,8 +63,7 @@ final class CustomerDiscoveryInteractionTests: XCTestCase {
             store: store, flow: flow, marketplace: marketplace))
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let previous = scene.windows.first(where: \.isKeyWindow)
-        let window = InteractionWindow(windowScene: scene)
-        window.session = session
+        let window = UIWindow(windowScene: scene)
         host.view.accessibilityViewIsModal = true
         window.rootViewController = host
         window.makeKeyAndVisible()
@@ -74,7 +73,6 @@ final class CustomerDiscoveryInteractionTests: XCTestCase {
             if let data = try? Data(contentsOf: marker),
                let updated = try? JSONDecoder().decode(Configuration.self, from: data), updated != session.config {
                 store.wizardInitialStep = CustomerRequestWizardStep(rawValue: updated.step ?? 0) ?? .pet
-                session.lastRelease = nil
                 session.config = updated
             }
         }
@@ -82,12 +80,7 @@ final class CustomerDiscoveryInteractionTests: XCTestCase {
         XCTAssertEqual(distribution.operations.count, 0, "Browsing/cancelling must not publish")
         XCTAssertEqual(repository.createCallCount, 0)
         XCTAssertFalse(flow.poolEnabled)
-        if !session.settleDurations.isEmpty {
-            XCTAssertLessThanOrEqual(session.settleDurations.max() ?? 0, 0.5)
-            print("T401 animation completions: \(session.settleDurations.count), max seconds: \(session.settleDurations.max() ?? 0)")
-        }
-        let metrics = marker.deletingLastPathComponent().appendingPathComponent("t401-motion-metrics.json")
-        try JSONEncoder().encode(session.settleDurations).write(to: metrics)
+
     }
 
     struct Configuration: Decodable, Equatable {
@@ -95,25 +88,12 @@ final class CustomerDiscoveryInteractionTests: XCTestCase {
         let largeText: Bool
         let count: Int?
         let step: Int?
-        let measureMotion: Bool?
     }
 
     @Observable final class InteractionSession {
         var finished = false
         var config: Configuration
-        var lastRelease: TimeInterval?
-        var settleDurations: [TimeInterval] = []
         init(config: Configuration) { self.config = config }
-    }
-
-    final class InteractionWindow: UIWindow {
-        var session: InteractionSession?
-        override func sendEvent(_ event: UIEvent) {
-            if event.allTouches?.contains(where: { $0.phase == .ended }) == true {
-                session?.lastRelease = ProcessInfo.processInfo.systemUptime
-            }
-            super.sendEvent(event)
-        }
     }
 
     struct InteractionHost: View {
@@ -136,13 +116,7 @@ final class CustomerDiscoveryInteractionTests: XCTestCase {
                 }
             }
             .environment(\.dynamicTypeSize, session.config.largeText ? .accessibility5 : .large)
-            .onChange(of: flow.store.deckSelection) { _, _ in
-                if session.config.measureMotion == true, let released = session.lastRelease {
-                    let elapsed = ProcessInfo.processInfo.systemUptime - released
-                    session.settleDurations.append(elapsed)
-                    session.lastRelease = nil
-                }
-            }
+            .environment(\.beckonCustomerDesign, true)
         }
     }
 }

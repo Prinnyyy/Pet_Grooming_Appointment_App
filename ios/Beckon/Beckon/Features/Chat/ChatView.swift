@@ -365,8 +365,7 @@ private struct ChatConversationRow: View {
                     .font(store.hasUnreadMessages(in: conversation)
                         ? DesignTokens.Typography.Expressive.headline : DesignTokens.Typography.Expressive.emphasis)
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.82)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text(store.previewText(for: conversation))
                     .font(DesignTokens.Typography.Expressive.supporting)
@@ -861,11 +860,11 @@ private struct ChatMessageRow: View {
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .padding(.vertical, DesignTokens.Spacing.md)
                     .background {
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.messageBubble, style: .continuous)
                             .fill(isOutgoing ? DesignTokens.Colors.customerFill : DesignTokens.Colors.surface)
                     }
                     .overlay {
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.messageBubble, style: .continuous)
                             .strokeBorder(isOutgoing ? DesignTokens.Colors.customerFillPressed : DesignTokens.Colors.border,
                                 lineWidth: DesignTokens.Ledge.edgeWidth)
                     }
@@ -892,11 +891,11 @@ private struct ChatMessageRow: View {
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .padding(.vertical, DesignTokens.Spacing.md)
                     .background {
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.messageBubble, style: .continuous)
                             .fill(isOutgoing ? DesignTokens.Colors.iconTileFill : DesignTokens.Colors.surfaceRaised)
                     }
                     .overlay {
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.messageBubble, style: .continuous)
                             .stroke(isOutgoing ? Color.clear : DesignTokens.Colors.borderSoft, lineWidth: 1)
                     }
                     .beckonShadow(DesignTokens.Shadows.smallCard, isVisible: !isOutgoing)
@@ -1154,7 +1153,7 @@ private struct ChatComposerBar: View {
                     Image(systemName: "lock.fill")
                         .font(DesignTokens.Typography.caption)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .padding(.top, 2)
+                        .padding(.top, DesignTokens.Layout.messageGlyphTopInset)
                         .accessibilityHidden(true)
 
                     Text(readOnlyMessage)
@@ -1228,7 +1227,7 @@ private struct ChatComposerBar: View {
                     Image(systemName: "lock.fill")
                         .font(DesignTokens.Typography.caption)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .padding(.top, 2)
+                        .padding(.top, DesignTokens.Layout.messageGlyphTopInset)
                         .accessibilityHidden(true)
 
                     Text(readOnlyMessage)

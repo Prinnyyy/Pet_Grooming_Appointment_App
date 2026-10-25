@@ -40,24 +40,21 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
         switch fixture.action {
         case "browseLargeText":
             openCustomerRequest(try XCTUnwrap(fixture.requestID))
-            tap(element("customer.requests.invite"))
-            XCTAssertTrue(element("discovery.page-position").waitForExistence(timeout: 20))
-            evidence("Compact maximum text candidate summary uses full-width stacking")
-            tap(element("discovery.show-all"))
-            let send = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'discovery.send.'")).firstMatch
-            XCTAssertTrue(send.waitForExistence(timeout: 15))
-            let groomerID = String(send.identifier.dropFirst("discovery.send.".count))
-            tap(send)
-            XCTAssertTrue(wait { !self.element("discovery.send.\(groomerID)").exists })
-            tap(app.buttons["BackButton"].firstMatch)
+            openInvitations()
+            let select = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'discovery.select.'")).firstMatch
+            XCTAssertTrue(select.waitForExistence(timeout: 20))
+            let groomerID = String(select.identifier.dropFirst("discovery.select.".count))
+            tap(select)
+            tap(element("discovery.send"))
             XCTAssertTrue(element("discovery.withdraw.\(groomerID)").waitForExistence(timeout: 15))
-            evidence("Compact maximum text explicit list invitation reached the same request")
+            evidence("Maximum text selectable list invitation reached the same request")
         case "resumePending":
             tap(element("customer.home.start-request"))
             XCTAssertTrue(element("customer.requests.publication-recovery").waitForExistence(timeout: 10))
             tap(element("customer.requests.publish"))
             XCTAssertTrue(wait(timeout: 30) { !self.element("customer.requests.wizard").exists })
             openCustomerRequest(try XCTUnwrap(fixture.requestID))
+            openInvitations()
             XCTAssertTrue(element("discovery.pool").waitForExistence(timeout: 15))
             XCTAssertTrue(element("discovery.withdraw.\(fixture.groomerID)").exists)
             evidence("Restart recovered the original committed request and invitation without republishing")
@@ -73,44 +70,24 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
             evidence("Unversioned legacy publication recovered its cancelled original without republishing")
         case "browseEdgeCases":
             preparePreview(fixture)
-            let position = element("discovery.page-position")
-            XCTAssertEqual(position.label, "1 of 8")
-            tap(element("discovery.reload"))
-            XCTAssertTrue(element("discovery.refresh").waitForExistence(timeout: 5))
-            XCTAssertEqual(position.label, "1 of 8")
-            XCTAssertFalse(app.staticTexts["No Groomers Available"].exists)
+            tap(element("discovery.refresh-list"))
+            XCTAssertTrue(element("discovery.refresh").waitForExistence(timeout: 10))
             XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'discovery.profile.'")).firstMatch.exists)
             evidence("Large text retains candidates beside a failed refresh")
             tap(element("discovery.refresh"))
             XCTAssertTrue(wait { !self.element("discovery.refresh").exists })
-            for index in 2...8 {
-                app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'discovery.profile.'")).firstMatch.swipeLeft()
-                XCTAssertTrue(wait { position.label == "\(index) of 8" })
-            }
-            let lastID = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'discovery.profile.'")).firstMatch.identifier
-            app.buttons.matching(NSPredicate(format: "identifier == %@", lastID)).firstMatch.swipeLeft()
-            XCTAssertTrue(element("discovery.more").waitForExistence(timeout: 5))
-            XCTAssertEqual(position.label, "More Groomers")
-            XCTAssertEqual(app.alerts.count, 0)
-            XCTAssertEqual(app.sheets.count, 0)
-            XCTAssertEqual(app.buttons.matching(identifier: "discovery.more").count, 1)
-            tap(element("discovery.more"))
-            XCTAssertTrue(element("customer.discovery.list").waitForExistence(timeout: 10))
-            tap(app.buttons["BackButton"].firstMatch)
-            XCTAssertEqual(position.label, "More Groomers")
-            element("discovery.more").swipeRight()
-            XCTAssertTrue(wait { position.label == "8 of 8" })
-            XCTAssertTrue(element(lastID).exists)
-            tap(element("discovery.favorites"))
+            tap(element("discovery.sort.distance"))
+            tap(element("discovery.sort.fit"))
+            tap(element("discovery.saved-filter"))
             let target = try XCTUnwrap(fixture.presentationGroomerID)
             XCTAssertTrue(app.staticTexts[try XCTUnwrap(fixture.presentationName)].firstMatch.waitForExistence(timeout: 15))
-            let send = element("favorites.send.\(target)")
-            tap(send)
-            XCTAssertTrue(app.alerts["Send this request?"].waitForExistence(timeout: 5))
-            tap(app.buttons["Cancel"].firstMatch)
-            XCTAssertTrue(element("favorites.remove.\(target)").exists)
-            XCTAssertFalse(element("customer.request.progress").exists)
-            evidence("Compact large-text explicit send and cancellation after network recovery")
+            selectGroomer(target)
+            tap(element("discovery.send"))
+            XCTAssertTrue(element("discovery.confirm-send").waitForExistence(timeout: 5))
+            tap(element("dialog.cancel"))
+            XCTAssertTrue(element("discovery.pool-consent").exists)
+            XCTAssertFalse(element("discovery.done").exists)
+            evidence("Large-text Saved filter, sort, explicit send and cancellation after network recovery")
         case "savedPausedAndSwitch":
             tap(element("customer.tab.account"))
             tap(element("account.saved-groomers"))
@@ -118,10 +95,16 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
             XCTAssertTrue(element("favorites.remove.\(target)").waitForExistence(timeout: 15))
             XCTAssertTrue(app.staticTexts["Groomer temporarily unavailable"].exists)
             XCTAssertFalse(app.staticTexts[try XCTUnwrap(fixture.presentationName)].exists)
-            XCTAssertTrue(wait(timeout: 20) { self.element("favorites.choose-request").isEnabled })
-            tap(element("favorites.choose-request"))
-            XCTAssertTrue(app.buttons["No Request Selected"].firstMatch.waitForExistence(timeout: 5))
-            tap(element("favorites.request.\(try XCTUnwrap(fixture.requestID).uppercased())"))
+            // One eligible request is selected automatically; Change exists only for multiple requests.
+            XCTAssertTrue(wait(timeout: 20) {
+                self.element("favorites.choose-request").isEnabled
+                    || self.app.staticTexts["Unavailable for this request"].firstMatch.exists
+            })
+            if element("favorites.choose-request").exists {
+                tap(element("favorites.choose-request"))
+                XCTAssertFalse(app.buttons["No Request Selected"].exists)
+                tap(element("favorites.request.\(try XCTUnwrap(fixture.requestID).uppercased())"))
+            }
             XCTAssertTrue(app.staticTexts["Unavailable for this request"].firstMatch.waitForExistence(timeout: 15))
             XCTAssertFalse(element("favorites.send.\(target)").exists)
             evidence("Paused favorite retained without identity or send permission")
@@ -134,7 +117,7 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
             driver.signIn(.init(role: .customer, email: email, password: password))
             tap(element("customer.tab.account"))
             tap(element("account.saved-groomers"))
-            XCTAssertTrue(app.staticTexts["No Saved Groomers"].waitForExistence(timeout: 15))
+            XCTAssertTrue(app.staticTexts["No saved groomers yet"].waitForExistence(timeout: 15))
             XCTAssertFalse(element("favorites.remove.\(target)").exists)
             XCTAssertFalse(element("customer.discovery").exists)
             evidence("Account switch cleared previous favorites and discovery identity")
@@ -144,17 +127,16 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
             if fixture.action == "publishPool" {
                 tap(element("discovery.publish-pool"))
             } else {
-                tap(element("discovery.show-all"))
-                tap(element("discovery.send.\(fixture.groomerID)"))
+                selectGroomer(fixture.groomerID)
+                tap(element("discovery.send"))
             }
-            let confirm = app.buttons["Confirm Send"].firstMatch
+            let confirm = element("discovery.confirm-send")
             XCTAssertTrue(confirm.waitForExistence(timeout: 5))
             XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@",
                 fixture.action == "publishDirected" ? "Request pool: off" : "Request pool: on")).firstMatch.exists)
             confirm.tap()
             if recovery {
                 XCTAssertTrue(wait { !confirm.exists })
-                tap(app.buttons["BackButton"].firstMatch)
                 XCTAssertTrue(element("discovery.retry-publication").waitForExistence(timeout: 15))
                 app.terminate()
                 app.launchArguments.removeAll { $0 == "--beckon-testops-clear-session" || $0 == "--beckon-testops-discovery-drop-receipt" }
@@ -167,16 +149,15 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
                 evidence("Committed request recovered after dropped receipt and process restart")
                 return
             }
-            if fixture.action != "publishPool" {
-                XCTAssertTrue(wait { !confirm.exists })
-                tap(app.buttons["BackButton"].firstMatch)
-            }
-            XCTAssertTrue(element("customer.request.progress").waitForExistence(timeout: 20))
+            XCTAssertTrue(element("discovery.done").waitForExistence(timeout: 20))
             XCTAssertEqual(element("discovery.pool").value as? String, fixture.action == "publishDirected" ? "0" : "1")
             XCTAssertFalse(element("discovery.pool-consent").exists)
-            evidence("Published \(fixture.action!) through client")
+            tap(element("discovery.done"))
+            XCTAssertTrue(element("customer.requests.list").waitForExistence(timeout: 15))
+            evidence("Published \(fixture.action!) through client and Done opened Requests")
         case "verifyMixed":
             openCustomerRequest(try XCTUnwrap(fixture.requestID))
+            openInvitations()
             XCTAssertTrue(element("discovery.pool").waitForExistence(timeout: 15))
             XCTAssertEqual(element("discovery.pool").value as? String, "1")
             XCTAssertTrue(element("discovery.withdraw.\(fixture.groomerID)").exists)
@@ -206,54 +187,47 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
             evidence("Authorized \(fixture.expectedSource ?? "") quote")
         case "append":
             openCustomerRequest(try XCTUnwrap(fixture.requestID))
-            tap(element("customer.requests.invite"))
-            tap(element("discovery.show-all"))
-            let send = element("discovery.send.\(fixture.poolGroomerID)")
-            tap(send)
-            XCTAssertTrue(wait { !send.exists })
-            tap(app.buttons["BackButton"].firstMatch)
-            let withdraw = element("discovery.withdraw.\(fixture.poolGroomerID)")
-            tap(withdraw)
-            XCTAssertTrue(wait { !withdraw.exists })
+            openInvitations()
+            selectGroomer(fixture.poolGroomerID)
+            tap(element("discovery.send"))
+            withdrawInvitation(fixture.poolGroomerID)
             evidence("Additional directed invitation sent and explicitly withdrawn")
         case "revise", "withdrawForPool":
             openCustomerRequest(try XCTUnwrap(fixture.requestID))
-            let remainingInvitation = element("discovery.withdraw.\(fixture.groomerID)")
-            tap(remainingInvitation)
-            XCTAssertTrue(wait { !remainingInvitation.exists })
+            openInvitations()
+            withdrawInvitation(fixture.groomerID)
             if fixture.action == "withdrawForPool" {
                 XCTAssertEqual(element("discovery.pool").value as? String, "1")
                 evidence("Directed invitation withdrawn while explicit pool consent remains on")
                 return
             }
-            XCTAssertTrue(app.staticTexts["No Available Offers"].waitForExistence(timeout: 10))
-            XCTAssertTrue(element("customer.requests.invite").exists)
             XCTAssertEqual(element("discovery.pool").value as? String, "0")
+            tap(element("discovery.done"))
+            XCTAssertTrue(element("customer.requests.detail").waitForExistence(timeout: 15))
+            XCTAssertTrue(element("customer.requests.invite").exists)
             evidence("All invitations ended while invite and optional pool recovery remain available")
             tap(element("customer.requests.revise"))
             completeTimeAndReview(fixture)
             XCTAssertEqual(element("discovery.pool-consent").value as? String, "0")
-            tap(element("discovery.show-all"))
-            tap(element("discovery.send.\(fixture.groomerID)"))
-            tap(app.buttons["Confirm Send"].firstMatch)
-            XCTAssertTrue(wait { !self.app.buttons["Confirm Send"].exists })
-            tap(app.buttons["BackButton"].firstMatch)
-            XCTAssertTrue(element("customer.request.progress").waitForExistence(timeout: 20))
+            selectGroomer(fixture.groomerID)
+            tap(element("discovery.send"))
+            tap(element("discovery.confirm-send"))
+            XCTAssertTrue(element("discovery.done").waitForExistence(timeout: 20))
             evidence("Atomic revision explicitly chose its new recipient with pool off")
         case "cancelDuringRollback", "verifyCancelledHistory":
             tap(element("customer.tab.requests"))
             let reference = String(try XCTUnwrap(fixture.requestID).prefix(8)).uppercased()
             if fixture.action == "cancelDuringRollback" {
             let cancel = app.buttons.matching(NSPredicate(
-                format: "label == 'Cancel Request' AND value == %@", reference)).firstMatch
+                format: "identifier == 'customer.requests.cancel' AND value == %@", reference)).firstMatch
             for _ in 0..<4 {
                 if cancel.exists && cancel.isHittable { break }
                 app.swipeLeft()
             }
             tap(cancel)
-            let confirmation = app.alerts["Cancel this request?"]
+            let confirmation = element("dialog.confirm")
             XCTAssertTrue(confirmation.waitForExistence(timeout: 5))
-            tap(confirmation.buttons["Cancel request"])
+            tap(confirmation)
             XCTAssertTrue(confirmation.waitForNonExistence(timeout: 10))
             XCTAssertTrue(wait(timeout: 20) { !cancel.exists || !cancel.isEnabled })
             evidence("Customer cancellation completed with discovery disabled")
@@ -283,13 +257,14 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
             evidence("Foreground interval, background suspension and re-entry refresh")
         case "closePool":
             openCustomerRequest(try XCTUnwrap(fixture.requestID))
+            openInvitations()
             XCTAssertTrue(element("discovery.pool").waitForExistence(timeout: 15))
             XCTAssertEqual(element("discovery.pool").value as? String, "1")
             let poolSwitch = app.switches.matching(NSPredicate(format: "identifier == 'discovery.pool'")).firstMatch
             XCTAssertTrue(poolSwitch.isHittable)
             poolSwitch.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
             XCTAssertTrue(wait { self.element("discovery.pool").value as? String == "0" })
-            XCTAssertEqual(element("discovery.valid-offer-count").label, "2 valid offers")
+            XCTAssertTrue(element("discovery.spots").label.contains("2 offers in"))
             evidence("Pool closed, both valid offers retained")
         case "accept":
             let reference = String(try XCTUnwrap(fixture.requestID).prefix(8)).uppercased()
@@ -339,9 +314,8 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
         driver.signIn(try TestOpsSeedAccount.fromEnvironment(role: .customer))
         let requestID = try XCTUnwrap(fixture.requestID)
         openCustomerRequest(requestID)
-        XCTAssertTrue(element("discovery.pool").waitForExistence(timeout: 15))
-        XCTAssertTrue(wait(timeout: 150) { !self.element("discovery.pool").exists })
-        XCTAssertFalse(element("customer.requests.invite").exists)
+        XCTAssertTrue(element("customer.requests.invite").waitForExistence(timeout: 15))
+        XCTAssertTrue(wait(timeout: 150) { !self.element("customer.requests.invite").exists })
         tap(app.buttons["BackButton"].firstMatch)
         tap(element("customer.requests.history"))
         tap(element("customer.requests.history.row.\(requestID.prefix(8).uppercased())"))
@@ -350,10 +324,10 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
         XCTAssertEqual(element("discovery.pool-consent").value as? String, "0")
         tap(element("discovery.pool-consent"))
         tap(element("discovery.publish-pool"))
-        tap(app.buttons["Confirm Send"].firstMatch)
-        XCTAssertTrue(element("customer.request.progress").waitForExistence(timeout: 20))
+        tap(element("discovery.confirm-send"))
+        XCTAssertTrue(element("discovery.done").waitForExistence(timeout: 20))
         evidence("Natural expiry, history template and explicit pool-only republication")
-        tap(app.buttons["Done"].firstMatch)
+        tap(element("discovery.done"))
         tap(element("customer.tab.requests"))
         tap(element("customer.requests.history"))
         let older = try XCTUnwrap(fixture.olderHistoryRequestID)
@@ -361,6 +335,28 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
         tap(element("customer.requests.republish"))
         XCTAssertTrue(element("customer.requests.wizard").waitForExistence(timeout: 10))
         evidence("Older closed request beyond the first three opened its reusable template")
+    }
+
+    private func openInvitations() {
+        tap(element("customer.requests.invite"))
+        XCTAssertTrue(element("customer.discovery").waitForExistence(timeout: 15))
+    }
+
+    private func selectGroomer(_ id: String) {
+        let selection = element("discovery.select.\(id.uppercased())")
+        for _ in 0..<5 where !selection.exists && element("discovery.load-more").exists {
+            tap(element("discovery.load-more"))
+        }
+        tap(selection)
+    }
+
+    private func withdrawInvitation(_ id: String) {
+        let withdraw = element("discovery.withdraw.\(id.uppercased())")
+        tap(withdraw)
+        let confirmation = element("dialog.confirm")
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 5))
+        tap(confirmation)
+        XCTAssertTrue(wait { !withdraw.exists })
     }
 
     private func openCustomerRequest(_ requestID: String) {
@@ -412,30 +408,23 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
         driver.signIn(try TestOpsSeedAccount.fromEnvironment(role: .customer))
         preparePreview(fixture)
         XCTAssertEqual(element("discovery.pool-consent").value as? String, "0")
-        XCTAssertEqual(element("discovery.page-position").label, "1 of 8")
-        let position = element("discovery.page-position")
-        let profile = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'discovery.profile.'")).firstMatch
-        profile.swipeLeft()
-        XCTAssertTrue(wait { position.label == "2 of 8" })
-        app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'discovery.profile.'")).firstMatch.swipeRight()
-        XCTAssertTrue(wait { position.label == "1 of 8" })
-        tap(element("discovery.show-all"))
-        XCTAssertTrue(element("customer.discovery.list").waitForExistence(timeout: 5))
+        tap(element("discovery.sort.distance"))
+        tap(element("discovery.sort.fit"))
         let favorite = element("discovery.favorite.\(fixture.groomerID)")
         if !favorite.exists {
             tap(element("discovery.load-more"))
         }
         if favorite.label != "Remove favorite" { tap(favorite) }
         XCTAssertTrue(wait { favorite.label == "Remove favorite" })
-        let send = element("discovery.send.\(fixture.groomerID)")
-        tap(send)
-        XCTAssertTrue(app.buttons["Confirm Send"].waitForExistence(timeout: 5))
+        selectGroomer(fixture.groomerID)
+        tap(element("discovery.send"))
+        XCTAssertTrue(element("discovery.confirm-send").waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Request pool: off'" )).firstMatch.exists)
-        let cancel = app.buttons["Cancel"].firstMatch
+        let cancel = element("dialog.cancel")
         XCTAssertTrue(cancel.waitForExistence(timeout: 5))
         cancel.tap()
-        XCTAssertFalse(element("customer.request.progress").exists)
-        evidence("Private preview, reversible cards, full list and cancelled send")
+        XCTAssertFalse(element("discovery.done").exists)
+        evidence("Private preview, sortable selectable list and cancelled send")
         app.terminate()
         app.launchArguments.removeAll { $0 == "--beckon-testops-clear-session" }
         app.launch()

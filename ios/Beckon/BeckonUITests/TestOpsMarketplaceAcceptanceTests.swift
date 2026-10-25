@@ -787,7 +787,7 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
         for row in input.rows {
             XCTAssertNotNil(row.reference.range(of: "^[A-F0-9]{8}$", options: .regularExpression))
             let cancel = app.buttons.matching(NSPredicate(
-                format: "label == 'Cancel Request' AND value == %@", row.reference)).firstMatch
+                format: "identifier == 'customer.requests.cancel' AND value == %@", row.reference)).firstMatch
             for _ in 0..<4 {
                 if cancel.exists && !cancel.frame.isEmpty && app.frame.contains(cancel.frame)
                     && cancel.isHittable { break }
@@ -795,9 +795,9 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
             }
             reveal(cancel)
             tap(cancel)
-            let confirmation = app.alerts["Cancel this request?"]
+            let confirmation = element("dialog.confirm")
             XCTAssertTrue(confirmation.waitForExistence(timeout: 5))
-            tap(confirmation.buttons["Cancel request"])
+            tap(confirmation)
             XCTAssertTrue(confirmation.waitForNonExistence(timeout: 10))
             let closed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
                 !cancel.exists || !cancel.isEnabled

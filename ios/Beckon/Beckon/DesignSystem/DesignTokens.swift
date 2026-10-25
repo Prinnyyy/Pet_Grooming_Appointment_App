@@ -161,6 +161,7 @@ enum DesignTokens {
     }
 
     enum Layout {
+        static let messageGlyphTopInset: CGFloat = 2
         static let pageHorizontalInset: CGFloat = 20
         static let pageTopInset: CGFloat = 24
         static let pageBottomInset: CGFloat = 48
@@ -187,7 +188,6 @@ enum DesignTokens {
         static let ledgePrimaryButtonHeight: CGFloat = 58
         static let journeyNode: CGFloat = 42
         /// Home pet card and its add slot: one fixed size, whatever the pet's data. Height scales with Dynamic Type.
-        static let carouselCardWidth: CGFloat = 172
         static let petCardWidth: CGFloat = 176
         static let petCardHeight: CGFloat = 288
         /// Widest a dialog (alert or modal) grows; on a phone it is the screen minus the gutters.
@@ -195,6 +195,7 @@ enum DesignTokens {
     }
 
     enum CornerRadius {
+        static let messageBubble: CGFloat = 22
         static let card: CGFloat = 24
         static let button: CGFloat = 18
         static let input: CGFloat = 16
@@ -237,8 +238,6 @@ enum DesignTokens {
         /// How long a finger must stay on a button before it sinks and buzzes. A touch that turns into a scroll cancels
         /// well inside this, so scrolling over cards and pills stays quiet.
         static let pressSettleMilliseconds = 80
-        static let stagger = 0.075
-        static let maxStaggerSteps = 8
 
         /// How a family of pages arrives. Every block of a page lands one `beat` after the one above it (the first block, the
         /// leader, lands with more bounce), travelling `travel` points from where it settles, so all pages of a family keep

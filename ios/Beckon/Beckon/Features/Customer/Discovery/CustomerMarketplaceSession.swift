@@ -18,6 +18,19 @@ final class CustomerMarketplaceSession {
     private let sessionIsCurrent: () -> Bool
     private var generation = UUID()
 
+    #if DEBUG
+    init(sandboxCustomerID: UUID, requestRepository: any CustomerRequestRepository,
+         services: CustomerMarketplaceServices, publication: CustomerRequestPublicationCoordinator,
+         sessionIsCurrent: @escaping () -> Bool) {
+        self.sessionIsCurrent = sessionIsCurrent
+        self.publication = publication
+        discoveryRepository = services.discovery
+        images = services.images
+        distribution = .init(repository: services.distribution, publication: publication, sessionIsCurrent: sessionIsCurrent)
+        favorites = .init(customerID: sandboxCustomerID, repository: services.favorites, sessionIsCurrent: sessionIsCurrent)
+    }
+    #endif
+
     init(customerID: UUID, requestRepository: any CustomerRequestRepository,
          services: CustomerMarketplaceServices, sessionIsCurrent: @escaping () -> Bool) {
         self.sessionIsCurrent = sessionIsCurrent

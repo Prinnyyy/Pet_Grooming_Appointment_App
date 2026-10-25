@@ -129,6 +129,8 @@ struct CustomerRequestReachCard: View {
             BeckonLedgeHeading(title: "Groomers", systemImage: "person.2.fill")
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 CustomerRequestReachSummary(requestID: requestID, store: store, invitationsOnly: true)
+                    .accessibilityIdentifier("discovery.checked-at")
+                    .accessibilityValue(progress?.checkedAt.ISO8601Format() ?? "Not checked yet")
                 openStateRow
                 Button(action: onInvite) {
                     HStack(spacing: DesignTokens.Spacing.sm) {

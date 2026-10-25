@@ -27,6 +27,9 @@ final class ChatStore {
     private var readConversationTimestamps: [UUID: String] = [:]
     private var messageSubscriptionTasks: [UUID: Task<Void, Never>] = [:]
     private var messageSubscriptionIDs: [UUID: UUID] = [:]
+    #if DEBUG
+    var sandboxBookingStore: BookingsStore?
+    #endif
 
     var errorMessage: String?
     var noticeMessage: String?
@@ -608,6 +611,13 @@ final class ChatStore {
         guard let bookingRepository else { return }
 
         for booking in messages.compactMap(\.booking) {
+            #if DEBUG
+            if let sandboxBookingStore {
+                sandboxBookingStore.synchronizeExternalBooking(booking)
+                bookingDetailStoresByID[booking.id] = sandboxBookingStore
+                continue
+            }
+            #endif
             if let store = bookingDetailStoresByID[booking.id] {
                 store.synchronizeExternalBooking(booking)
             } else {
