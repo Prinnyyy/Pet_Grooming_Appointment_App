@@ -69,8 +69,12 @@ struct BookingsView: View {
 
     var body: some View {
         ZStack {
+            if role == .customer {
+                BeckonExpressiveBackdrop()
+            } else {
             DesignTokens.Colors.appBackground
                 .ignoresSafeArea()
+            }
 
             bookingsContent
         }
@@ -124,11 +128,17 @@ struct BookingsView: View {
         ScrollView {
             // Keep one lazy row container; nested height estimation can stall scrolling.
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                BeckonPageTitle("Bookings")
+                Text("Bookings")
+                    .font(DesignTokens.Typography.Expressive.display)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .accessibilityAddTraits(.isHeader)
+                    .beckonEntrance(0)
 
                 BookingScopeControl(selection: $selectedScope)
+                    .beckonEntrance(1)
 
                 appointmentReminderNotice
+                    .beckonEntrance(1)
 
                 if store.isLoading, store.bookings.isEmpty {
                     BeckonLoadingView(
@@ -140,16 +150,20 @@ struct BookingsView: View {
                 } else if let persistentLoadError = feedbackPresentation.persistentLoadError {
                     persistentLoadErrorView(persistentLoadError)
                 } else if visibleBookings.isEmpty {
-                    BeckonEmptyState(
-                        title: selectedScope.emptyTitle,
-                        message: selectedScope.emptyMessage,
-                        systemImage: "calendar.badge.clock",
-                        accent: role.emptyStateAccent
-                    )
+                    DesignPupPeek {
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                            Text(selectedScope.emptyTitle)
+                                .font(DesignTokens.Typography.Expressive.title)
+                                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                            Text(selectedScope.emptyMessage)
+                                .designSupportingText()
+                        }
+                        .designCardBody()
+                    }
                     .accessibilityIdentifier("bookings.empty")
                 } else {
-                    LazyVStack(spacing: DesignTokens.Spacing.md) {
-                        ForEach(visibleBookings) { booking in
+                    LazyVStack(spacing: DesignTokens.Spacing.lg) {
+                        ForEach(Array(visibleBookings.enumerated()), id: \.element.id) { index, booking in
                             NavigationLink {
                                 BookingDetailView(
                                     bookingID: booking.id,
@@ -167,7 +181,8 @@ struct BookingsView: View {
                                     role: role
                                 )
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(BeckonLedgeButtonStyle(.card))
+                            .beckonEntrance(2 + min(index, 4))
                             .accessibilityIdentifier(
                                 AppTestOpsAccessibility.requestIdentifier(
                                     prefix: "bookings.row.request",
@@ -191,7 +206,9 @@ struct BookingsView: View {
             .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             .padding(.top, DesignTokens.Spacing.xl)
             .padding(.bottom, DesignTokens.Spacing.xl + DesignTokens.Spacing.xl)
+            .beckonEntranceClock()
         }
+            .beckonTracksScroll()
         .scrollContentBackground(.hidden)
         .accessibilityIdentifier("bookings.list")
     }
@@ -350,7 +367,10 @@ struct BookingsView: View {
 
     @ViewBuilder
     private var appointmentReminderNotice: some View {
-        if let message = store.appointmentReminderNotice {
+        if role == .customer, let issue = store.appointmentReminderIssue {
+            BookingReminderNotice(issue: issue)
+                .accessibilityIdentifier("bookings.appointment-reminder-notice")
+        } else if let message = store.appointmentReminderNotice {
             HStack(alignment: .top, spacing: DesignTokens.Spacing.sm) {
                 Image(systemName: "bell.slash")
                     .font(.subheadline.weight(.semibold))
@@ -644,41 +664,22 @@ private struct BookingScopeControl: View {
     @Binding var selection: BookingListScope
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: DesignTokens.Spacing.md) {
             ForEach(BookingListScope.allCases) { scope in
                 Button {
-                    withAnimation(.easeInOut(duration: 0.18)) {
-                        selection = scope
-                    }
+                    withAnimation(DesignTokens.Motion.swap) { selection = scope }
                 } label: {
                     Text(scope.title)
-                        .font(DesignTokens.Typography.headline)
-                        .foregroundStyle(
-                            selection == scope
-                                ? DesignTokens.Colors.textPrimary
-                                : DesignTokens.Colors.textSecondary
-                        )
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, DesignTokens.Spacing.md)
-                        .background {
-                            if selection == scope {
-                                RoundedRectangle(
-                                    cornerRadius: DesignTokens.CornerRadius.input,
-                                    style: .continuous
-                                )
-                                .fill(DesignTokens.Colors.surface)
-                                .beckonShadow(DesignTokens.Shadows.smallCard)
-                            }
-                        }
+                        .font(DesignTokens.Typography.Expressive.headline)
+                        .foregroundStyle(selection == scope
+                            ? DesignTokens.Colors.customerInk
+                            : DesignTokens.Colors.textSecondary)
+                        .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.minimumTouchTarget)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(BeckonLedgeButtonStyle(selection == scope ? .pill : .card))
+                .accessibilityAddTraits(selection == scope ? .isSelected : [])
                 .accessibilityIdentifier("bookings.scope.\(scope.rawValue)")
             }
-        }
-        .padding(DesignTokens.Spacing.xs)
-        .background {
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
-                .fill(DesignTokens.Colors.iconTileFill)
         }
         .accessibilityElement(children: .contain)
     }
@@ -1047,7 +1048,15 @@ struct BookingDetailView: View {
 
     @ViewBuilder
     private var detailContent: some View {
-        if let booking = store.booking(withID: bookingID) {
+        if role == .customer, let booking = store.booking(withID: bookingID) {
+            CustomerBookingDetailContent(booking: booking, store: store, onOpenChat: onOpenChat ?? shellOpenChat,
+                onCreateNewRequest: onCreateNewRequestFromCancelledBooking, focusedReviewTarget: $focusedReviewTarget)
+                .environment(\.beckonCustomerDesign, true)
+                .navigationTitle("Booking")
+                .navigationBarTitleDisplayMode(.inline)
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("bookings.detail")
+        } else if let booking = store.booking(withID: bookingID) {
             ScrollViewReader { scrollProxy in
                 ZStack {
                     DesignTokens.Colors.appBackground
@@ -1438,7 +1447,7 @@ private struct BookingReviewDisplay: View {
     }
 }
 
-private struct BookingReviewFitOutcomeDisplay: View {
+struct BookingReviewFitOutcomeDisplay: View {
     let outcome: BookingReviewPetFitOutcomeRecord
     @Environment(\.dynamicTypeSize) private var typeSize
 
@@ -1514,84 +1523,97 @@ struct BookingReviewForm: View {
     }
 
     var body: some View {
-        BeckonCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                Menu {
-                    Picker("Rating", selection: $rating) {
-                        ForEach(1...5, id: \.self) { value in
-                            Text(value == 1 ? "1 star" : "\(value) stars").tag(value)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                Text("How was it?")
+                    .font(DesignTokens.Typography.Expressive.title)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    ForEach(1...5, id: \.self) { value in
+                        Button { rating = value } label: {
+                            Image(systemName: value <= rating ? "star.fill" : "star")
+                                .font(DesignTokens.Typography.Expressive.display)
+                                .foregroundStyle(DesignTokens.Colors.ratingStar)
+                                .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.minimumTouchTarget)
                         }
+                        .buttonStyle(BeckonGuardedPlainButtonStyle())
+                        .accessibilityHidden(true)
                     }
-                } label: {
-                    Label(rating == 1 ? "1 star" : "\(rating) stars", systemImage: "star")
-                        .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.minimumTouchTarget)
                 }
-                .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
+                .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Rating")
                 .accessibilityValue("\(rating) of 5 stars")
+                .accessibilityAdjustableAction { direction in
+                    switch direction {
+                    case .increment: rating = min(5, rating + 1)
+                    case .decrement: rating = max(1, rating - 1)
+                    @unknown default: break
+                    }
+                }
                 .accessibilityIdentifier("bookings.review.rating")
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    TextEditor(text: $content)
-                        .focused($focusedTarget, equals: .content)
-                        .frame(minHeight: 96)
-                        .scrollContentBackground(.hidden)
-                        .beckonFormField()
-                        .accessibilityLabel("Review text, optional")
-                        .accessibilityIdentifier("bookings.review.content")
-
-                    Text("Optional review text, up to 2,000 characters.")
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                }
-                .beckonKeyboardFocusTarget(
-                    BookingReviewKeyboardPresentation.contentFocusTarget
-                )
-
-                if !fitOutcomeSelections.isEmpty {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                        Text("Pet fit notes")
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                        ForEach($fitOutcomeSelections) { $selection in
-                            BookingReviewFitOutcomePicker(selection: $selection)
-                        }
-                    }
-                    .disabled(store.reviewContexts[booking.id] == nil)
-                }
-
-                if store.loadingReviewContexts.contains(booking.id) {
-                    ProgressView("Loading service details")
-                } else if let error = store.reviewContextErrors[booking.id] {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                        Text(error).font(DesignTokens.Typography.caption)
-                        Button {
-                            Task { await store.loadReviewContext(for: booking) }
-                        } label: { Label("Retry service details", systemImage: "arrow.clockwise") }
-                            .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
-                            .accessibilityIdentifier("bookings.review.retry-context")
-                    }
-                }
-
-                Button {
-                    Task {
-                        await store.createReview(
-                            for: booking,
-                            rating: rating,
-                            content: content,
-                            petFitOutcomes: fitOutcomeSelections.selectedOutcomes
-                        )
-                    }
-                } label: {
-                    Label(store.isSubmittingReview ? "Submitting Review..." : "Submit Review", systemImage: "star.bubble")
-                }
-                .buttonStyle(BeckonPrimaryButtonStyle(accent: accent))
-                .disabled(store.isSubmittingReview || store.reviewContexts[booking.id] == nil)
-                .accessibilityIdentifier("bookings.review.submit")
             }
-            .disabled(store.isSubmittingReview)
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                TextEditor(text: $content)
+                    .focused($focusedTarget, equals: .content)
+                    .frame(minHeight: 96)
+                    .scrollContentBackground(.hidden)
+                    .beckonFormField()
+                    .accessibilityLabel("Review text, optional")
+                    .accessibilityIdentifier("bookings.review.content")
+
+                Text("Optional review text, up to 2,000 characters.")
+                    .font(DesignTokens.Typography.Expressive.chip)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+            }
+            .beckonKeyboardFocusTarget(
+                BookingReviewKeyboardPresentation.contentFocusTarget
+            )
+
+            if !fitOutcomeSelections.isEmpty {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    Text("Pet fit notes")
+                        .font(DesignTokens.Typography.Expressive.headline)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                    ForEach($fitOutcomeSelections) { $selection in
+                        BookingReviewFitOutcomePicker(selection: $selection)
+                    }
+                }
+                .disabled(store.reviewContexts[booking.id] == nil)
+            }
+
+            if store.loadingReviewContexts.contains(booking.id) {
+                DesignInfoLine(systemImage: "hourglass", text: "Loading service details…")
+            } else if let error = store.reviewContextErrors[booking.id] {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    Text(error).font(DesignTokens.Typography.Expressive.chip)
+                    Button {
+                        Task { await store.loadReviewContext(for: booking) }
+                    } label: { DesignQuietAction(title: "Retry service details", systemImage: "arrow.clockwise") }
+                        .buttonStyle(BeckonGuardedPlainButtonStyle())
+                        .accessibilityIdentifier("bookings.review.retry-context")
+                }
+            }
+
+            Button {
+                Task {
+                    await store.createReview(
+                        for: booking,
+                        rating: rating,
+                        content: content,
+                        petFitOutcomes: fitOutcomeSelections.selectedOutcomes
+                    )
+                }
+            } label: {
+                DesignActionLabel(title: store.isSubmittingReview ? "Submitting review…" : "Submit review", systemImage: "star.bubble.fill")
+            }
+            .buttonStyle(BeckonLedgeButtonStyle(.pill))
+            .disabled(store.isSubmittingReview || store.reviewContexts[booking.id] == nil)
+            .accessibilityIdentifier("bookings.review.submit")
         }
+        .disabled(store.isSubmittingReview)
+        .designCardBody()
         .task(id: booking.id) { await store.loadReviewContext(for: booking) }
         .onChange(of: store.reviewContexts[booking.id]) { _, context in
             guard let context else { return }
@@ -1905,3 +1927,50 @@ private final class BookingsPreviewRepository: BookingRepository {
     }
 }
 #endif
+
+struct BookingReminderNotice: View {
+    let issue: AppointmentReminderIssue
+    @Environment(\.openURL) private var openURL
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    private var isOff: Bool { issue == .permissionDenied }
+
+    var body: some View {
+        (typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.sm))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: DesignTokens.Spacing.md))) {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                DesignIconDisc(systemImage: "bell.slash.fill")
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text(isOff ? "Reminders are off" : "Reminders")
+                        .font(DesignTokens.Typography.Expressive.emphasis)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    Text(isOff ? "Allow notifications to get alerts before appointments." : issue.message)
+                        .font(DesignTokens.Typography.Expressive.chip)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            if isOff {
+                Button {
+                    if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+                } label: {
+                    Text("Settings")
+                        .font(DesignTokens.Typography.Expressive.emphasis)
+                        .foregroundStyle(DesignTokens.Colors.customerDeep)
+                        .padding(.horizontal, DesignTokens.Spacing.md)
+                        .frame(minHeight: DesignTokens.Metrics.minimumTouchTarget)
+                        .background(DesignTokens.Colors.customerTint, in: Capsule())
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(BeckonGuardedPlainButtonStyle())
+                .accessibilityHint("Opens iOS Settings so you can allow notifications.")
+            }
+        }
+        .padding(DesignTokens.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .beckonLedge(.card)
+        .accessibilityElement(children: .contain)
+    }
+}

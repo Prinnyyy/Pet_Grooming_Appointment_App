@@ -53,7 +53,8 @@ final class BookingsStore {
 
     var errorMessage: String?
     var noticeMessage: String?
-    var appointmentReminderNotice: String?
+    private(set) var appointmentReminderIssue: AppointmentReminderIssue?
+    var appointmentReminderNotice: String? { appointmentReminderIssue?.message }
 
     var isBusy: Bool {
         isLoading || isLoadingMore || isCancelling || isCompleting || isSubmittingReview || isMutatingFulfillment || isMutatingReschedule
@@ -575,8 +576,8 @@ final class BookingsStore {
             if previous?.scheduledStart != result.booking.scheduledStart || previous?.status != result.booking.status {
                 await appointmentReminderScheduler.cancelReminder(for: result.booking.id, role: role)
                 let reminderResult = await appointmentReminderScheduler.syncReminders(for: [result.booking], role: role)
-                if case .scheduled = reminderResult { appointmentReminderNotice = nil }
-                else { appointmentReminderNotice = "The appointment changed, but its local reminder could not be updated." }
+                if case .scheduled = reminderResult { appointmentReminderIssue = nil }
+                else { appointmentReminderIssue = .updateFailed }
             }
         } catch let error as BookingRepositoryError {
             switch error {
@@ -977,10 +978,9 @@ final class BookingsStore {
 
         switch result {
         case .scheduled:
-            appointmentReminderNotice = nil
+            appointmentReminderIssue = nil
         case .refused:
-            appointmentReminderNotice =
-                "Appointment reminders are off. Enable notifications in Settings to receive local reminders."
+            appointmentReminderIssue = .permissionDenied
             recordReminderSync(result: result)
         case .unavailable:
             recordReminderSync(result: result)

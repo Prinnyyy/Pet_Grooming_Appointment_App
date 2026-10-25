@@ -95,11 +95,8 @@ struct BookingFulfillmentSection: View {
             if booking.fulfillment == nil { await store.refreshFulfillment(for: booking.id) }
             else { await store.loadFulfillmentHistory(for: booking.id) }
         }
-        .sheet(item: $selectedAction) { action in
-            BookingFulfillmentConfirmation(action: action, role: role) { note in
-                selectedAction = nil
-                Task { await store.performFulfillment(action, for: booking, note: note) }
-            }
+        .bookingFulfillmentDialog(action: $selectedAction) { action, note in
+            Task { await store.performFulfillment(action, for: booking, note: note) }
         }
     }
 
@@ -136,83 +133,5 @@ struct BookingFulfillmentSection: View {
         }
         .font(DesignTokens.Typography.caption).foregroundStyle(DesignTokens.Colors.textTertiary)
         .accessibilityElement(children: .combine)
-    }
-}
-
-private struct BookingFulfillmentConfirmation: View {
-    let action: BookingFulfillmentAction
-    let role: UserRole
-    let onConfirm: (String?) -> Void
-    @State private var note = ""
-    @FocusState private var focusedNote: Bool
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            ScrollViewReader { proxy in
-                Form {
-                    Section {
-                        Text(action.confirmationMessage)
-                        if action.requiresNote {
-                            TextField("What happened?", text: $note, axis: .vertical)
-                                .focused($focusedNote)
-                                .lineLimit(3...8)
-                                .accessibilityLabel("What happened? Required")
-                                .accessibilityIdentifier("booking.fulfillment.note")
-                                .beckonKeyboardFocusTarget("booking.fulfillment.note.container")
-                            if note.count > 500 {
-                                BeckonInlineError("Use no more than 500 characters.")
-                            }
-                        }
-                    }
-                    Section {
-                        confirmationButton
-                    }
-                }
-                .beckonKeyboardAvoidance(focusedTarget: focusedNote ? "booking.fulfillment.note.container" : nil, using: proxy)
-                .navigationTitle(action.title)
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Dismiss") { dismiss() }
-                    }
-                }
-            }
-        }
-        .tint(role == .customer ? DesignTokens.Colors.customerDeep : DesignTokens.Colors.groomerDeep)
-    }
-
-    @ViewBuilder
-    private var confirmationButton: some View {
-        let button = Button(action.title, systemImage: action.systemImage) {
-            onConfirm(action.requiresNote ? note : nil)
-        }
-        .disabled(action.requiresNote &&
-            (note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || note.count > 500))
-        .accessibilityIdentifier("booking.fulfillment.confirm")
-        if action.isDestructive {
-            button.buttonStyle(BeckonDestructiveButtonStyle())
-        } else {
-            button.buttonStyle(BeckonSecondaryButtonStyle(accent: role == .customer ? .customer : .groomer))
-        }
-    }
-}
-
-private extension BookingFulfillmentAction {
-    var isDestructive: Bool { [.cancel, .confirmStop, .closeElapsed].contains(self) }
-
-    var confirmationMessage: String {
-        switch self {
-        case .start: "Record the start of service now."
-        case .complete: "Confirm the service is complete now. The agreed cleanup and travel buffer remains reserved."
-        case .cancel: "Cancel this booking before service starts. The original request will not reopen."
-        case .reportInterruption, .reportNoShow: "Describe what happened. This report does not release reserved time or assign fault; the other participant can confirm the outcome."
-        case .confirmStop: "Confirm that service stopped or did not take place. This closes the booking without completion and releases remaining time after the agreed buffer."
-        case .withdrawReport: "Withdraw your pending report and restore the previous service state. The activity record remains."
-        case .closeElapsed: "Close the elapsed booking without confirmed completion. This does not assign fault or allow a review."
-        case .reportCompletion: "Report that service took place. Completion requires the other participant's confirmation; missing actual times will not be invented."
-        case .confirmCompletion: "Confirm the reported service took place. The booking becomes completed and the customer can leave a review."
-        case .recordObjection: "Add your account to the service record. This does not change the booking outcome or automatically open a support case."
-        }
     }
 }

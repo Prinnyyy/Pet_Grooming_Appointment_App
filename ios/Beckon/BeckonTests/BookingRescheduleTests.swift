@@ -133,9 +133,22 @@ final class BookingRescheduleRenderingTests: XCTestCase {
             XCTAssertEqual(store.rescheduleActions(for: booking), role == .customer ? [.withdraw] : [.accept, .reject])
             try await render(ScrollView { BookingRescheduleSection(booking: booking, store: store).padding() },
                 name: "T-378 \(role.rawValue) pending proposal")
-            try await render(BookingRescheduleConfirmation(booking: booking, proposal: proposal,
-                action: role == .customer ? .withdraw : .accept, onConfirm: { _ in }),
+            try await render(RescheduleDialogHost(booking: booking, proposal: proposal,
+                action: role == .customer ? .withdraw : .accept),
                 name: "T-378 \(role.rawValue) exact consent")
+        }
+    }
+
+    private struct RescheduleDialogHost: View {
+        let booking: Booking
+        let proposal: BookingRescheduleProposal
+        let action: BookingRescheduleAction
+        @State private var selection: BookingRescheduleSelection?
+
+        var body: some View {
+            Color.clear
+                .bookingRescheduleDialog(selection: $selection, booking: booking) { _, _ in }
+                .task { selection = BookingRescheduleSelection(action: action, proposal: proposal) }
         }
     }
 

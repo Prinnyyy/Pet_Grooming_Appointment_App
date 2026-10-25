@@ -1,16 +1,9 @@
 import SwiftUI
 
-private struct BookingRescheduleReview: Identifiable {
-    let id = UUID()
-    let action: BookingRescheduleAction
-    let booking: Booking
-    let proposal: BookingRescheduleProposal?
-}
-
 struct BookingRescheduleSection: View {
     let booking: Booking
     let store: BookingsStore
-    @State private var review: BookingRescheduleReview?
+    @State private var review: BookingRescheduleSelection?
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -34,7 +27,7 @@ struct BookingRescheduleSection: View {
                 if store.pendingRescheduleOperation(for: booking.id) == nil {
                     ForEach(store.rescheduleActions(for: booking, now: context.date)) { action in
                         Button(action.title, systemImage: action == .propose ? "calendar.badge.clock" : "checkmark.circle") {
-                            review = BookingRescheduleReview(action: action, booking: booking,
+                            review = BookingRescheduleSelection(action: action,
                                 proposal: store.rescheduleSnapshots[booking.id]?.proposal)
                         }
                         .accessibilityIdentifier("booking.reschedule.\(action.rawValue)")
@@ -65,13 +58,9 @@ struct BookingRescheduleSection: View {
         .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
         .disabled(store.isMutatingReschedule || store.isMutatingFulfillment)
         .task(id: booking.id) { await store.loadReschedule(for: booking.id) }
-        .sheet(item: $review) { selection in
-            BookingRescheduleConfirmation(booking: selection.booking, proposal: selection.proposal,
-                action: selection.action) { newStart in
-                review = nil
-                Task { await store.performReschedule(selection.action, for: selection.booking,
-                    reviewedProposal: selection.proposal, newStart: newStart) }
-            }
+        .bookingRescheduleDialog(selection: $review, booking: booking) { selection, newStart in
+            Task { await store.performReschedule(selection.action, for: booking,
+                reviewedProposal: selection.proposal, newStart: newStart) }
         }
     }
 
@@ -83,7 +72,7 @@ struct BookingRescheduleSection: View {
     }
 }
 
-private struct BookingRescheduleTimes: View {
+struct BookingRescheduleTimes: View {
     let booking: Booking
     let proposal: BookingRescheduleProposal
     var body: some View {
@@ -99,98 +88,5 @@ private struct BookingRescheduleTimes: View {
     private func summary(_ start: String, _ end: String) -> String {
         let zone = booking.serviceTimeZoneIdentifier
         return BeckonDateTimeFormatter.interval(from: start, to: end, serviceTimeZoneIdentifier: zone).summary
-    }
-}
-
-struct BookingRescheduleConfirmation: View {
-    let booking: Booking
-    let proposal: BookingRescheduleProposal?
-    let action: BookingRescheduleAction
-    let onConfirm: (Date?) -> Void
-    @Environment(\.dismiss) private var dismiss
-    @State private var proposedWallTime = Date()
-    @State private var selectedOccurrence: Date?
-
-    private var resolution: GroomingWallTimeResolution? {
-        guard let zone = booking.serviceTimeZoneIdentifier else { return nil }
-        return try? GroomingServiceTiming.resolveWallInput(proposedWallTime, timeZoneIdentifier: zone)
-    }
-    private var proposedStart: Date? {
-        switch resolution {
-        case .unique(let date): return date
-        case let .ambiguous(first, last):
-            return selectedOccurrence == first || selectedOccurrence == last ? selectedOccurrence : nil
-        case .nonexistent, nil: return nil
-        }
-    }
-    private var duration: TimeInterval? {
-        guard let start = GroomingRequestDateFormatting.parsedDate(from: booking.scheduledStart),
-              let end = GroomingRequestDateFormatting.parsedDate(from: booking.scheduledEnd) else { return nil }
-        return end.timeIntervalSince(start)
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    if action == .propose {
-                        Text("Original time").font(DesignTokens.Typography.fieldLabel)
-                        Text(booking.scheduledTimeSummary).font(DesignTokens.Typography.body)
-                        DatePicker("Proposed start", selection: $proposedWallTime, displayedComponents: [.date, .hourAndMinute])
-                            .environment(\.timeZone, TimeZone(secondsFromGMT: 0)!)
-                            .environment(\.calendar, Calendar(identifier: .gregorian))
-                            .onChange(of: proposedWallTime) { _, _ in selectedOccurrence = nil }
-                        if case let .ambiguous(first, last) = resolution {
-                            Picker("Start Occurrence", selection: $selectedOccurrence) {
-                                Text("Choose occurrence").tag(Optional<Date>.none)
-                                ForEach([first, last], id: \.self) { date in
-                                    Text(GroomingRequestDateFormatting.displayString(
-                                        from: GroomingRequestDateFormatting.serverString(from: date),
-                                        serviceTimeZoneIdentifier: booking.serviceTimeZoneIdentifier)).tag(Optional(date))
-                                }
-                            }
-                        }
-                        if resolution == .nonexistent {
-                            BeckonInlineError("This local time does not exist. Choose another start time.")
-                        }
-                        if let proposedStart, let duration {
-                            Text("Proposed end").font(DesignTokens.Typography.fieldLabel)
-                            Text(GroomingRequestDateFormatting.displayString(
-                                from: GroomingRequestDateFormatting.serverString(from: proposedStart.addingTimeInterval(duration)),
-                                serviceTimeZoneIdentifier: booking.serviceTimeZoneIdentifier))
-                        }
-                    } else if let proposal {
-                        BookingRescheduleTimes(booking: booking, proposal: proposal)
-                    }
-                    Text("Service time zone: \(booking.serviceTimeZoneIdentifier ?? "Unverified")")
-                        .font(DesignTokens.Typography.caption)
-                }
-                Section {
-                    Text("The service, duration, price, pet, participants, location and buffers stay unchanged.")
-                    if action == .accept {
-                        Text("Accepting replaces the original appointment only if the new time is still available.")
-                    } else {
-                        Text("The original appointment remains confirmed until both participants accept a valid new time.")
-                    }
-                }
-                Section {
-                    Button(action.title, systemImage: "calendar.badge.checkmark") {
-                        onConfirm(action == .propose ? proposedStart : nil)
-                    }
-                    .disabled(action == .propose && (proposedStart == nil || duration == nil))
-                    .accessibilityIdentifier("booking.reschedule.confirm")
-                }
-            }
-            .font(DesignTokens.Typography.body)
-            .navigationTitle(action.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Dismiss") { dismiss() } } }
-            .task {
-                guard action == .propose, let zone = booking.serviceTimeZoneIdentifier,
-                      let original = GroomingRequestDateFormatting.parsedDate(from: booking.scheduledStart),
-                      let input = try? GroomingServiceTiming.wallInput(for: original.addingTimeInterval(3600), timeZoneIdentifier: zone) else { return }
-                proposedWallTime = input
-            }
-        }
     }
 }

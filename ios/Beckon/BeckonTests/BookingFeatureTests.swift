@@ -1628,7 +1628,15 @@ final class BookingRepositoryFake: BookingRepository {
     ) async throws -> CancelBookingResult {
         cancelCallCount += 1
         lastCancelledBookingID = bookingID
-        return try cancelResult.get()
+        let result = try cancelResult.get()
+        if case .success(let rows) = bookingsResult {
+            bookingsResult = .success(rows.map { booking in
+                guard booking.id == bookingID else { return booking }
+                return booking.replacing(status: result.bookingStatus,
+                    cancelledBy: result.cancelledBy, cancelledAt: result.cancelledTimestamp)
+            })
+        }
+        return result
     }
 
     func completeBooking(
