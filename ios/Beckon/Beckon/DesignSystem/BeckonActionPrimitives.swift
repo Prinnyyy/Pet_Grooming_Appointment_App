@@ -13,7 +13,36 @@ struct BeckonPrimaryActionAvailability: Equatable {
     }
 }
 
+private struct BeckonLedgeFace: ViewModifier {
+    let face: Color
+    let lip: Color
+    var edge: Color?
+    /// Face while pressed, when it should change colour as well as sink.
+    var pressedFace: Color?
+    let depth: CGFloat
+    let isPressed: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        let face = face, pressedFace = pressedFace, lip = lip, edge = edge, depth = depth, reduceMotion = reduceMotion
+        return BeckonSettledPress(isPressed: isPressed) { pressed in
+            let shape = RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.ledgeButton, style: .continuous)
+            content
+                .background(shape.fill(pressed ? pressedFace ?? face : face))
+                .overlay { if let edge { shape.strokeBorder(edge, lineWidth: DesignTokens.Ledge.edgeWidth) } }
+                .offset(y: pressed && !reduceMotion ? depth : 0)
+                .background { shape.fill(lip).offset(y: depth) }
+                .padding(.bottom, depth)
+                .contentShape(Rectangle())
+                .animation(reduceMotion ? DesignTokens.Motion.reduced : DesignTokens.Motion.press, value: pressed)
+        }
+    }
+}
+
+
 struct BeckonPrimaryButtonStyle: ButtonStyle {
+    @Environment(\.beckonCustomerDesign) private var usesCustomerDesign
+
     enum Accent {
         case customer
         case groomer
@@ -42,13 +71,35 @@ struct BeckonPrimaryButtonStyle: ButtonStyle {
         self.isVisuallyEnabled = isVisuallyEnabled
     }
 
-    func makeBody(configuration: Configuration) -> some View {
+    @ViewBuilder func makeBody(configuration: Configuration) -> some View {
+        if usesCustomerDesign { customerBody(configuration: configuration) } else { legacyBody(configuration: configuration) }
+    }
+
+    private func customerBody(configuration: Configuration) -> some View {
         let availability = BeckonPrimaryActionAvailability(
             isEnvironmentEnabled: isEnabled,
             isVisuallyEnabled: isVisuallyEnabled
         )
 
-        configuration.label
+        return configuration.label
+            .font(DesignTokens.Typography.Expressive.headline)
+            .foregroundStyle(availability.rendersEnabled ? accent.foreground : DesignTokens.Colors.textTertiary)
+            .frame(maxWidth: isFullWidth ? .infinity : nil, minHeight: DesignTokens.Metrics.ledgePrimaryButtonHeight)
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .modifier(BeckonLedgeFace(
+                face: availability.rendersEnabled ? accent.fill : DesignTokens.Colors.iconTileFill,
+                lip: availability.rendersEnabled ? (accent == .customer ? DesignTokens.Colors.customerDeep : DesignTokens.Colors.groomerDeep) : DesignTokens.Colors.borderSoft,
+                depth: DesignTokens.Ledge.button,
+                isPressed: configuration.isPressed && availability.rendersEnabled))
+    }
+
+    private func legacyBody(configuration: Configuration) -> some View {
+        let availability = BeckonPrimaryActionAvailability(
+            isEnvironmentEnabled: isEnabled,
+            isVisuallyEnabled: isVisuallyEnabled
+        )
+
+        return configuration.label
             .font(DesignTokens.Typography.action)
             .foregroundStyle(availability.rendersEnabled ? accent.foreground : DesignTokens.Colors.textTertiary)
             .frame(maxWidth: isFullWidth ? .infinity : nil, minHeight: DesignTokens.Metrics.actionHeight)
@@ -65,6 +116,8 @@ struct BeckonPrimaryButtonStyle: ButtonStyle {
 }
 
 struct BeckonSecondaryButtonStyle: ButtonStyle {
+    @Environment(\.beckonCustomerDesign) private var usesCustomerDesign
+
     enum Accent {
         case customer
         case customerHero
@@ -107,7 +160,25 @@ struct BeckonSecondaryButtonStyle: ButtonStyle {
         self.isSelected = isSelected
     }
 
-    func makeBody(configuration: Configuration) -> some View {
+    @ViewBuilder func makeBody(configuration: Configuration) -> some View {
+        if usesCustomerDesign { customerBody(configuration: configuration) } else { legacyBody(configuration: configuration) }
+    }
+
+    private func customerBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(DesignTokens.Typography.Expressive.emphasis)
+            .foregroundStyle(isEnabled ? accent.foreground : DesignTokens.Colors.textTertiary)
+            .frame(maxWidth: isFullWidth ? .infinity : nil, minHeight: DesignTokens.Metrics.minimumTouchTarget)
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .modifier(BeckonLedgeFace(
+                face: isSelected && isEnabled ? accent.pressedBackground : DesignTokens.Colors.surface,
+                lip: isSelected && isEnabled ? accent.foreground : DesignTokens.Colors.border,
+                edge: DesignTokens.Colors.border,
+                depth: DesignTokens.Ledge.control,
+                isPressed: configuration.isPressed && isEnabled))
+    }
+
+    private func legacyBody(configuration: Configuration) -> some View {
         configuration.label
             .font(font)
             .foregroundStyle(isEnabled ? accent.foreground : DesignTokens.Colors.textTertiary)
@@ -127,10 +198,28 @@ struct BeckonSecondaryButtonStyle: ButtonStyle {
 }
 
 struct BeckonTertiaryButtonStyle: ButtonStyle {
+    @Environment(\.beckonCustomerDesign) private var usesCustomerDesign
+
     @Environment(\.isEnabled) private var isEnabled
     var accent: BeckonRoleAccent = .customer
 
-    func makeBody(configuration: Configuration) -> some View {
+    @ViewBuilder func makeBody(configuration: Configuration) -> some View {
+        if usesCustomerDesign { customerBody(configuration: configuration) } else { legacyBody(configuration: configuration) }
+    }
+
+    private func customerBody(configuration: Configuration) -> some View {
+        let isEnabled = isEnabled, accent = accent
+        return BeckonSettledPress(isPressed: configuration.isPressed) { pressed in
+            configuration.label
+                .font(DesignTokens.Typography.Expressive.emphasis)
+                .foregroundStyle(isEnabled ? accent.deep : DesignTokens.Colors.textTertiary)
+                .frame(minWidth: DesignTokens.Metrics.minimumTouchTarget, minHeight: DesignTokens.Metrics.minimumTouchTarget)
+                .contentShape(Rectangle())
+                .background(isEnabled && pressed ? accent.tint : .clear)
+        }
+    }
+
+    private func legacyBody(configuration: Configuration) -> some View {
         configuration.label
             .font(DesignTokens.Typography.action)
             .foregroundStyle(isEnabled ? accent.deep : DesignTokens.Colors.textTertiary)
@@ -213,6 +302,8 @@ struct BeckonLoadMoreButton: View {
 }
 
 struct BeckonCard<Content: View>: View {
+    @Environment(\.beckonCustomerDesign) private var usesCustomerDesign
+
     private let isSelected: Bool
     private let padding: CGFloat
     private let content: Content
@@ -227,7 +318,24 @@ struct BeckonCard<Content: View>: View {
         self.content = content()
     }
 
-    var body: some View {
+    @ViewBuilder var body: some View {
+        if usesCustomerDesign { customerBody } else { legacyBody }
+    }
+
+    private var customerBody: some View {
+        content
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(padding)
+            .overlay {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
+                        .strokeBorder(DesignTokens.Colors.customerDeep, lineWidth: DesignTokens.Ledge.edgeWidth + 1)
+                }
+            }
+            .beckonLedge(.card)
+    }
+
+    private var legacyBody: some View {
         content
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(padding)

@@ -7,8 +7,8 @@ import Testing
 extension CustomerRequestsStoreTests {
     @Test @MainActor
     func requestsRootUsesStableTitleWithoutSubtitle() {
-        #expect(CustomerRequestsRootHeader.title == "Requests")
-        #expect(CustomerRequestsRootHeader.createActionTitle == "New Request")
+        #expect(CustomerRequestsHeader.title == "Requests")
+        #expect(CustomerRequestsHeader.createActionTitle == "New Request")
     }
 
     @Test @MainActor
@@ -1100,7 +1100,7 @@ extension CustomerRequestsStoreTests {
             customerID: customerID,
             status: .confirmed
         )
-        let presentation = CustomerRequestProgressCardPresentation(
+        let presentation = CustomerRequestCardPresentation(
             request: bookedRequest,
             handoff: CustomerRequestBookingHandoff(
                 request: bookedRequest,
@@ -1111,11 +1111,11 @@ extension CustomerRequestsStoreTests {
         #expect(presentation.headline == "Booking\nconfirmed")
         #expect(presentation.subtitle == "Full groom for Mochi")
         #expect(presentation.infoLines == [
-            CustomerRequestProgressCardPresentation.InfoLine(
+            CustomerRequestCardPresentation.InfoLine(
                 systemImage: "calendar",
                 text: booking.scheduledTimePresentation.summary
             ),
-            CustomerRequestProgressCardPresentation.InfoLine(
+            CustomerRequestCardPresentation.InfoLine(
                 systemImage: "mappin.and.ellipse",
                 text: "Seattle, WA 98101"
             ),
@@ -1130,13 +1130,13 @@ extension CustomerRequestsStoreTests {
             petID: UUID(),
             status: .open
         )
-        let presentation = CustomerRequestProgressCardPresentation(
+        let presentation = CustomerRequestCardPresentation(
             request: request,
             handoff: nil
         )
 
         #expect(presentation.headline == "Open\nrequest")
-        #expect(presentation.infoLines.first == CustomerRequestProgressCardPresentation.InfoLine(
+        #expect(presentation.infoLines.first == CustomerRequestCardPresentation.InfoLine(
             systemImage: "calendar",
             text: "Time unavailable\nTime zone not confirmed"
         ))

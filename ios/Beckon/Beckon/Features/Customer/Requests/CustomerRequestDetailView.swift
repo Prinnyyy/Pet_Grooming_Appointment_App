@@ -1,4 +1,5 @@
 import Foundation
+
 import SwiftUI
 
 struct CustomerRequestDetailPresentation: Equatable {
@@ -13,11 +14,16 @@ struct CustomerRequestDetailPresentation: Equatable {
     }
 }
 
+// request detail in the Home style (S-002, reworked S-018/S-019): one hero (who, when, the stage path, when it closes), then
+// offers, the groomers row, and last what was asked for with the way to revise it.
+// Same data and actions as Features/Customer/Requests/CustomerRequestDetailView.swift (invite, revise, republish, timing recovery).
+// Sheets (groomer discovery, wizard) are presented by the parent, as before.
 struct CustomerRequestDetailView: View {
     let requestID: UUID
     let store: CustomerRequestsStore
     let onRepublishRequest: (CustomerGroomingRequest) -> Void
     @State private var isTimingCancellationPresented = false
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     init(
         requestID: UUID,
@@ -30,231 +36,245 @@ struct CustomerRequestDetailView: View {
     }
 
     var body: some View {
-        if let request = store.request(withID: requestID) {
-            let presentation = CustomerRequestDetailPresentation(status: request.status,
-                preferenceTimeZoneIdentifier: request.preferenceTimeZoneIdentifier)
-            ZStack {
-                DesignTokens.Colors.appBackground
-                    .ignoresSafeArea()
-
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                        requestCard(request)
-                        if let marketplace = store.marketplace {
-                            CustomerRequestProgressView(requestID: request.id, store: marketplace.distribution)
-                            if request.status.isOpenForOffers {
-                                Button("Invite Groomers", systemImage: "person.badge.plus") { store.browseGroomers(for: request) }
-                                    .buttonStyle(BeckonSecondaryButtonStyle(accent: .customer))
-                                    .accessibilityIdentifier("customer.requests.invite")
-                            }
-                        }
-                        petSnapshotCard(request)
-                        requestPhotosCard(request)
-                        scheduleLocationCard(request)
-
-                        if request.status.isOpenForOffers {
-                            Button {
-                                store.startRevision(from: request)
-                            } label: {
-                                Label("Revise request", systemImage: "square.and.pencil")
-                            }
-                            .buttonStyle(BeckonSecondaryButtonStyle(accent: .customer))
-                            .disabled(store.isSubmitting || request.termsRevision == nil)
-                            .accessibilityIdentifier("customer.requests.revise")
-                        }
-
-                        if presentation.showsTimingRecovery {
-                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                                Text("This request has no confirmed time zone. Cancel it, then create a new request from its template and confirm the service address.")
-                                    .font(DesignTokens.Typography.body)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                Button(role: .destructive) {
-                                    isTimingCancellationPresented = true
-                                } label: {
-                                    Label("Cancel outdated request", systemImage: "xmark.circle")
-                                }
-                                .disabled(store.cancellingRequestIDs.contains(request.id))
-                                .accessibilityIdentifier("customer.requests.timing-recovery.cancel")
-                            }
-                        }
-
-                        if presentation.showsRepublish {
-                            CustomerRequestRepublishButton(
-                                actionTitle: "Create a New Request from This Template",
-                                action: {
-                                    onRepublishRequest(request)
-                                }
-                            )
-                        }
-
-                    }
-                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                    .padding(.top, DesignTokens.Spacing.lg)
-                    .padding(.bottom, DesignTokens.Spacing.xl)
+        Group {
+            if let request = store.request(withID: requestID) {
+                TimelineView(.periodic(from: .now, by: 1)) { _ in content(request) }
+            } else {
+                DesignPage(cascades: false) {
+                    BeckonLedgeNote(systemImage: "doc.text.magnifyingglass",
+                        text: "This request isn't available. Refresh requests and try again.")
                 }
-                .scrollContentBackground(.hidden)
             }
-            .navigationTitle("Request details")
-            .navigationBarTitleDisplayMode(.inline)
-            .accessibilityIdentifier("customer.requests.detail")
-            .task(id: requestID) {
-                await store.refreshDistributionProgress(requestIDs: [requestID])
-            }
-            .alert("Cancel this request?", isPresented: $isTimingCancellationPresented) {
-                Button("Keep Request", role: .cancel) {}
-                Button("Cancel request", role: .destructive) {
-                    Task { await store.cancel(request) }
-                }
-            } message: {
-                Text("This closes the request and any pending offers. After cancellation succeeds, you can create a new request from its template.")
-            }
-        } else {
-            ZStack {
-                DesignTokens.Colors.appBackground
-                    .ignoresSafeArea()
+        }
+        .navigationTitle("Request")
+        .navigationBarTitleDisplayMode(.inline)
+        .accessibilityIdentifier("customer.requests.detail")
+    }
 
-                BeckonEmptyState(
-                    title: "Request unavailable",
-                    message: "Refresh requests and try again.",
-                    systemImage: "doc.text.magnifyingglass",
-                    accent: .customer
-                )
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-            }
-            .navigationTitle("Request details")
+    private func stage(_ status: GroomingRequestStatus) -> Int? {
+        switch status {
+        case .open: 1
+        case .hasOffers: 2
+        case .booked: 3
+        default: nil
         }
     }
 
-    private func requestCard(_ request: CustomerGroomingRequest) -> some View {
-        BeckonAnnotatedModule(
-            "Service Request",
-            subtitle: "Requested service, current status, and customer notes."
-        ) {
-            BeckonCard {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                    HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                        Text(request.serviceType.title)
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+    private func content(_ request: CustomerGroomingRequest) -> some View {
+        let presentation = CustomerRequestDetailPresentation(status: request.status,
+            preferenceTimeZoneIdentifier: request.preferenceTimeZoneIdentifier)
+        let pending = store.offers(for: request).filter { $0.isCurrentProposal() }
+        return DesignPage {
+            hero(request)
 
-                        Spacer(minLength: DesignTokens.Spacing.md)
-
-                        BeckonStatusChip(request.status.presentation)
-                    }
-
-                    if let serviceNotes = request.serviceNotes {
-                        Text(serviceNotes)
-                            .font(DesignTokens.Typography.body)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+            if presentation.showsRepublish {
+                Button { onRepublishRequest(request) } label: {
+                    DesignActionLabel(title: "Create a new request from this template", systemImage: "arrow.triangle.2.circlepath")
                 }
+                .buttonStyle(BeckonLedgeButtonStyle(.pill))
+                .accessibilityIdentifier("customer.requests.republish")
+            }
+
+            if presentation.showsTimingRecovery {
+                timingRecovery(request)
+            }
+
+            offersPreview(request, pending: request.status.isOpenForOffers ? pending : [])
+
+            if let marketplace = store.marketplace, request.status.isOpenForOffers {
+                CustomerRequestReachCard(requestID: request.id, store: marketplace.distribution) {
+                    store.browseGroomers(for: request)
+                }
+            }
+
+            yourRequest(request)
+        }
+        .task(id: requestID) {
+            await store.refreshDistributionProgress(requestIDs: [requestID])
+            await store.loadOffers(for: request)
+        }
+        .designAlertDialog(isPresented: $isTimingCancellationPresented) {
+            .destructive(title: "Cancel this request?",
+                message: "This closes the request and any pending offers. After cancellation succeeds, you can create a new request from its template.",
+                systemImage: "xmark.circle.fill", keepTitle: "Keep Request", confirmTitle: "Cancel request",
+                confirmSystemImage: "xmark.circle") { Task { await store.cancel(request) } }
+        }
+    }
+
+    // MARK: Hero
+
+    /// Who and when, where it stands, and how long it stays open: nothing else. The status is the path (or, once the request is
+    /// closed, one line), so there is no separate status label; the address, pet details and notes live under "Your request".
+    private func hero(_ request: CustomerGroomingRequest) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            (typeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
+                : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.md))) {
+                Text(request.petSnapshot.name.prefix(1).uppercased())
+                    .font(DesignTokens.Typography.Expressive.title)
+                    .designIconDisc(.touch)
+                    .overlay(Circle().strokeBorder(DesignTokens.Colors.customerFill, lineWidth: DesignTokens.Ledge.edgeWidth + 1))
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text(request.displayTitle)
+                        .font(DesignTokens.Typography.Expressive.headline)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    Text(request.preferredTimePresentation.summary)
+                        .font(DesignTokens.Typography.Expressive.supporting)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if let stage = stage(request.status) {
+                BeckonJourney(stage: stage, offerCount: store.loadedCurrentOfferCount(for: request))
+            } else {
+                DesignInfoLine(systemImage: request.status.presentation.systemImage, text: closedMessage(request.status))
+            }
+
+            if let closes = closingLine(request) {
+                BeckonMetaChip(text: closes, systemImage: "clock")
+            }
+        }
+        .designCardBody()
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("\(request.displayTitle). \(request.status.presentation.title).")
+    }
+
+    private func closingLine(_ request: CustomerGroomingRequest) -> String? {
+        guard request.status.isOpenForOffers, let date = GroomingRequestDateFormatting.parsedDate(from: request.expiresAt),
+              date > Date() else { return nil }
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .full
+        return "Closes " + formatter.localizedString(for: date, relativeTo: Date())
+    }
+
+    private func closedMessage(_ status: GroomingRequestStatus) -> String {
+        switch status {
+        case .cancelled: "This request was cancelled. Nothing more will happen on it."
+        case .expired: "This request expired before a booking was made."
+        default: "This request is no longer active."
+        }
+    }
+
+    // MARK: Needs attention
+
+    private func timingRecovery(_ request: CustomerGroomingRequest) -> some View {
+        DesignFactCard(spacing: DesignTokens.Spacing.md) {
+            DesignBlockHeader(systemImage: "exclamationmark.triangle.fill", title: "This request can't go further")
+            Text("This request has no confirmed time zone. Cancel it, then create a new request from its template and confirm the service address.")
+                .designSupportingText()
+            Button(role: .destructive) { isTimingCancellationPresented = true } label: {
+                DesignQuietAction(title: "Cancel outdated request", systemImage: "xmark.circle", isDestructive: true)
+            }
+            .buttonStyle(BeckonGuardedPlainButtonStyle())
+            .disabled(store.cancellingRequestIDs.contains(request.id))
+            .accessibilityIdentifier("customer.requests.timing-recovery.cancel")
+        }
+    }
+
+    // MARK: Offers
+
+    /// The offers as a row of cards you swipe through (up to five; each card is the offers page's card, trimmed), with the page dots
+    /// under them and one link to compare them all. Cheapest and earliest are marked when there are several. The height stays the
+    /// same whether there are two offers or twenty.
+    private func offersPreview(_ request: CustomerGroomingRequest, pending: [CustomerOfferReview]) -> some View {
+        let shown = Array(pending.prefix(5))
+        return VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
+            BeckonLedgeHeading(title: "Offers", systemImage: "tag.fill", count: pending.count)
+            CustomerOfferCarousel(reviews: shown, now: Date(), highlights: CustomerOfferHighlights(pending,
+                isComplete: store.loadedCurrentOfferCount(for: request) != nil)) { review in
+                CustomerOfferDetailView(request: request, offerID: review.id, store: store)
+            }
+            NavigationLink {
+                CustomerRequestOffersView(requestID: request.id, store: store)
+            } label: {
+                DesignLinkCardLabel(
+                    title: pending.count > shown.count ? "See all \(pending.count) offers"
+                        : pending.count > 1 ? "Compare offers" : "Offers and history",
+                    summary: pending.count > 1 ? "Sort by price or time, side by side" : "Includes past offers",
+                    systemImage: "square.stack.3d.up.fill"
+                )
+            }
+            .buttonStyle(BeckonLedgeButtonStyle(.card))
+            .accessibilityIdentifier("customer.requests.see-offers")
+        }
+    }
+
+    // MARK: Your request
+
+    /// What was asked for, in one place: where, the pet's breed and size, the notes, the photos. "Revise request" is the last row
+    /// of this card because it changes exactly these things (it reopens the form filled in and publishes the new version).
+    private func yourRequest(_ request: CustomerGroomingRequest) -> some View {
+        let pet = petDetail(request.petSnapshot)
+        let notes = request.serviceNotes.flatMap { $0.isEmpty ? nil : $0 }
+        return DesignSection(title: "Your request", systemImage: "doc.text.fill") {
+            DesignFactRow(systemImage: "scissors", title: "Service", value: request.serviceType.title)
+            DesignFactRow(systemImage: "clock", title: "Preferred time", value: request.preferredTimePresentation.summary)
+            DesignFactRow(systemImage: "location.fill",
+                title: BeckonGroomingLocationModePresentation(mode: request.locationMode, perspective: .customer).title,
+                value: "\(request.streetAddress), \(request.city), \(request.state) \(request.zipCode)")
+            if request.locationMode == .customerComesToGroomer, let miles = request.travelRadiusMiles {
+                DesignFactRow(systemImage: "map", title: "Travel radius", value: "\(miles) miles")
+            }
+            if let pet { DesignFactRow(systemImage: "pawprint.fill", title: "Pet", value: pet) }
+            if let notes { DesignFactRow(systemImage: "text.quote", title: "Notes", value: notes) }
+            photos(request)
+            if request.status.isOpenForOffers {
+                DesignRowDivider()
+                DesignManageRow(title: "Revise request", systemImage: "square.and.pencil") {
+                    store.startRevision(from: request)
+                }
+                .disabled(store.isSubmitting || request.termsRevision == nil)
+                .accessibilityHint("Reopens this request so you can change it and publish it again.")
+                .accessibilityIdentifier("customer.requests.revise")
             }
         }
     }
 
-    private func petSnapshotCard(_ request: CustomerGroomingRequest) -> some View {
-        BeckonAnnotatedModule(
-            "Pet snapshot",
-            subtitle: "Pet details captured when this request was published."
-        ) {
-            BeckonCard {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                    DetailMetadataRow(title: "Pet", value: request.petSnapshot.name, systemImage: "heart.fill")
-                    DetailMetadataRow(title: "Species", value: request.petSnapshot.species, systemImage: "tag.fill")
-
-                    if let breed = request.petSnapshot.breed {
-                        DetailMetadataRow(title: "Breed", value: breed, systemImage: "list.bullet")
-                    }
-
-                    if let size = request.petSnapshot.size {
-                        DetailMetadataRow(title: "Size", value: size, systemImage: "ruler")
-                    }
-
-                    DetailMetadataRow(
-                        title: "Photos",
-                        value: "\(request.photoSnapshot.count)",
-                        systemImage: "photo.on.rectangle"
-                    )
-                }
-            }
-        }
-    }
-
-    private func scheduleLocationCard(_ request: CustomerGroomingRequest) -> some View {
-        BeckonAnnotatedModule(
-            BeckonGroomingLocationModePresentation.detailSectionTitle,
-            subtitle: BeckonGroomingLocationModePresentation.detailSectionSubtitle
-        ) {
-            BeckonCard {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                DetailMetadataRow(
-                    title: "Start",
-                    value: GroomingRequestDateFormatting.displayString(
-                        from: request.preferredStart,
-                        serviceTimeZoneIdentifier: request.preferenceTimeZoneIdentifier
-                    ),
-                    systemImage: "clock"
-                )
-                DetailMetadataRow(
-                    title: "End",
-                    value: GroomingRequestDateFormatting.displayString(
-                        from: request.preferredEnd,
-                        serviceTimeZoneIdentifier: request.preferenceTimeZoneIdentifier
-                    ),
-                    systemImage: "clock.badge.checkmark"
-                )
-                DetailMetadataRow(title: "City", value: request.city, systemImage: "building.2")
-                DetailMetadataRow(title: "State", value: request.state, systemImage: "map")
-                DetailMetadataRow(title: "ZIP", value: request.zipCode, systemImage: "number")
-                DetailMetadataRow(
-                    title: BeckonGroomingLocationModePresentation.detailFieldTitle,
-                    value: BeckonGroomingLocationModePresentation(
-                        mode: request.locationMode,
-                        perspective: .customer
-                    ).title,
-                    systemImage: "location.fill"
-                )
-                DetailMetadataRow(
-                    title: "Street",
-                    value: request.streetAddress,
-                    systemImage: "house.fill"
-                )
-                if request.locationMode == .customerComesToGroomer,
-                   let travelRadiusMiles = request.travelRadiusMiles {
-                    DetailMetadataRow(
-                        title: "Travel radius",
-                        value: "\(travelRadiusMiles) miles",
-                        systemImage: "point.topleft.down.curvedto.point.bottomright.up"
-                    )
-                }
-                }
-            }
-        }
+    /// Breed (or species) and size; the name is already the title.
+    private func petDetail(_ pet: GroomingRequestPetSnapshot) -> String? {
+        let parts = [pet.species, pet.breed, pet.size.map { "Size \($0)" }].compactMap { $0 }.filter { !$0.isEmpty }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     @ViewBuilder
-    private func requestPhotosCard(_ request: CustomerGroomingRequest) -> some View {
+    private func photos(_ request: CustomerGroomingRequest) -> some View {
         let photos = store.requestPhotos(for: request)
         if !photos.isEmpty {
-            BeckonAnnotatedModule(
-                "Request photos",
-                subtitle: "\(photos.count) photo\(photos.count == 1 ? "" : "s") attached to this request."
-            ) {
-                BeckonCard {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                        ForEach(photos) { photo in
-                            CustomerRequestPhotoRow(
-                                photo: photo,
-                                data: store.requestPhotoData(for: photo)
-                            )
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    ForEach(photos) { photo in
+                        let presentation = CustomerRequestPhotoRowPresentation(photo: photo,
+                            data: store.requestPhotoData(for: photo))
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        BeckonModuleImage(data: store.requestPhotoData(for: photo)) {
+                            Image(systemName: "photo").foregroundStyle(DesignTokens.Colors.textTertiary)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .background(DesignTokens.Colors.placeholderFill)
                         }
+                        .frame(width: 84, height: 84)
+                        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.pill, style: .continuous))
+                        .accessibilityHidden(true)
+                        Text(presentation.title).font(DesignTokens.Typography.caption)
+                            .lineLimit(2)
+                        if let detail = presentation.detail {
+                            Text(detail).font(DesignTokens.Typography.caption)
+                                .foregroundStyle(presentation.isUnavailable
+                                    ? DesignTokens.Colors.statusWarningText : DesignTokens.Colors.textSecondary)
+                        }
+                        }
+                        .frame(width: 120, alignment: .leading)
+                        .accessibilityElement(children: .combine)
                     }
                 }
             }
+            .beckonTracksScroll()
         }
     }
 }
+
 struct CustomerRequestRepublishButton: View {
     let actionTitle: String
     let accessibilityIdentifier: String
@@ -280,45 +300,6 @@ struct CustomerRequestRepublishButton: View {
     }
 }
 
-private struct CustomerRequestPhotoRow: View {
-    let photo: GroomingRequestPhoto
-    let data: Data?
-
-    var body: some View {
-        let presentation = CustomerRequestPhotoRowPresentation(
-            photo: photo,
-            data: data
-        )
-
-        HStack(spacing: DesignTokens.Spacing.md) {
-            RequestPhotoThumbnail(
-                data: data,
-                systemImage: "photo"
-            )
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(presentation.title)
-                    .font(DesignTokens.Typography.body.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .lineLimit(1)
-
-                if let detail = presentation.detail {
-                    Text(detail)
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(
-                            presentation.isUnavailable
-                                ? DesignTokens.Colors.statusWarningText
-                                : DesignTokens.Colors.textSecondary
-                        )
-                        .lineLimit(1)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .accessibilityElement(children: .combine)
-    }
-}
-
 struct CustomerRequestPhotoRowPresentation: Equatable {
     let title: String
     let detail: String?
@@ -335,907 +316,5 @@ struct CustomerRequestPhotoRowPresentation: Equatable {
         } else {
             detail = nil
         }
-    }
-}
-
-private struct RequestPhotoThumbnail: View {
-    let data: Data?
-    let systemImage: String
-
-    var body: some View {
-        BeckonModuleImage(data: data) {
-            Image(systemName: systemImage)
-                .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.textTertiary)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(DesignTokens.Colors.placeholderFill)
-        }
-        .frame(width: 58, height: 58)
-        .clipShape(
-            RoundedRectangle(
-                cornerRadius: DesignTokens.CornerRadius.input,
-                style: .continuous
-            )
-        )
-        .accessibilityHidden(true)
-    }
-}
-
-struct CustomerOfferReviewSection: View {
-    let request: CustomerGroomingRequest
-    let store: CustomerRequestsStore
-    var showsRefreshAction = true
-    var showsTitle = true
-
-    private var offers: [CustomerOfferReview] {
-        store.offers(for: request)
-    }
-
-    var body: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { context in
-            content(now: context.date)
-        }
-    }
-
-    private func content(now: Date) -> some View {
-        let pendingOffers = offers.filter { $0.isCurrentProposal(now: now) }
-        let historicalOffers = offers.filter { !$0.isCurrentProposal(now: now) }
-        return VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            if store.rankedOfferPages[request.id]?.effectiveMode == "time_fallback" {
-                Text("Recommendation unavailable. Showing earliest appointments.")
-                    .font(DesignTokens.Typography.caption)
-            }
-            BeckonAnnotatedModule(
-                "Offers",
-                subtitle: "Compare pending offers and review previous offer activity.",
-                showsTitle: showsTitle
-            ) {
-                Group {
-                if store.isLoadingOffers(for: request), offers.isEmpty {
-                    BeckonLoadingView(
-                        title: "Loading offers…",
-                        message: "Checking for groomer responses.",
-                        accent: .customer
-                    )
-                        .accessibilityIdentifier("customer.offers.loading")
-                } else if offers.isEmpty,
-                          let errorMessage = store.offerError(for: request) {
-                    BeckonErrorBanner(
-                        title: "We could not load offers",
-                        message: errorMessage
-                    )
-                        .accessibilityIdentifier("customer.offers.error")
-                } else if offers.isEmpty {
-                    BeckonEmptyState(
-                        title: "No offers yet",
-                        message: "Matched groomers can submit offers while this request is open.",
-                        systemImage: "tag",
-                        accent: .customer
-                    )
-                    .accessibilityIdentifier("customer.offers.empty")
-                } else {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                        if !pendingOffers.isEmpty {
-                            offerGroup(
-                                title: "Pending offers",
-                                offers: pendingOffers,
-                                isHistorical: false,
-                                now: now
-                            )
-                            .accessibilityElement(children: .contain)
-                            .accessibilityIdentifier("customer.offers.pending-list")
-                        } else {
-                            BeckonCard {
-                                Text("There are no pending offers for this request.")
-                                    .font(DesignTokens.Typography.body)
-                                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }
-
-                        if !historicalOffers.isEmpty {
-                            offerGroup(
-                                title: "Offer history",
-                                offers: historicalOffers,
-                                isHistorical: true,
-                                now: now
-                            )
-                            .accessibilityElement(children: .contain)
-                            .accessibilityIdentifier("customer.offers.history-list")
-                        }
-
-                        if let errorMessage = store.offerError(for: request) {
-                            BeckonErrorBanner(
-                                title: "More offers unavailable",
-                                message: errorMessage
-                            )
-                            .accessibilityIdentifier("customer.offers.load-more-error")
-                        }
-
-                        if store.canLoadMoreOffers(for: request)
-                            || store.isLoadingMoreOffers(for: request) {
-                            BeckonLoadMoreButton(
-                                isLoading: store.isLoadingMoreOffers(for: request),
-                                accent: .customer,
-                                accessibilityIdentifier: "customer.offers.load-more"
-                            ) {
-                                await store.loadNextOffersPage(for: request)
-                            }
-                        }
-                    }
-                }
-                }
-            }
-
-            if showsRefreshAction {
-                Button {
-                    Task {
-                        await store.loadOffers(for: request)
-                    }
-                } label: {
-                    Label("Refresh offers", systemImage: "arrow.clockwise")
-                }
-                .buttonStyle(BeckonSecondaryButtonStyle())
-                .disabled(store.isLoadingOffers(for: request))
-                .accessibilityIdentifier("customer.offers.refresh")
-            }
-        }
-    }
-
-    private func offerGroup(
-        title: String,
-        offers: [CustomerOfferReview],
-        isHistorical: Bool,
-        now: Date
-    ) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text(title)
-                .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-                .textCase(.uppercase)
-                .accessibilityAddTraits(.isHeader)
-
-            LazyVStack(spacing: DesignTokens.Spacing.md) {
-                ForEach(offers) { offerReview in
-                    NavigationLink {
-                        CustomerOfferDetailView(
-                            request: request,
-                            offerID: offerReview.id,
-                            store: store
-                        )
-                    } label: {
-                        CustomerOfferSummaryRow(
-                            offerReview: offerReview,
-                            isHistorical: isHistorical,
-                            now: now
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier(
-                        AppTestOpsAccessibility.identifier(
-                            prefix: "customer.offers.row",
-                            serviceNotes: request.serviceNotes
-                        ) ?? "customer.offers.row"
-                    )
-                }
-            }
-        }
-    }
-}
-
-struct CustomerOfferSummaryRow: View {
-    let offerReview: CustomerOfferReview
-    var isHistorical = false
-    let now: Date
-    @Environment(\.dynamicTypeSize) private var typeSize
-
-    var body: some View {
-        BeckonCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                let headerLayout = typeSize.isAccessibilitySize
-                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
-                    : AnyLayout(HStackLayout(alignment: .top, spacing: DesignTokens.Spacing.md))
-                headerLayout {
-                    BeckonProfileAvatar(
-                        data: offerReview.groomerAvatarPhotoData,
-                        tone: .groomer,
-                        size: 52,
-                        cornerRadius: 16,
-                        placeholderSize: 20
-                    )
-
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text(offerReview.groomerTitle)
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text(offerReview.groomerLocationSummary)
-                            .font(DesignTokens.Typography.caption)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    }
-
-                    BeckonStatusChip(offerReview.offer.statusPresentation(now: now))
-                }
-
-                let factsLayout = typeSize.isAccessibilitySize
-                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.sm))
-                    : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md))
-                factsLayout {
-                    Text(offerReview.offer.priceSummary)
-                        .font(DesignTokens.Typography.headline)
-                        .foregroundStyle(isHistorical ? DesignTokens.Colors.textSecondary : DesignTokens.Colors.textPrimary)
-
-                    if !typeSize.isAccessibilitySize { Spacer(minLength: DesignTokens.Spacing.md) }
-
-                    Text(offerReview.proposedTimeSummary)
-                        .accessibilityLabel(offerReview.proposedTimePresentation.accessibilityLabel)
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .multilineTextAlignment(typeSize.isAccessibilitySize ? .leading : .trailing)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                if let fitEvidence = offerReview.fitEvidencePresentation {
-                    BeckonFitEvidenceBlock(
-                        scoreText: fitEvidence.scoreText,
-                        summary: fitEvidence.listSummary,
-                        reason: fitEvidence.reason,
-                        isCompact: true
-                    )
-                }
-            }
-        }
-    }
-}
-
-struct CustomerOfferAcceptancePresentation: Equatable {
-    static let cancellationCopy =
-        "You can cancel from Booking details before service starts. Cancelling will not reopen this request or its other offers."
-
-    let title: String
-    let supportingText: String
-    let groomer: String
-    let service: String
-    let price: String
-    let time: String
-    let location: String
-    let address: String
-    let cancellation: String
-    let confirmActionTitle: String
-
-    init(
-        request: CustomerGroomingRequest,
-        offerReview: CustomerOfferReview
-    ) {
-        title = "Confirm booking"
-        groomer = offerReview.groomerTitle
-        supportingText =
-            "Review the final appointment details before booking with \(groomer)."
-        service = (offerReview.offer.agreementSnapshot?.serviceType ?? request.serviceType).title
-        price = offerReview.offer.priceSummary
-        time = offerReview.proposedTimeSummary
-        location = BeckonGroomingLocationModePresentation(
-            mode: offerReview.offer.agreementSnapshot?.locationMode ?? request.locationMode,
-            perspective: .customer
-        ).title
-        address = Self.addressSummary(
-            request: request,
-            offerReview: offerReview
-        )
-        cancellation = Self.cancellationCopy
-        confirmActionTitle = "Confirm & Book"
-    }
-
-    private static func addressSummary(
-        request: CustomerGroomingRequest,
-        offerReview: CustomerOfferReview
-    ) -> String {
-        if let agreement = offerReview.offer.agreementSnapshot, agreement.isSupported {
-            return agreement.address.summary
-        }
-        if offerReview.offer.agreementSnapshotLoaded {
-            return "Original address unverified. A new offer is required."
-        }
-        switch request.locationMode {
-        case .groomerComesToCustomer:
-            return formattedAddress(
-                line1: request.streetAddress,
-                line2: request.addressLine2,
-                city: request.city,
-                state: request.state,
-                zipCode: request.zipCode
-            )
-        case .customerComesToGroomer:
-            guard let profile = offerReview.groomerProfile else {
-                return "The groomer's address will appear in your booking."
-            }
-            return formattedAddress(
-                line1: profile.baseStreetAddress,
-                line2: profile.baseAddressLine2,
-                city: profile.baseCity,
-                state: profile.baseState,
-                zipCode: profile.baseZipCode
-            )
-        }
-    }
-
-    private static func formattedAddress(
-        line1: String?,
-        line2: String?,
-        city: String?,
-        state: String?,
-        zipCode: String?
-    ) -> String {
-        let street = [line1, line2]
-            .compactMap(normalized)
-            .joined(separator: ", ")
-        let locality = [normalized(city), normalized(state)]
-            .compactMap { $0 }
-            .joined(separator: ", ")
-        let localityAndZip = [normalized(locality), normalized(zipCode)]
-            .compactMap { $0 }
-            .joined(separator: " ")
-        let parts = [normalized(street), normalized(localityAndZip)]
-            .compactMap { $0 }
-        return parts.isEmpty
-            ? "Address will appear in your booking."
-            : parts.joined(separator: ", ")
-    }
-
-    private static func normalized(_ value: String?) -> String? {
-        let trimmed = value?.trimmingCharacters(
-            in: .whitespacesAndNewlines
-        ) ?? ""
-        return trimmed.isEmpty ? nil : trimmed
-    }
-}
-
-struct CustomerOfferDetailView: View {
-    let request: CustomerGroomingRequest
-    let offerID: UUID
-    let store: CustomerRequestsStore
-    @State private var pendingAcceptance: CustomerOfferReview?
-    @State private var acceptedBookingHandoff: CustomerRequestBookingHandoff?
-
-    private var offerReview: CustomerOfferReview? {
-        store.offers(for: request).first { $0.id == offerID }
-    }
-
-    var body: some View {
-        Group {
-            if let offerReview {
-                ZStack {
-                    DesignTokens.Colors.appBackground
-                        .ignoresSafeArea()
-
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                            BeckonSectionHeader(
-                                "Offer",
-                                subtitle: "Review the groomer proposal before accepting."
-                            )
-
-                            groomerCard(offerReview)
-                            TimelineView(.periodic(from: .now, by: 1)) { _ in
-                                offerCard(offerReview)
-                            }
-                            requestCard(offerReview)
-                            TimelineView(.periodic(from: .now, by: 1)) { _ in
-                                acceptanceCard(offerReview)
-                            }
-                        }
-                        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                        .padding(.top, DesignTokens.Spacing.lg)
-                        .padding(.bottom, DesignTokens.Spacing.xl)
-                    }
-                    .scrollContentBackground(.hidden)
-                }
-                .navigationTitle("Offer")
-                .navigationBarTitleDisplayMode(.inline)
-                .accessibilityIdentifier("customer.offers.detail")
-            } else {
-                ZStack {
-                    DesignTokens.Colors.appBackground
-                        .ignoresSafeArea()
-
-                    BeckonEmptyState(
-                        title: "Offer unavailable",
-                        message: "Refresh offers and try again.",
-                        systemImage: "tag.slash",
-                        accent: .customer
-                    )
-                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                }
-                .navigationTitle("Offer")
-            }
-        }
-        .sheet(item: $pendingAcceptance) { offerReview in
-            CustomerOfferAcceptanceConfirmationView(
-                request: request,
-                offerReview: offerReview,
-                store: store,
-                onAccepted: { handoff in
-                    acceptedBookingHandoff = handoff
-                    Task {
-                        await store.acknowledgeBookingHandoff(for: handoff)
-                    }
-                }
-            )
-        }
-        .navigationDestination(item: $acceptedBookingHandoff) { handoff in
-            BookingDetailView(
-                bookingID: handoff.booking.id,
-                role: .customer,
-                store: store.bookingDetailStore(for: handoff.booking)
-            )
-        }
-    }
-
-    private func groomerCard(_ offerReview: CustomerOfferReview) -> some View {
-        BeckonCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                DetailCardHeader(
-                    title: offerReview.groomerTitle,
-                    subtitle: offerReview.groomerLocationSummary,
-                    systemImage: "person.crop.circle.fill",
-                    profileAvatarData: offerReview.groomerAvatarPhotoData,
-                    profileAvatarTone: .groomer
-                ) {
-                    if offerReview.groomerProfile?.isVerified == true {
-                        BeckonStatusChip(.verified)
-                        .accessibilityLabel("Verified groomer")
-                    }
-                }
-
-                DetailMetadataRow(
-                    title: "Rating",
-                    value: offerReview.ratingSummary,
-                    systemImage: "star.fill"
-                )
-
-                if let fitEvidence = offerReview.fitEvidencePresentation {
-                    BeckonFitEvidenceBlock(
-                        scoreText: fitEvidence.scoreText,
-                        summary: fitEvidence.listSummary,
-                        reason: fitEvidence.reason,
-                        isCompact: false
-                    )
-                }
-
-                if let bio = offerReview.groomerProfile?.bio {
-                    Text(bio)
-                        .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-    }
-
-    private func offerCard(_ offerReview: CustomerOfferReview) -> some View {
-        BeckonCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                DetailCardHeader(
-                    title: offerReview.offer.priceSummary,
-                    subtitle: offerReview.proposedTimeSummary,
-                    systemImage: "tag.fill"
-                ) {
-                    BeckonStatusChip(offerReview.offer.statusPresentation())
-                }
-
-                DetailMetadataRow(
-                    title: "Start",
-                    value: GroomingRequestDateFormatting.displayString(
-                        from: offerReview.offer.proposedStart,
-                        serviceTimeZoneIdentifier: offerReview.offer.serviceTimeZoneIdentifier
-                    ),
-                    systemImage: "clock"
-                )
-                DetailMetadataRow(
-                    title: "End",
-                    value: GroomingRequestDateFormatting.displayString(
-                        from: offerReview.offer.proposedEnd,
-                        serviceTimeZoneIdentifier: offerReview.offer.serviceTimeZoneIdentifier
-                    ),
-                    systemImage: "clock.badge.checkmark"
-                )
-
-                if let message = offerReview.offer.message {
-                    Text(message)
-                        .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-    }
-
-    private func requestCard(_ offerReview: CustomerOfferReview) -> some View {
-        BeckonCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                DetailCardHeader(
-                    title: request.petSnapshot.name,
-                    subtitle: request.serviceType.title,
-                    systemImage: "pawprint.fill"
-                ) {
-                    BeckonStatusChip(request.status.presentation)
-                }
-
-                DetailMetadataRow(
-                    title: "Requested time",
-                    value: requestTimeSummary,
-                    systemImage: "calendar"
-                )
-            }
-        }
-    }
-
-    private func acceptanceCard(_ offerReview: CustomerOfferReview) -> some View {
-        BeckonCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                DetailCardHeader(
-                    title: "Acceptance",
-                    subtitle: acceptanceMessage(for: offerReview),
-                    systemImage: "checkmark.circle.fill"
-                )
-
-                if let errorMessage = store.errorMessage {
-                    BeckonErrorBanner(
-                        title: "We could not accept this offer",
-                        message: errorMessage
-                    )
-                }
-
-                if offerReview.offer.status == .pending,
-                   request.status.isOpenForOffers {
-                    Button {
-                        pendingAcceptance = offerReview
-                    } label: {
-                        Label(
-                            "Review & accept",
-                            systemImage: "checkmark.circle"
-                        )
-                    }
-                    .buttonStyle(BeckonPrimaryButtonStyle())
-                    .disabled(store.isAcceptingOffer(offerReview.offer.id)
-                        || (!offerReview.offer.canConfirmCurrentTerms && !store.hasUnresolvedAcceptance(for: offerReview.id)))
-                    .accessibilityIdentifier("customer.offers.accept")
-
-                    Text(offerReview.offer.requiresTimingUpdate
-                        ? "The groomer needs to replace this offer with updated timing details."
-                        : "You will confirm the appointment details before booking.")
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else {
-                    BeckonStatusChip(.acceptance(offer: offerReview.offer.status, request: request.status))
-                }
-            }
-        }
-    }
-
-    private func acceptanceMessage(for offerReview: CustomerOfferReview) -> String {
-        if offerReview.offer.status == .pending,
-           request.status.isOpenForOffers {
-            if offerReview.offer.hasPassedConfirmationDeadline() {
-                return "This offer has expired. Request a new offer."
-            }
-            if offerReview.offer.requiresAgreementUpdate {
-                return "Updated agreement required. Request a new offer."
-            }
-            if let evaluation = offerReview.offer.quoteEvaluation, !evaluation.selectable || !evaluation.termsValid {
-                return evaluation.summary
-            }
-            if offerReview.offer.requiresTimingUpdate {
-                return "Updated offer required. Your request remains open."
-            }
-            return "Review the proposed appointment before you confirm."
-        } else if offerReview.offer.status == .acceptedByCustomer {
-            return "This offer is now a confirmed booking."
-        } else if request.status == .booked {
-            return "This request is already booked."
-        } else {
-            return "This offer can no longer be accepted."
-        }
-    }
-
-    private var requestTimeSummary: String {
-        request.preferredTimePresentation.summary
-    }
-}
-
-private struct CustomerOfferAcceptanceConfirmationView: View {
-    let request: CustomerGroomingRequest
-    let offerReview: CustomerOfferReview
-    let store: CustomerRequestsStore
-    let onAccepted: (CustomerRequestBookingHandoff) -> Void
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var isSubmitting = false
-    @State private var hasAttemptedAcceptance = false
-
-    private var presentation: CustomerOfferAcceptancePresentation {
-        CustomerOfferAcceptancePresentation(
-            request: request,
-            offerReview: offerReview
-        )
-    }
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                DesignTokens.Colors.appBackground
-                    .ignoresSafeArea()
-
-                ScrollView {
-                    LazyVStack(
-                        alignment: .leading,
-                        spacing: DesignTokens.Spacing.lg
-                    ) {
-                        BeckonSectionHeader(
-                            presentation.title,
-                            subtitle: presentation.supportingText
-                        )
-
-                        BeckonCard {
-                            VStack(
-                                alignment: .leading,
-                                spacing: DesignTokens.Spacing.md
-                            ) {
-                                HStack(
-                                    alignment: .center,
-                                    spacing: DesignTokens.Spacing.md
-                                ) {
-                                    BeckonProfileAvatar(
-                                        data: offerReview.groomerAvatarPhotoData,
-                                        tone: .groomer,
-                                        size: 56,
-                                        cornerRadius: 18,
-                                        placeholderSize: 21
-                                    )
-
-                                    VStack(
-                                        alignment: .leading,
-                                        spacing: DesignTokens.Spacing.xs
-                                    ) {
-                                        Text(presentation.groomer)
-                                            .font(DesignTokens.Typography.headline)
-                                            .foregroundStyle(
-                                                DesignTokens.Colors.textPrimary
-                                            )
-                                        Text(presentation.service)
-                                            .font(DesignTokens.Typography.supporting)
-                                            .foregroundStyle(
-                                                DesignTokens.Colors.textSecondary
-                                            )
-                                    }
-                                }
-
-                                Divider()
-
-                                DetailMetadataRow(
-                                    title: "Time",
-                                    value: presentation.time,
-                                    systemImage: "calendar"
-                                )
-                                DetailMetadataRow(
-                                    title: "Price",
-                                    value: presentation.price,
-                                    systemImage: "tag"
-                                )
-                                DetailMetadataRow(
-                                    title: "Service location",
-                                    value: presentation.location,
-                                    systemImage: "location"
-                                )
-                                DetailMetadataRow(
-                                    title: "Address",
-                                    value: presentation.address,
-                                    systemImage: "mappin.and.ellipse"
-                                )
-                            }
-                        }
-
-                        BeckonAnnotatedModule(
-                            "Cancellation",
-                            subtitle: presentation.cancellation
-                        ) {
-                            EmptyView()
-                        }
-
-                        if hasAttemptedAcceptance,
-                           let errorMessage = store.errorMessage {
-                            BeckonErrorBanner(
-                                title: "We could not confirm this booking",
-                                message: errorMessage
-                            )
-                        }
-                    }
-                    .beckonPageInsets()
-                }
-                .scrollIndicators(.hidden)
-            }
-            .navigationTitle("Confirm booking")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Not Yet") {
-                        dismiss()
-                    }
-                    .disabled(isSubmitting)
-                }
-            }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                TimelineView(.periodic(from: .now, by: 1)) { _ in
-                    CustomerOfferAcceptanceActionBar(
-                        title: store.hasUnresolvedAcceptance(for: offerReview.id) ? "Check Booking Status"
-                            : offerReview.offer.hasPassedConfirmationDeadline() ? "Offer Expired" : presentation.confirmActionTitle,
-                        isSubmitting: isSubmitting,
-                        action: confirmAcceptance
-                    )
-                    .disabled(!offerReview.offer.canConfirmCurrentTerms && !store.hasUnresolvedAcceptance(for: offerReview.id))
-                }
-            }
-            .interactiveDismissDisabled(isSubmitting)
-            .accessibilityElement(children: .contain)
-            .accessibilityIdentifier("customer.offers.confirmation")
-        }
-    }
-
-    private func confirmAcceptance() {
-        guard !isSubmitting else { return }
-        isSubmitting = true
-        hasAttemptedAcceptance = true
-
-        Task {
-            let handoff = await store.accept(
-                offerReview: offerReview,
-                for: request
-            )
-            isSubmitting = false
-            guard let handoff else { return }
-            onAccepted(handoff)
-            dismiss()
-        }
-    }
-}
-
-private struct CustomerOfferAcceptanceActionBar: View {
-    let title: String
-    let isSubmitting: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Label(
-                isSubmitting ? "Confirming…" : title,
-                systemImage: "checkmark.circle"
-            )
-        }
-        .buttonStyle(BeckonPrimaryButtonStyle())
-        .disabled(isSubmitting)
-        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-        .padding(.top, DesignTokens.Spacing.md)
-        .padding(.bottom, DesignTokens.Spacing.sm)
-        .background(.ultraThinMaterial)
-        .accessibilityIdentifier("customer.offers.confirm")
-    }
-}
-
-private struct DetailCardHeader<Trailing: View>: View {
-    @Environment(\.dynamicTypeSize) private var typeSize
-    let title: String
-    let subtitle: String
-    let systemImage: String
-    let profileAvatarData: Data?
-    let profileAvatarTone: BeckonDefaultProfileAvatarTone?
-    private let trailing: Trailing
-
-    init(
-        title: String,
-        subtitle: String,
-        systemImage: String,
-        profileAvatarData: Data? = nil,
-        profileAvatarTone: BeckonDefaultProfileAvatarTone? = nil,
-        @ViewBuilder trailing: () -> Trailing
-    ) {
-        self.title = title
-        self.subtitle = subtitle
-        self.systemImage = systemImage
-        self.profileAvatarData = profileAvatarData
-        self.profileAvatarTone = profileAvatarTone
-        self.trailing = trailing()
-    }
-
-    var body: some View {
-        let layout = typeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
-            : AnyLayout(HStackLayout(alignment: .top, spacing: DesignTokens.Spacing.md))
-        layout {
-            if let profileAvatarTone {
-                BeckonProfileAvatar(
-                    data: profileAvatarData,
-                    tone: profileAvatarTone,
-                    size: DesignTokens.Spacing.xl + DesignTokens.Spacing.md,
-                    cornerRadius: (DesignTokens.Spacing.xl + DesignTokens.Spacing.md) / 2,
-                    placeholderSize: 18
-                )
-            } else {
-                Image(systemName: systemImage)
-                    .font(DesignTokens.Typography.headline)
-                    .foregroundStyle(DesignTokens.Colors.customerDeep)
-                    .frame(
-                        width: DesignTokens.Spacing.xl + DesignTokens.Spacing.md,
-                        height: DesignTokens.Spacing.xl + DesignTokens.Spacing.md
-                    )
-                    .background(DesignTokens.Colors.customerTint)
-                    .clipShape(DesignTokens.Shapes.circular)
-                    .accessibilityHidden(true)
-            }
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(title)
-                    .font(DesignTokens.Typography.headline)
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(subtitle)
-                    .font(DesignTokens.Typography.caption)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            trailing
-        }
-        .accessibilityElement(children: .combine)
-    }
-}
-
-extension DetailCardHeader where Trailing == EmptyView {
-    init(
-        title: String,
-        subtitle: String,
-        systemImage: String
-    ) {
-        self.title = title
-        self.subtitle = subtitle
-        self.systemImage = systemImage
-        profileAvatarData = nil
-        profileAvatarTone = nil
-        trailing = EmptyView()
-    }
-}
-
-private struct DetailMetadataRow: View {
-    @Environment(\.dynamicTypeSize) private var typeSize
-    let title: String
-    let value: String
-    let systemImage: String
-
-    var body: some View {
-        let layout = typeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.xs))
-            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md))
-        layout {
-            Label {
-                Text(title)
-                    .font(DesignTokens.Typography.caption.weight(.semibold))
-            } icon: {
-                Image(systemName: systemImage)
-                    .font(DesignTokens.Typography.caption)
-            }
-            .foregroundStyle(DesignTokens.Colors.textSecondary)
-
-            if !typeSize.isAccessibilitySize { Spacer(minLength: DesignTokens.Spacing.md) }
-
-            Text(value)
-                .font(DesignTokens.Typography.body.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .multilineTextAlignment(typeSize.isAccessibilitySize ? .leading : .trailing)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.vertical, DesignTokens.Spacing.xs)
     }
 }

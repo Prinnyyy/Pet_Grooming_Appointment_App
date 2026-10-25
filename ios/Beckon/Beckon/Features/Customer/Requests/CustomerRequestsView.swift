@@ -1,8 +1,11 @@
 import SwiftUI
 
 import Combine
+
 import PhotosUI
+
 import SwiftUI
+
 import UIKit
 
 enum CustomerRequestMatchingCopy {
@@ -62,8 +65,7 @@ struct CustomerRequestsView: View {
         @Bindable var store = store
 
         ZStack {
-            DesignTokens.Colors.appBackground
-                .ignoresSafeArea()
+            BeckonExpressiveBackdrop()
 
             requestsContent
         }
@@ -83,20 +85,11 @@ struct CustomerRequestsView: View {
         .background {
             CustomerRequestsStatusView(store: store)
         }
-        .alert("Cancel this request?", isPresented: isCancelAlertPresented) {
-            Button("Keep Request", role: .cancel) {
-                pendingCancelRequest = nil
-            }
-
-            Button("Cancel request", role: .destructive) {
-                guard let request = pendingCancelRequest else { return }
-                pendingCancelRequest = nil
-                Task {
-                    await store.cancel(request)
-                }
-            }
-        } message: {
-            Text("This closes the request and any pending offers. Confirmed bookings are managed from Bookings.")
+        .designAlertDialog(item: $pendingCancelRequest) { request in
+            .destructive(title: "Cancel this request?",
+                message: "This closes the request and any pending offers. Confirmed bookings are managed from Bookings.",
+                systemImage: "xmark.circle.fill", keepTitle: "Keep Request", confirmTitle: "Cancel request",
+                confirmSystemImage: "xmark.circle") { Task { await store.cancel(request) } }
         }
         .sheet(isPresented: wizardPresentationBinding) {
             CustomerRequestWizardView(
@@ -113,6 +106,7 @@ struct CustomerRequestsView: View {
             )
         }
         .toolbar(.hidden, for: .navigationBar)
+        .environment(\.beckonCustomerDesign, true)
         .foregroundRefreshable(isEnabled: managesRefresh && isActiveTab && !store.isShowingWizard && store.discoveryFlow == nil,
             nextDeadline: store.nextDistributionDeadline) {
             await store.load()
@@ -120,24 +114,12 @@ struct CustomerRequestsView: View {
         .sheet(item: Binding(get: { store.isShowingWizard ? nil : store.discoveryFlow }, set: { store.discoveryFlow = $0 })) { flow in
             if let marketplace = store.marketplace {
                 NavigationStack { CustomerGroomerDiscoveryView(flow: flow, requests: store, marketplace: marketplace) }
+                    .presentationDragIndicator(.visible)
                     .foregroundRefreshable(nextDeadline: marketplace.distribution.nextDeadline(requestIDs: flow.requestID.map { [$0] } ?? [])) {
                         if let id = flow.requestID { await store.refreshDistributionProgress(requestIDs: [id]) }
                     }
             }
         }
-    }
-
-    private var isCancelAlertPresented: Binding<Bool> {
-        Binding(
-            get: {
-                pendingCancelRequest != nil
-            },
-            set: { isPresented in
-                if !isPresented {
-                    pendingCancelRequest = nil
-                }
-            }
-        )
     }
 
     private var wizardPresentationBinding: Binding<Bool> {
@@ -158,8 +140,8 @@ struct CustomerRequestsView: View {
     private var requestsContent: some View {
         ScrollView {
             // These bounded sections include a variable-height horizontal carousel.
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                CustomerRequestsRootHeader(
+            BeckonCascade(spacing: DesignTokens.Layout.sectionSpacing) {
+                CustomerRequestsHeader(
                     cardCount: visibleCardCount,
                     isCreateDisabled: store.pets.isEmpty,
                     createRequest: store.startCreate
@@ -169,6 +151,7 @@ struct CustomerRequestsView: View {
             }
             .beckonPageInsets()
         }
+            .beckonTracksScroll()
         .scrollContentBackground(.hidden)
         .refreshable {
             await store.load()
@@ -188,7 +171,7 @@ struct CustomerRequestsView: View {
             .accessibilityIdentifier("customer.requests.loading")
 
         case .error(let message):
-            CustomerRequestLoadFailureView(message: message) {
+            CustomerRequestLoadFailureBanner(message: message) {
                 Task {
                     await store.load()
                 }
@@ -211,7 +194,7 @@ struct CustomerRequestsView: View {
             CustomerRequestsEmptyDashboard()
                 .accessibilityIdentifier("customer.requests.empty")
         } else {
-            CustomerRequestProgressCarousel(
+            CustomerRequestCardCarousel(
                 cards: store.visibleActionCards,
                 store: store,
                 focusedRequestID: $focusedRequestID,
@@ -228,22 +211,24 @@ struct CustomerRequestsView: View {
             .accessibilityIdentifier("customer.requests.progress-carousel")
         }
 
-        if !cancelledRequests.isEmpty {
-            CustomerCancelledRequestsSection(
-                requests: cancelledRequests,
-                store: store,
-                onRepublishRequest: { request in
-                    store.startRepublish(from: request)
-                }
-            )
-            .accessibilityIdentifier("customer.requests.cancelled-section")
-        }
-
+        // Closed requests are not on this page: Request history below is where they live.
         NavigationLink {
             CustomerRequestHistoryView(store: store)
         } label: {
-            Label("Request history", systemImage: "clock.arrow.circlepath")
+            HStack(spacing: DesignTokens.Spacing.md) {
+                DesignIconDisc(systemImage: "clock.arrow.circlepath", font: DesignTokens.Typography.Expressive.glyph)
+                Text("Request history")
+                    .font(DesignTokens.Typography.Expressive.emphasis)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Image(systemName: "chevron.right")
+                    .font(DesignTokens.Typography.Expressive.label)
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
+                    .accessibilityHidden(true)
+            }
+            .padding(DesignTokens.Spacing.md)
         }
+        .buttonStyle(BeckonLedgeButtonStyle(.card))
         .accessibilityIdentifier("customer.requests.history")
 
         if store.canLoadMoreRequests || store.isLoadingMoreRequests {
@@ -276,6 +261,35 @@ struct CustomerRequestsView: View {
     }
 }
 
+private struct CustomerRequestHistoryView: View {
+    let store: CustomerRequestsStore
+
+    var body: some View {
+        // A list page: the heading leads, the closed requests follow one by one.
+        DesignPage(rhythm: .list, cascades: false) {
+            let closed = store.requests.recentClosedRequests(limit: .max)
+            let after = 2 + min(closed.count, 4)
+            if !closed.isEmpty {
+                CustomerClosedRequestsSection(requests: closed, store: store,
+                    onRepublishRequest: { store.startRepublish(from: $0) }, title: "Closed requests")
+            } else if !store.canLoadMoreRequests {
+                ContentUnavailableView("No Closed Requests", systemImage: "clock.arrow.circlepath")
+                    .beckonEntrance(0)
+            }
+            if let error = store.errorMessage { BeckonInlineError(error).beckonEntrance(after) }
+            if store.canLoadMoreRequests || store.isLoadingMoreRequests {
+                BeckonLoadMoreButton(isLoading: store.isLoadingMoreRequests, accent: .customer,
+                    accessibilityIdentifier: "customer.requests.history.load-more") {
+                    await store.loadNextRequestsPage()
+                }
+                .beckonEntrance(after)
+            }
+        }
+        .navigationTitle("Request history")
+        .accessibilityIdentifier("customer.requests.history-list")
+    }
+}
+
 extension Array where Element == CustomerGroomingRequest {
     func recentClosedRequests(limit: Int = 5) -> [CustomerGroomingRequest] {
         guard limit > 0 else { return [] }
@@ -290,33 +304,5 @@ extension Array where Element == CustomerGroomingRequest {
             }
             .prefix(limit)
             .map { $0 }
-    }
-}
-
-private struct CustomerRequestHistoryView: View {
-    let store: CustomerRequestsStore
-
-    var body: some View {
-        ScrollView {
-            LazyVStack(spacing: DesignTokens.Spacing.lg) {
-                let closed = store.requests.recentClosedRequests(limit: .max)
-                if !closed.isEmpty {
-                    CustomerCancelledRequestsSection(requests: closed, store: store,
-                        onRepublishRequest: { store.startRepublish(from: $0) }, title: "Closed requests")
-                } else if !store.canLoadMoreRequests {
-                    ContentUnavailableView("No Closed Requests", systemImage: "clock.arrow.circlepath")
-                }
-                if let error = store.errorMessage { BeckonInlineError(error) }
-                if store.canLoadMoreRequests || store.isLoadingMoreRequests {
-                    BeckonLoadMoreButton(isLoading: store.isLoadingMoreRequests, accent: .customer,
-                        accessibilityIdentifier: "customer.requests.history.load-more") {
-                        await store.loadNextRequestsPage()
-                    }
-                }
-            }
-            .padding(DesignTokens.Spacing.screenHorizontal)
-        }
-        .navigationTitle("Request history")
-        .accessibilityIdentifier("customer.requests.history-list")
     }
 }

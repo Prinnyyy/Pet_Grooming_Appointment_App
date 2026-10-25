@@ -162,7 +162,7 @@ struct BookingsView: View {
                                         }
                                 )
                             } label: {
-                                BookingSummaryRow(
+                                BookingCard(
                                     booking: booking,
                                     role: role
                                 )
@@ -476,11 +476,51 @@ struct BookingsFeedbackPresentation {
     }
 }
 
-struct BookingSummaryRow: View {
+struct BookingCard: View {
     let booking: Booking
     let role: UserRole
+    @Environment(\.dynamicTypeSize) private var typeSize
 
-    var body: some View {
+    @ViewBuilder var body: some View {
+        if role == .customer { customerBody } else { groomerBody }
+    }
+
+    private var customerBody: some View {
+        VStack(spacing: 0) {
+            BeckonCountdownStrip(
+                title: booking.status == .confirmed
+                    ? (BeckonBookingCountdown.label(for: booking) ?? "Upcoming") : booking.status.title,
+                trailing: booking.priceSummary)
+
+            (typeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.lg))
+                : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.lg))) {
+                if let parts = BeckonBookingCountdown.dateParts(for: booking) {
+                    BeckonDateTile(month: parts.month, day: parts.day)
+                }
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    Text(booking.partnerDisplayTitle(for: role))
+                        .font(DesignTokens.Typography.Expressive.headline)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(booking.scheduledTimeSummary)
+                        .accessibilityLabel(booking.scheduledTimePresentation.accessibilityLabel)
+                        .designSupportingText()
+
+                    BeckonStatusChip(booking.status.presentation)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                DesignIconDisc(systemImage: "chevron.right", font: DesignTokens.Typography.Expressive.label)
+            }
+            .padding(DesignTokens.Spacing.lg)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous))
+        .multilineTextAlignment(.leading)
+    }
+    private var groomerBody: some View {
         BeckonCard {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 HStack(alignment: .center) {

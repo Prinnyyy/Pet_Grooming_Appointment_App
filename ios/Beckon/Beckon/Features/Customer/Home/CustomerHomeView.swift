@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct CustomerPetsView: View {
+struct CustomerHomeView: View {
     private let displayName: String
     private let isActiveTab: Bool
     private let customerProfileRepository: (any CustomerProfileRepository)?
@@ -77,8 +77,7 @@ struct CustomerPetsView: View {
         @Bindable var requestStore = requestStore
 
         ZStack {
-            DesignTokens.Colors.appBackground
-                .ignoresSafeArea()
+            BeckonExpressiveBackdrop()
 
             screenContent
         }
@@ -113,32 +112,48 @@ struct CustomerPetsView: View {
             await loadHome()
         }
         .accessibilityIdentifier("customer.home")
+        .environment(\.beckonCustomerDesign, true)
     }
 
     private var screenContent: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: DesignTokens.Layout.sectionSpacing) {
+            VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionSpacing) {
                 CustomerHomeHeader(
                     displayName: displayName,
+                    line: greeting.line,
                     unreadNotificationCount: notificationStore.unreadCount,
                     notificationAction: {
                         isShowingNotifications = true
                     }
                 )
+                .beckonEntrance(0)
 
                 if petStore.hasPendingCreation || petStore.hasCreationRecoveryError {
                     Button { petStore.startCreate() } label: {
-                        Label("Confirm pending pet", systemImage: "arrow.clockwise")
+                        HStack(spacing: DesignTokens.Spacing.md) {
+                            DesignIconDisc(systemImage: "arrow.clockwise", font: DesignTokens.Typography.Expressive.glyph)
+                            Text("Finish saving your pet")
+                                .font(DesignTokens.Typography.Expressive.emphasis)
+                                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .padding(DesignTokens.Spacing.md)
                     }
+                    .buttonStyle(BeckonLedgeButtonStyle(.card))
+                    .accessibilityLabel("Confirm pending pet")
                     .accessibilityIdentifier("customer.pets.resume-create")
+                    .beckonEntrance(1)
                 }
 
                 CustomerHomeRequestHero(
                     isDisabled: requestHeroPresentation.isStartRequestDisabled,
                     action: startGroomingRequest
                 )
+                .beckonEntrance(1)
+                .beckonScrollEase()
 
                 CustomerRequestPhotoUploadRetryList(store: requestStore)
+                    .beckonEntrance(2)
 
                 CustomerHomePetsSection(store: petStore)
 
@@ -151,6 +166,8 @@ struct CustomerPetsView: View {
                         }
                     }
                 )
+                .beckonEntrance(5)
+                .beckonScrollEase()
 
                 if let message = bookingStore.nearestReadError, bookingStore.nearestBooking != nil {
                     Text(message).font(DesignTokens.Typography.supporting).foregroundStyle(DesignTokens.Colors.textSecondary)
@@ -165,9 +182,13 @@ struct CustomerPetsView: View {
                         }
                     }
                 )
+                .beckonEntrance(6)
+                .beckonScrollEase()
             }
             .beckonPageInsets(bottom: DesignTokens.Layout.pageBottomInset * 2)
+            .beckonEntranceClock()
         }
+            .beckonTracksScroll()
         .scrollContentBackground(.hidden)
     }
 
@@ -175,6 +196,16 @@ struct CustomerPetsView: View {
         CustomerHomeRequestHeroPresentation(
             hasPets: !petStore.pets.isEmpty,
             isRequestStoreBusy: requestStore.isBusy
+        )
+    }
+
+    private var greeting: CustomerHomeGreetingPresentation {
+        let card = requestStore.visibleActionCards.first
+        return CustomerHomeGreetingPresentation(
+            requestStep: card.flatMap { CustomerRequestSummaryPresentation(card: $0).step },
+            offerCount: card?.loadedOfferCount,
+            petName: card?.request.petSnapshot.name ?? petStore.pets.first?.name,
+            bookingCountdown: bookingStore.nearestBooking.flatMap { BeckonBookingCountdown.label(for: $0) }
         )
     }
 
@@ -322,26 +353,55 @@ struct CustomerHomeNextBookingPresentation: Equatable {
     }
 }
 
+/// The one line under the greeting: always names the next step, from the data the modules below show.
+struct CustomerHomeGreetingPresentation: Equatable {
+    let line: String
+
+    init(requestStep: Int?, offerCount: Int?, petName: String?, bookingCountdown: String?) {
+        let subject = petName ?? "Your pet"
+        switch (requestStep, bookingCountdown) {
+        case (2?, _):
+            let pet = petName ?? "your pet"
+            line = offerCount.map { "\($0) offer\($0 == 1 ? " is" : "s are") waiting for \(pet)!" }
+                ?? "Offers are waiting for \(pet)!"
+        case (3?, let when?), (nil, let when?):
+            line = "\(subject)'s groom is \(when.lowercased())"
+        case (3?, nil):
+            line = "\(subject)'s groom is booked!"
+        case (1?, _):
+            line = "Groomers are looking at your request"
+        default:
+            line = "Ready for a fresh trim?"
+        }
+    }
+}
+
 private struct CustomerHomeHeader: View {
     let displayName: String
+    let line: String
     let unreadNotificationCount: Int
     let notificationAction: () -> Void
 
     var body: some View {
         HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text("Hi, \(displayName)")
-                    .font(DesignTokens.Typography.pageTitle)
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    Text("Hi, \(displayName)!")
+                        .font(DesignTokens.Typography.Expressive.display)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    BeckonWaveHand()
+                }
 
-                Text("Welcome back")
-                    .font(DesignTokens.Typography.supporting)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                Text(line)
+                    .designSupportingText()
+                    .id(line)
+                    .transition(.push(from: .bottom))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            .beckonAnimation(DesignTokens.Motion.swap, value: line)
 
-            BeckonNotificationBellButton(
+            BeckonExpressiveNotificationBell(
                 unreadCount: unreadNotificationCount,
                 accessibilityIdentifier: "customer.home.notifications",
                 action: notificationAction
@@ -353,151 +413,56 @@ private struct CustomerHomeHeader: View {
 private struct CustomerHomeRequestHero: View {
     let isDisabled: Bool
     let action: () -> Void
+    @State private var isActionPressed = false
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(
-                cornerRadius: DesignTokens.CornerRadius.card,
-                style: .continuous
-            )
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            DesignTokens.Colors.customerFill,
-                            DesignTokens.Colors.customerHeroEnd,
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+        BeckonLedgeHero(isExcited: isActionPressed) {
+            Text(CustomerHomeRequestHeroPresentation.title)
+                .font(DesignTokens.Typography.Expressive.hero)
+                .foregroundStyle(DesignTokens.Colors.customerInk)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(CustomerHomeRequestHeroPresentation.message)
+                .font(DesignTokens.Typography.Expressive.body)
+                .foregroundStyle(DesignTokens.Colors.customerInk)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button(action: action) {
+                BeckonLedgePrimaryLabel(
+                    title: CustomerHomeRequestHeroPresentation.actionTitle,
+                    systemImage: "scissors"
                 )
-                .overlay(alignment: .topTrailing) {
-                    Circle()
-                        .fill(DesignTokens.Colors.customerHeroBubble)
-                        .frame(width: 110, height: 110)
-                        .accessibilityHidden(true)
-                }
-                .overlay(alignment: .bottomTrailing) {
-                    // beckon-ui-audit: review UI102 -- Decorative paw placement is isolated to hero bounds and never repairs content layout.
-                    ZStack(alignment: .bottomTrailing) {
-                        Image(systemName: "pawprint.fill")
-                            .font(DesignTokens.Typography.pageTitle)
-                            .rotationEffect(.degrees(-18))
-                            .offset(x: -26, y: -24)
-
-                        Image(systemName: "pawprint.fill")
-                            .font(DesignTokens.Typography.title)
-                            .rotationEffect(.degrees(20))
-                    }
-                    .foregroundStyle(DesignTokens.Colors.customerHeroDecoration)
-                    .padding(.trailing, DesignTokens.Spacing.xl)
-                    .padding(.bottom, DesignTokens.Spacing.xs)
-                    .accessibilityHidden(true)
-                }
-
-            CustomerHomeRequestHeroContentLayout(spacing: DesignTokens.Spacing.lg) {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                    Text(CustomerHomeRequestHeroPresentation.title)
-                        .font(DesignTokens.Typography.featureTitle)
-                        .foregroundStyle(DesignTokens.Colors.customerInk)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Text(CustomerHomeRequestHeroPresentation.message)
-                        .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.customerInk)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Button(action: action) {
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        Image(systemName: "scissors")
-                            .foregroundStyle(DesignTokens.Colors.customerDeep)
-
-                        Text(CustomerHomeRequestHeroPresentation.actionTitle)
-                    }
-                }
-                .buttonStyle(
-                    BeckonSecondaryButtonStyle(
-                        accent: .customerHero,
-                        isFullWidth: false,
-                        font: DesignTokens.Typography.prominentAction
-                    )
-                )
-                .disabled(isDisabled)
-                .accessibilityIdentifier("customer.home.start-request")
-                .accessibilityLabel(CustomerHomeRequestHeroPresentation.actionTitle)
-
-                if isDisabled {
-                    Label(
-                        "Add a pet profile before starting a grooming request.",
-                        systemImage: "pawprint"
-                    )
-                    .font(DesignTokens.Typography.status)
-                    .foregroundStyle(DesignTokens.Colors.customerInk)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityIdentifier("customer.home.start-request.requirement")
-                }
             }
-            .padding(DesignTokens.Spacing.xl)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .clipShape(
-            RoundedRectangle(
-                cornerRadius: DesignTokens.CornerRadius.card,
-                style: .continuous
-            )
-        )
-        .accessibilityElement(children: .contain)
-    }
-}
+            .buttonStyle(BeckonLedgeButtonStyle(.primary) { isActionPressed = $0 })
+            .padding(.top, DesignTokens.Spacing.sm)
+            .disabled(isDisabled)
+            .accessibilityIdentifier("customer.home.start-request")
+            .accessibilityLabel(CustomerHomeRequestHeroPresentation.actionTitle)
 
-private struct CustomerHomeRequestHeroContentLayout: Layout {
-    let spacing: CGFloat
-
-    func sizeThatFits(
-        proposal: ProposedViewSize,
-        subviews: Subviews,
-        cache: inout ()
-    ) -> CGSize {
-        guard subviews.count >= 2 else { return .zero }
-
-        let intrinsicActionWidth = subviews[1].sizeThatFits(.unspecified).width
-        let width = min(intrinsicActionWidth, proposal.width ?? intrinsicActionWidth)
-        let sizes = subviews.map {
-            $0.sizeThatFits(ProposedViewSize(width: width, height: nil))
-        }
-        let height = sizes.reduce(0) { $0 + $1.height }
-            + spacing * CGFloat(max(subviews.count - 1, 0))
-
-        return CGSize(width: width, height: height)
-    }
-
-    func placeSubviews(
-        in bounds: CGRect,
-        proposal: ProposedViewSize,
-        subviews: Subviews,
-        cache: inout ()
-    ) {
-        var y = bounds.minY
-
-        for subview in subviews {
-            let childProposal = ProposedViewSize(width: bounds.width, height: nil)
-            let size = subview.sizeThatFits(childProposal)
-            subview.place(
-                at: CGPoint(x: bounds.minX, y: y),
-                anchor: .topLeading,
-                proposal: childProposal
-            )
-            y += size.height + spacing
+            if isDisabled {
+                Label(
+                    "Add a pet profile before starting a grooming request.",
+                    systemImage: "pawprint"
+                )
+                .font(DesignTokens.Typography.status)
+                .foregroundStyle(DesignTokens.Colors.customerInk)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("customer.home.start-request.requirement")
+            }
         }
     }
 }
 
 struct CustomerHomePetsSection: View {
     @Bindable var store: CustomerPetsStore
+    @State private var removing: CustomerPet?
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
-        BeckonSection("Pets") {
+        VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
+            BeckonLedgeHeading(title: "Pets", systemImage: "pawprint.fill", count: store.pets.count)
+                .beckonEntrance(2)
+
             if store.isLoading, store.pets.isEmpty {
                 BeckonLoadingView(
                     title: "Loading pets…",
@@ -505,87 +470,130 @@ struct CustomerHomePetsSection: View {
                     accent: .customer
                 )
                 .accessibilityIdentifier("customer.pets.loading")
+            } else if store.pets.isEmpty {
+                DesignPupPeek {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                        Text("Add your first pet")
+                            .font(DesignTokens.Typography.Expressive.title)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        Text("A profile helps groomers match you with the right care.")
+                            .designSupportingText()
+                        Button { store.startCreate() } label: {
+                            DesignActionLabel(title: "Add pet", systemImage: "plus")
+                        }
+                        .buttonStyle(BeckonLedgeButtonStyle(.pill))
+                        .accessibilityIdentifier("customer.pets.add")
+                    }
+                    .designCardBody()
+                }
+                .accessibilityIdentifier("customer.pets.list")
+            } else if typeSize.isAccessibilitySize {
+                // Accessibility sizes reflow the carousel into full-width cards instead of squeezing text.
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                    tiles
+                }
+                .padding(.vertical, DesignTokens.Spacing.sm)
+                .accessibilityIdentifier("customer.pets.list")
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                        ForEach(store.pets) { pet in
-                            CustomerHomePetTile(
-                                pet: pet,
-                                store: store
-                            )
-                        }
-
-                        CustomerHomeAddPetTile {
-                            store.startCreate()
-                        }
+                    HStack(alignment: .top, spacing: DesignTokens.Spacing.lg) {
+                        tiles
                     }
-                    .padding(.vertical, DesignTokens.Spacing.xs)
+                    .padding(.vertical, DesignTokens.Spacing.sm)
                     .scrollTargetLayout()
                 }
+                .contentMargins(.horizontal, DesignTokens.Spacing.screenHorizontal, for: .scrollContent)
+                // Horizontal carousels cancel the page inset so cards can bleed to the screen edge.
+                .padding(.horizontal, -DesignTokens.Spacing.screenHorizontal)
                 .scrollClipDisabled()
                 .scrollTargetBehavior(.viewAligned)
+                .beckonTracksScroll()
                 .accessibilityIdentifier("customer.pets.list")
             }
         }
+        // Removing a pet has no restore (no snackbar to offer), so it asks first.
+        .designAlertDialog(item: $removing) { pet in
+            .destructive(title: "Remove \(pet.name)?",
+                message: "\(pet.name) will leave your pets. You can add \(pet.name) again later, but this can't be undone.",
+                systemImage: "pawprint.fill", keepTitle: "Keep \(pet.name)", confirmTitle: "Remove",
+                confirmIdentifier: "customer.pets.confirm-remove") {
+                Task { await store.softDelete(pet) }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var tiles: some View {
+        ForEach(Array(store.pets.enumerated()), id: \.element.id) { index, pet in
+            CustomerHomePetTile(pet: pet, index: index, store: store) { removing = $0 }
+                .beckonEntrance(3 + min(index, 1))
+        }
+
+        CustomerHomeAddPetTile {
+            store.startCreate()
+        }
+        .beckonEntrance(3 + min(store.pets.count, 1))
     }
 }
 
 private struct CustomerHomePetTile: View {
     let pet: CustomerPet
+    let index: Int
     @Bindable var store: CustomerPetsStore
+    let onRemove: (CustomerPet) -> Void
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         Button {
             store.startEdit(pet)
         } label: {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                BeckonPetAvatar(
+                BeckonPortrait(
                     data: store.primaryPhotoData(for: pet),
-                    systemImage: BeckonPetPresentation.symbol(for: pet.displaySpecies),
-                    width: 140,
-                    height: 116,
-                    cornerRadius: DesignTokens.CornerRadius.input
+                    symbol: BeckonPetPresentation.symbol(for: pet.displaySpecies),
+                    index: index
                 )
-                .frame(maxWidth: .infinity)
+                .overlay(alignment: .topTrailing) {
+                    Image(systemName: "pencil")
+                        .font(DesignTokens.Typography.Expressive.label)
+                        .foregroundStyle(DesignTokens.Colors.customerDeep)
+                        .frame(width: DesignTokens.Metrics.ledgeIconTile, height: DesignTokens.Metrics.ledgeIconTile)
+                        .background(DesignTokens.Colors.surface, in: Circle())
+                        .overlay(Circle().strokeBorder(DesignTokens.Colors.customerFill, lineWidth: 2))
+                        .padding(DesignTokens.Spacing.sm)
+                        .accessibilityHidden(true)
+                }
 
+                // The card has a fixed size, so long text is truncated here and the full text lives in the editor.
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(pet.name)
-                        .font(DesignTokens.Typography.cardTitle)
+                        .font(DesignTokens.Typography.Expressive.title)
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(typeSize.isAccessibilitySize ? nil : 1)
 
                     Text(petBreedLine)
-                        .font(DesignTokens.Typography.body)
+                        .font(DesignTokens.Typography.Expressive.supporting)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(typeSize.isAccessibilitySize ? nil : 2)
+                }
 
-                    Text([pet.displayAge ?? "Age not set", pet.displayWeightAndSize]
-                        .compactMap { $0 }.joined(separator: " · "))
-                        .font(DesignTokens.Typography.status)
-                        .foregroundStyle(DesignTokens.Colors.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
+                // Pins the chips to the bottom edge so they line up across cards, with or without a second breed line.
+                Spacer(minLength: 0)
 
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    if let age = pet.displayAge {
+                        BeckonMetaChip(text: age, systemImage: "birthday.cake.fill")
+                    }
+                    if let weight = pet.displayWeightAndSize {
+                        BeckonMetaChip(text: weight, systemImage: "scalemass.fill")
+                    }
                 }
             }
             .padding(DesignTokens.Spacing.md)
-            .frame(width: 172, alignment: .topLeading)
-            .background(DesignTokens.Colors.surface)
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius: DesignTokens.CornerRadius.card,
-                    style: .continuous
-                )
-            )
-            .overlay(
-                RoundedRectangle(
-                    cornerRadius: DesignTokens.CornerRadius.card,
-                    style: .continuous
-                )
-                .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
-            )
-            .beckonShadow(DesignTokens.Shadows.carouselCard)
+            .homePetCardFrame()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BeckonLedgeButtonStyle(.card))
+        .beckonCarouselTilt(isEnabled: !typeSize.isAccessibilitySize)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(pet.name)
         .accessibilityValue(pet.accessibilitySummary)
@@ -596,9 +604,7 @@ private struct CustomerHomePetTile: View {
             }
 
             Button("Remove", role: .destructive) {
-                Task {
-                    await store.softDelete(pet)
-                }
+                onRemove(pet)
             }
         }
         .accessibilityIdentifier("customer.pets.card")
@@ -612,7 +618,30 @@ private struct CustomerHomePetTile: View {
 
         return pet.displaySpecies
     }
+}
 
+/// One size for every pet card and the add slot: fixed width and height, so the carousel never changes shape with the data.
+/// Height follows Dynamic Type; accessibility sizes reflow to full-width cards that grow with their text instead of clipping.
+private struct CustomerHomePetCardFrame: ViewModifier {
+    var flexibleMinHeight: CGFloat = 0
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @ScaledMetric(relativeTo: .body) private var scaledHeight = DesignTokens.Metrics.petCardHeight
+
+    func body(content: Content) -> some View {
+        if typeSize.isAccessibilitySize {
+            content.frame(maxWidth: .infinity, minHeight: flexibleMinHeight, alignment: .topLeading)
+        } else {
+            // Grows with larger text but never drops below the design height: the portrait and spacings do not scale.
+            content.frame(width: DesignTokens.Metrics.petCardWidth,
+                height: max(scaledHeight, DesignTokens.Metrics.petCardHeight), alignment: .topLeading)
+        }
+    }
+}
+
+private extension View {
+    func homePetCardFrame(flexibleMinHeight: CGFloat = 0) -> some View {
+        modifier(CustomerHomePetCardFrame(flexibleMinHeight: flexibleMinHeight))
+    }
 }
 
 private struct CustomerHomeAddPetTile: View {
@@ -620,39 +649,10 @@ private struct CustomerHomeAddPetTile: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: DesignTokens.Spacing.md) {
-                Image(systemName: "plus")
-                    .font(DesignTokens.Typography.sectionTitle)
-                    .foregroundStyle(DesignTokens.Colors.customerDeep)
-                    .frame(width: 58, height: 58)
-                    .background(DesignTokens.Colors.surfaceRaised)
-                    .clipShape(DesignTokens.Shapes.circular)
-
-                Text("Add pet")
-                    .font(DesignTokens.Typography.action)
-                    .foregroundStyle(DesignTokens.Colors.textTertiary)
-            }
-            .frame(width: 172)
-            .frame(minHeight: 252)
-            .background(DesignTokens.Colors.surface)
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius: DesignTokens.CornerRadius.card,
-                    style: .continuous
-                )
-            )
-            .overlay(
-                RoundedRectangle(
-                    cornerRadius: DesignTokens.CornerRadius.card,
-                    style: .continuous
-                )
-                .stroke(
-                    DesignTokens.Colors.border,
-                    style: StrokeStyle(lineWidth: 2, dash: [6, 5])
-                )
-            )
+            BeckonLedgeAddSlot(title: "Add pet")
+                .homePetCardFrame(flexibleMinHeight: 160)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BeckonLedgeButtonStyle(.dashed))
         .accessibilityLabel("Add pet")
         .accessibilityHint("Opens the pet profile form.")
         .accessibilityIdentifier("customer.pets.add")
@@ -665,10 +665,12 @@ private struct CustomerHomeActiveRequestSection: View {
     let retry: () -> Void
 
     var body: some View {
-        BeckonSection("Active request") {
+        VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
+            BeckonLedgeHeading(title: "Active request", systemImage: "paperplane.fill", count: presentation.cards.count)
+
             switch presentation.state {
             case .loaded:
-                CustomerRequestActionCardSummaryCarousel(
+                CustomerRequestSummaryCarousel(
                     cards: presentation.cards,
                     onSelectRequest: onSelectRequest
                 )
@@ -683,15 +685,14 @@ private struct CustomerHomeActiveRequestSection: View {
                 .accessibilityIdentifier("customer.home.active-request.loading")
 
             case .error(let message):
-                CustomerRequestLoadFailureView(
+                CustomerRequestLoadFailureBanner(
                     message: message,
                     accessibilityIdentifier: "customer.home.active-request.error",
                     retry: retry
                 )
 
             case .empty:
-                CustomerHomeInlineDescription(CustomerRequestEmptyCopy.message)
-                    .padding(.vertical, DesignTokens.Spacing.sm)
+                BeckonLedgeNote(systemImage: "paperplane", text: CustomerRequestEmptyCopy.message)
                     .accessibilityIdentifier("customer.home.active-request.empty")
             }
         }
@@ -705,7 +706,9 @@ private struct CustomerHomeNextBookingSection: View {
     let retry: () -> Void
 
     var body: some View {
-        BeckonSection("Next booking") {
+        VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
+            BeckonLedgeHeading(title: "Next booking", systemImage: "calendar")
+
             if presentation.shouldShowLoading {
                 BeckonLoadingView(
                     title: "Loading booking…",
@@ -738,18 +741,15 @@ private struct CustomerHomeNextBookingSection: View {
                         onOpenChat: onOpenChat
                     )
                 } label: {
-                    BookingSummaryRow(
-                        booking: booking,
-                        role: .customer
-                    )
+                    BookingCard(booking: booking, role: .customer)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(BeckonLedgeButtonStyle(.card))
                 .accessibilityIdentifier("customer.home.next-booking.view")
             } else {
-                CustomerHomeInlineDescription(
-                    "Accepted offers will appear here as upcoming appointments."
+                BeckonLedgeNote(
+                    systemImage: "calendar",
+                    text: "Accepted offers will appear here as upcoming appointments."
                 )
-                .padding(.vertical, DesignTokens.Spacing.sm)
                 .accessibilityIdentifier("customer.home.next-booking.empty")
             }
         }
@@ -773,27 +773,11 @@ private struct CustomerHomeStatusView: View {
     }
 }
 
-private struct CustomerHomeInlineDescription: View {
-    let message: String
-
-    init(_ message: String) {
-        self.message = message
-    }
-
-    var body: some View {
-        Text(message)
-            .font(DesignTokens.Typography.body)
-            .foregroundStyle(DesignTokens.Colors.textSecondary)
-            .fixedSize(horizontal: false, vertical: true)
-    }
-}
-
-
 #if DEBUG
 #Preview {
     let repository = CustomerPetsPreviewRepository()
     NavigationStack {
-        CustomerPetsView(
+        CustomerHomeView(
             customerID: repository.customerID,
             displayName: "Lian",
             repository: repository,

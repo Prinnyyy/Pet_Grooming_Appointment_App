@@ -9,7 +9,7 @@ final class CustomerBookingLayoutTests: XCTestCase {
         let fixture = try await CustomerBookingUIFixture(screen: "offers")
         await fixture.requests.loadOffers(for: fixture.request)
         let offer = try XCTUnwrap(fixture.requests.offers(for: fixture.request).first)
-        let host = UIHostingController(rootView: CustomerOfferSummaryRow(offerReview: offer, now: Date())
+        let host = UIHostingController(rootView: CustomerOfferCard(review: offer, now: Date())
             .environment(\.dynamicTypeSize, .accessibility3))
         let size = host.sizeThatFits(in: CGSize(width: 350, height: 10_000))
         XCTAssertLessThan(size.height, 1_000, "One offer must not become a multi-screen column of letters")

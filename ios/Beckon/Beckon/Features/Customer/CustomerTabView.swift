@@ -135,6 +135,7 @@ struct CustomerTabView: View {
         .toolbarBackground(DesignTokens.Colors.surface, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
         .environment(\.beckonFeedbackCenter, feedbackCenter)
+        .environment(\.beckonCustomerDesign, true)
         .environment(\.openBookingChat, openBookingChat)
         .environment(\.showRequests, { requestID in
             focusedRequestID = requestID
@@ -194,7 +195,7 @@ struct CustomerTabView: View {
            let requestRepository,
            let notificationRepository,
            let bookingRepository {
-            CustomerPetsView(
+            CustomerHomeView(
                 customerID: customerID,
                 displayName: customerDisplayName,
                 isActiveTab: selection == .home,

@@ -1,4 +1,5 @@
 import Foundation
+
 import SwiftUI
 
 enum CustomerRequestCollectionState: Equatable {
@@ -31,7 +32,7 @@ struct CustomerRequestsDashboardPresentation: Equatable {
     }
 }
 
-struct CustomerRequestsRootHeader: View {
+struct CustomerRequestsHeader: View {
     static let title = "Requests"
     static let createActionTitle = "New Request"
 
@@ -40,37 +41,52 @@ struct CustomerRequestsRootHeader: View {
     let createRequest: () -> Void
 
     var body: some View {
+        // Same shape as the Home header: the title with one line under it, the action on the right. The count is words in that
+        // line, never a badge next to the title, so nothing pushes the button to another row whatever the count is.
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-                titleAndCount
-                Spacer(minLength: DesignTokens.Spacing.md)
+                titleBlock
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 createButton
             }
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                titleAndCount
+                titleBlock
                 createButton
             }
         }
     }
 
-    private var titleAndCount: some View {
-        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
-            BeckonPageTitle(Self.title)
-            requestCountChip
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            Text(Self.title)
+                .font(DesignTokens.Typography.Expressive.display)
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                .accessibilityAddTraits(.isHeader)
+            Text(summaryLine)
+                .designSupportingText()
+        }
+    }
+
+    private var summaryLine: String {
+        switch cardCount {
+        case 0: isCreateDisabled ? "Add a pet profile to get started" : "Ask groomers for offers"
+        case 1: "1 active request"
+        default: "\(cardCount) active requests"
         }
     }
 
     private var createButton: some View {
         Button(action: createRequest) {
-            Label(Self.createActionTitle, systemImage: "plus")
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                Image(systemName: "plus").font(DesignTokens.Typography.Expressive.glyph)
+                Text(Self.createActionTitle).font(DesignTokens.Typography.Expressive.emphasis)
+            }
+            .foregroundStyle(DesignTokens.Colors.customerInk)
+            .padding(.horizontal, DesignTokens.Spacing.md)
+            .frame(minHeight: DesignTokens.Metrics.minimumTouchTarget)
         }
-        .buttonStyle(
-            BeckonSecondaryButtonStyle(
-                accent: .customer,
-                isFullWidth: false
-            )
-        )
+        .buttonStyle(BeckonLedgeButtonStyle(.pill))
         .disabled(isCreateDisabled)
         .accessibilityIdentifier("customer.requests.create")
         .accessibilityHint(
@@ -79,16 +95,9 @@ struct CustomerRequestsRootHeader: View {
                 : "Opens the grooming request form."
         )
     }
-
-    @ViewBuilder
-    private var requestCountChip: some View {
-        if cardCount > 0 {
-            BeckonCountBadge(count: cardCount, accent: .customer)
-        }
-    }
 }
 
-struct CustomerRequestLoadFailureView: View {
+struct CustomerRequestLoadFailureBanner: View {
     let message: String
     var accessibilityIdentifier = "customer.requests.load-error"
     let retry: () -> Void
@@ -99,13 +108,14 @@ struct CustomerRequestLoadFailureView: View {
             message: message,
             systemImage: "arrow.clockwise.circle"
         ) {
-            Button("Try again", action: retry)
-                .buttonStyle(
-                    BeckonSecondaryButtonStyle(
-                        accent: .customer,
-                        isFullWidth: false
-                    )
-                )
+            Button(action: retry) {
+                Text("Try again")
+                    .font(DesignTokens.Typography.Expressive.emphasis)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .frame(minHeight: DesignTokens.Metrics.minimumTouchTarget)
+            }
+            .buttonStyle(BeckonLedgeButtonStyle(.card))
         }
         .accessibilityIdentifier(accessibilityIdentifier)
     }
@@ -139,7 +149,7 @@ struct CustomerRequestCarouselPositionIndicator: View {
 
     var body: some View {
         Text(position.displayText)
-            .font(DesignTokens.Typography.status)
+            .font(DesignTokens.Typography.Expressive.chip)
             .foregroundStyle(DesignTokens.Colors.textSecondary)
             .frame(maxWidth: .infinity, alignment: .trailing)
             .accessibilityLabel(position.label)
@@ -200,21 +210,27 @@ struct CustomerRequestPhotoUploadRetryBanner: View {
         presentation: CustomerRequestPhotoUploadRetryPresentation
     ) -> some View {
         Button(action: retryAction) {
-            if isRetrying {
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    ProgressView()
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                if isRetrying {
+                    ProgressView().tint(DesignTokens.Colors.customerInk)
                     Text("Uploading...")
+                } else {
+                    Image(systemName: "arrow.clockwise")
+                    Text(presentation.retryTitle)
                 }
-            } else {
-                Label(presentation.retryTitle, systemImage: "arrow.clockwise")
             }
+            .font(DesignTokens.Typography.Expressive.emphasis)
+            .foregroundStyle(DesignTokens.Colors.customerInk)
+            .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.minimumTouchTarget)
         }
-        .buttonStyle(BeckonPrimaryButtonStyle())
+        .buttonStyle(BeckonLedgeButtonStyle(.pill))
         .disabled(isRetrying)
 
-        Button(presentation.discardTitle, role: .destructive, action: discardAction)
-            .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
-            .disabled(isRetrying)
+        Button(role: .destructive, action: discardAction) {
+            DesignQuietAction(title: presentation.discardTitle, systemImage: "trash", isDestructive: true)
+        }
+        .buttonStyle(BeckonGuardedPlainButtonStyle())
+        .disabled(isRetrying)
     }
 }
 
@@ -245,7 +261,7 @@ struct CustomerRequestPhotoUploadRetryList: View {
     }
 }
 
-struct CustomerRequestProgressCarousel: View {
+struct CustomerRequestCardCarousel: View {
     let cards: [CustomerRequestActionCardItem]
     let store: CustomerRequestsStore
     @Binding var focusedRequestID: UUID?
@@ -258,7 +274,7 @@ struct CustomerRequestProgressCarousel: View {
             ScrollView(.horizontal) {
                 LazyHStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
                     ForEach(cards) { card in
-                        CustomerRequestProgressCard(
+                        CustomerRequestCard(
                             card: card,
                             store: store,
                             onViewBooking: onViewBooking,
@@ -332,7 +348,7 @@ struct CustomerRequestProgressCarousel: View {
     }
 }
 
-struct CustomerRequestActionCardSummaryCarousel: View {
+struct CustomerRequestSummaryCarousel: View {
     let cards: [CustomerRequestActionCardItem]
     let onSelectRequest: (UUID) -> Void
     @State private var visibleRequestID: UUID?
@@ -345,9 +361,10 @@ struct CustomerRequestActionCardSummaryCarousel: View {
                         Button {
                             onSelectRequest(card.request.id)
                         } label: {
-                            CustomerRequestActionCardSummary(card: card)
+                            CustomerRequestSummaryCard(card: card)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(BeckonLedgeButtonStyle(.card))
+                        .beckonCarouselTilt()
                             .containerRelativeFrame(.horizontal) { length, _ in
                                 length
                             }
@@ -363,6 +380,7 @@ struct CustomerRequestActionCardSummaryCarousel: View {
             .scrollClipDisabled()
             .scrollTargetBehavior(.viewAligned)
             .scrollPosition(id: $visibleRequestID)
+            .beckonTracksScroll()
             .onAppear {
                 synchronizeVisibleRequest()
             }
@@ -395,7 +413,7 @@ struct CustomerRequestActionCardSummaryCarousel: View {
     }
 }
 
-struct CustomerRequestActionCardSummary: View {
+struct CustomerRequestSummaryCard: View {
     let card: CustomerRequestActionCardItem
     @Environment(\.dynamicTypeSize) private var typeSize
 
@@ -403,51 +421,54 @@ struct CustomerRequestActionCardSummary: View {
         CustomerRequestSummaryPresentation(card: card)
     }
 
+    // The carousel's ledge button style draws the card surface; this view is its content.
     var body: some View {
-        BeckonCard(padding: DesignTokens.Spacing.lg) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                headerLayout {
-                    BeckonModuleImage(data: card.petAvatarPhotoData) {
-                        Text(presentation.initial)
-                            .font(DesignTokens.Typography.cardTitle)
-                            .dynamicTypeSize(.large)
-                            .foregroundStyle(DesignTokens.Colors.customerDeep)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(DesignTokens.Colors.customerTint)
-                    }
-                    .frame(width: DesignTokens.Metrics.minimumTouchTarget, height: DesignTokens.Metrics.minimumTouchTarget)
-                    .clipShape(Circle())
-                    .accessibilityHidden(true)
-
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text(presentation.title)
-                            .font(DesignTokens.Typography.cardTitle)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        Text(presentation.time.summary)
-                            .font(DesignTokens.Typography.supporting)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    }
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            headerLayout {
+                BeckonModuleImage(data: card.petAvatarPhotoData) {
+                    Text(presentation.initial)
+                        .font(DesignTokens.Typography.Expressive.title)
+                        .dynamicTypeSize(.large)
+                        .foregroundStyle(DesignTokens.Colors.customerDeep)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(DesignTokens.Colors.customerTint)
                 }
+                .frame(width: DesignTokens.Metrics.minimumTouchTarget, height: DesignTokens.Metrics.minimumTouchTarget)
+                .clipShape(Circle())
+                .overlay(Circle().strokeBorder(DesignTokens.Colors.customerFill, lineWidth: DesignTokens.Ledge.edgeWidth + 1))
+                .accessibilityHidden(true)
 
-                if let step = presentation.step, let summary = presentation.progressSummary {
-                    CustomerRequestSummaryProgress(step: step, summary: summary)
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text(presentation.title)
+                        .font(DesignTokens.Typography.Expressive.headline)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    Text(presentation.time.summary)
+                        .font(DesignTokens.Typography.Expressive.supporting)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
                 }
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
 
-                footerLayout {
-                    BeckonStatusChip(presentation.status)
-                    if !typeSize.isAccessibilitySize { Spacer(minLength: DesignTokens.Spacing.sm) }
-                    HStack(spacing: DesignTokens.Spacing.xs) {
-                        Text("Review")
-                        Image(systemName: "chevron.right")
-                    }
-                    .font(DesignTokens.Typography.action)
-                    .foregroundStyle(DesignTokens.Colors.customerDeep)
-                    .frame(minHeight: DesignTokens.Metrics.minimumTouchTarget)
+            if let step = presentation.step {
+                BeckonJourney(stage: step, offerCount: card.loadedOfferCount)
+            }
+
+            footerLayout {
+                BeckonStatusChip(presentation.status)
+                if !typeSize.isAccessibilitySize { Spacer(minLength: DesignTokens.Spacing.sm) }
+                HStack(spacing: DesignTokens.Spacing.xs) {
+                    Text("Review")
+                    Image(systemName: "chevron.right")
                 }
+                .font(DesignTokens.Typography.Expressive.emphasis)
+                .foregroundStyle(DesignTokens.Colors.customerInk)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .frame(minHeight: DesignTokens.Metrics.minimumTouchTarget)
+                .beckonLedge(.pill)
             }
         }
+        .padding(DesignTokens.Spacing.lg)
         .multilineTextAlignment(.leading)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(presentation.accessibilityLabel)
@@ -457,96 +478,86 @@ struct CustomerRequestActionCardSummary: View {
     private var headerLayout: AnyLayout {
         typeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
-            : AnyLayout(HStackLayout(alignment: .top, spacing: DesignTokens.Spacing.md))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: DesignTokens.Spacing.md))
     }
 
     private var footerLayout: AnyLayout {
         typeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.sm))
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
             : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.sm))
     }
 }
 
-private struct CustomerRequestSummaryProgress: View {
-    let step: Int
-    let summary: String
-
-    var body: some View {
-        BeckonSegmentedProgress(labels: ["Posted", "Offers", "Booked"], currentStep: step,
-            accent: .customer, accessibilitySummary: summary)
-    }
-}
-
-private struct CustomerRequestProgressCard: View {
+private struct CustomerRequestCard: View {
     let card: CustomerRequestActionCardItem
     let store: CustomerRequestsStore
     let onViewBooking: (CustomerRequestBookingHandoff) -> Void
     let onCancelRequest: (CustomerGroomingRequest) -> Void
 
     var body: some View {
-        BeckonCard(
-            isSelected: presentation.isConfirmedHandoff,
-            padding: CustomerRequestProgressCardLayout.padding
-        ) {
-            VStack(alignment: .leading, spacing: CustomerRequestProgressCardLayout.contentSpacing) {
-                CustomerRequestBriefHeader(
-                    request: request,
-                    petAvatarPhotoData: card.petAvatarPhotoData,
-                    presentation: presentation
-                )
-                .accessibilityIdentifier(
-                    AppTestOpsAccessibility.identifier(prefix: "customer.requests.row", serviceNotes: request.serviceNotes)
-                        ?? (isBookingHandoff ? "customer.requests.booking-handoff" : "customer.requests.progress-card")
-                )
-                .accessibilityValue(AppTestOpsAccessibility.requestReference(request.id))
+        summary
+    }
 
-                Divider()
-                    .overlay(DesignTokens.Colors.borderSoft)
+    @ViewBuilder
+    private var summary: some View {
+        let content = VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            CustomerRequestBriefHeader(
+                request: request,
+                petAvatarPhotoData: card.petAvatarPhotoData,
+                presentation: presentation
+            )
+            .accessibilityIdentifier(
+                AppTestOpsAccessibility.identifier(prefix: "customer.requests.row", serviceNotes: request.serviceNotes)
+                    ?? (isBookingHandoff ? "customer.requests.booking-handoff" : "customer.requests.progress-card")
+            )
+            .accessibilityValue(AppTestOpsAccessibility.requestReference(request.id))
 
-                if handoff == nil, let marketplace = store.marketplace {
-                    CustomerRequestProgressView(requestID: request.id, store: marketplace.distribution)
-                } else {
-                    CustomerRequestTimelineList(request: request, density: CustomerRequestProgressCardLayout.timelineDensity)
-                }
-
-                if let handoff {
-                    CustomerRequestBookingHandoffAction(
-                        handoff: handoff,
-                        onViewBooking: onViewBooking
-                    )
-                } else {
-                    CustomerRequestActionRow(
-                        request: request,
-                        store: store,
-                        onCancelRequest: onCancelRequest
-                    )
-                }
+            if handoff == nil, let step = CustomerRequestSummaryPresentation(card: card).step {
+                BeckonJourney(stage: step, offerCount: card.loadedOfferCount)
             }
+
+            if handoff == nil, request.status.isOpenForOffers, let marketplace = store.marketplace {
+                reach(marketplace.distribution)
+            }
+
+            if let handoff {
+                CustomerRequestBookingHandoffAction(handoff: handoff, onViewBooking: onViewBooking)
+            } else {
+                CustomerRequestCardActions(request: request, store: store, onCancelRequest: onCancelRequest)
+            }
+        }
+        if isBookingHandoff {
+            content.designBanner()
+        } else {
+            content
+                .designCardBody()
         }
     }
 
-    private var isBookingHandoff: Bool {
-        handoff != nil
+    /// Who has heard about the request, between the journey and the buttons; one tap opens the groomers sheet to invite more.
+    private func reach(_ distribution: CustomerRequestDistributionStore) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            Divider()
+            Button { store.browseGroomers(for: request) } label: {
+                CustomerRequestReachRow(requestID: request.id, store: distribution)
+            }
+            .buttonStyle(BeckonGuardedPlainButtonStyle())
+            .accessibilityHint("Invite more groomers or see who has this request.")
+            .accessibilityIdentifier("customer.requests.invite")
+            Divider()
+        }
     }
 
+    private var isBookingHandoff: Bool { handoff != nil }
     private var request: CustomerGroomingRequest { card.request }
     private var handoff: CustomerRequestBookingHandoff? { card.handoff }
 
-    private var presentation: CustomerRequestProgressCardPresentation {
-        CustomerRequestProgressCardPresentation(
-            request: request,
-            handoff: handoff
-        )
+    private var presentation: CustomerRequestCardPresentation {
+        CustomerRequestCardPresentation(request: request, handoff: handoff)
     }
 }
 
-private enum CustomerRequestProgressCardLayout {
-    static let padding = DesignTokens.Spacing.lg
-    static let contentSpacing = DesignTokens.Spacing.md
-    static let timelineDensity = CustomerRequestTimelineDensity.regular
-}
-
-struct CustomerRequestProgressCardPresentation {
+struct CustomerRequestCardPresentation {
     struct InfoLine: Equatable {
         let systemImage: String
         let text: String
@@ -605,140 +616,60 @@ private struct CustomerRequestBookingHandoffAction: View {
         Button {
             onViewBooking(handoff)
         } label: {
-            CustomerRequestActionLabel(
-                title: "View booking",
-                systemImage: "arrow.right",
-                tone: .primary
-            )
+            DesignActionLabel(title: "View booking", systemImage: "arrow.right")
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BeckonLedgeButtonStyle(.pill))
         .accessibilityLabel("View booking")
         .accessibilityIdentifier("customer.requests.booking-handoff.view-booking")
-    }
-}
-
-private struct CustomerRequestTimelineList: View {
-    let request: CustomerGroomingRequest
-    let density: CustomerRequestTimelineDensity
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
-                CustomerRequestTimelineRow(
-                    step: step,
-                    isLast: index == steps.count - 1,
-                    density: density
-                )
-            }
-        }
-    }
-
-    private var steps: [CustomerRequestTimelineStep] {
-        switch request.status {
-        case .open:
-            [
-                .published(createdAt: request.createdAt, state: .complete),
-                .matching(state: .active),
-                .offers(state: .upcoming),
-                .booking(state: .upcoming),
-            ]
-        case .hasOffers:
-            [
-                .published(createdAt: request.createdAt, state: .complete),
-                .matching(title: "Matched groomers", subtitle: "Groomers can now send offers", state: .complete),
-                .offers(state: .active),
-                .booking(state: .upcoming),
-            ]
-        case .booked:
-            [
-                .published(createdAt: request.createdAt, state: .complete),
-                .matching(title: "Matched groomers", subtitle: "A groomer offer was selected", state: .complete),
-                .offers(state: .complete),
-                .booking(state: .complete),
-            ]
-        case .cancelled:
-            [
-                .published(createdAt: request.createdAt, state: .complete),
-                .matching(title: "Request cancelled", subtitle: "This request is closed", state: .stopped),
-                .offers(state: .upcoming),
-                .booking(state: .upcoming),
-            ]
-        case .expired:
-            [
-                .published(createdAt: request.createdAt, state: .complete),
-                .matching(title: "Request expired", subtitle: "Create a new request to keep looking", state: .stopped),
-                .offers(state: .upcoming),
-                .booking(state: .upcoming),
-            ]
-        case .unknown:
-            [
-                .published(createdAt: request.createdAt, state: .complete),
-                .matching(title: "Request status unknown", subtitle: "Refresh to check the latest status", state: .stopped),
-                .offers(state: .upcoming),
-                .booking(state: .upcoming),
-            ]
-        }
     }
 }
 
 private struct CustomerRequestBriefHeader: View {
     let request: CustomerGroomingRequest
     let petAvatarPhotoData: Data?
-    let presentation: CustomerRequestProgressCardPresentation
+    let presentation: CustomerRequestCardPresentation
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             ViewThatFits(in: .horizontal) {
-                horizontalHeader
-                verticalHeader
+                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                    requestIdentity
+                    statusChip
+                }
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    requestIdentity
+                    statusChip
+                }
             }
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                 ForEach(Array(presentation.infoLines.enumerated()), id: \.offset) { _, infoLine in
-                    CustomerRequestBriefInfoLine(
-                        systemImage: infoLine.systemImage,
-                        text: infoLine.text
-                    )
+                    CustomerRequestBriefInfoLine(systemImage: infoLine.systemImage, text: infoLine.text)
                 }
             }
         }
         .accessibilityElement(children: .combine)
     }
 
-    private var horizontalHeader: some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-            requestIdentity
-            statusChip
-        }
-    }
-
-    private var verticalHeader: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            requestIdentity
-            statusChip
-        }
-    }
-
     private var requestIdentity: some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.lg) {
+        HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
             BeckonPetAvatar(
                 data: petAvatarPhotoData,
                 systemImage: BeckonPetPresentation.symbol(for: request.petSnapshot.species),
-                width: 68,
-                height: 68,
-                cornerRadius: 34
+                width: 56,
+                height: 56,
+                cornerRadius: 28
             )
+            .overlay(Circle().strokeBorder(DesignTokens.Colors.customerFill, lineWidth: DesignTokens.Ledge.edgeWidth + 1))
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(presentation.headline)
-                    .font(DesignTokens.Typography.cardTitle)
+                Text(presentation.headline.replacingOccurrences(of: "\n", with: " "))
+                    .font(DesignTokens.Typography.Expressive.title)
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Text(presentation.subtitle)
-                    .font(DesignTokens.Typography.body)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .designSupportingText()
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -757,301 +688,29 @@ private struct CustomerRequestBriefInfoLine: View {
     var body: some View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.sm) {
             Image(systemName: systemImage)
-                .font(DesignTokens.Typography.caption)
+                .font(DesignTokens.Typography.Expressive.label)
                 .foregroundStyle(DesignTokens.Colors.customerDeep)
-                .frame(width: 18)
+                .frame(width: 22)
                 .accessibilityHidden(true)
 
             Text(text)
-                .font(DesignTokens.Typography.supporting.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+                .designSupportingText()
         }
     }
 }
 
-private enum CustomerRequestTimelineDensity: Equatable {
-    case regular
-    case compact
-
-    var markerSize: CGFloat {
-        // Timeline markers are non-text geometry and preserve progress rhythm.
-        switch self {
-        case .regular:
-            38
-        case .compact:
-            34
-        }
-    }
-
-    var connectorHeight: CGFloat {
-        // Connector length is feature-local timeline geometry, not text containment.
-        switch self {
-        case .regular:
-            30
-        case .compact:
-            24
-        }
-    }
-
-    var connectorWidth: CGFloat {
-        // Connector width is feature-local timeline geometry, not text containment.
-        switch self {
-        case .regular:
-            3
-        case .compact:
-            2
-        }
-    }
-
-    var horizontalSpacing: CGFloat {
-        switch self {
-        case .regular:
-            DesignTokens.Spacing.md
-        case .compact:
-            DesignTokens.Spacing.md
-        }
-    }
-
-    var titleFont: Font {
-        switch self {
-        case .regular:
-            DesignTokens.Typography.body.weight(.bold)
-        case .compact:
-            DesignTokens.Typography.body.weight(.bold)
-        }
-    }
-
-    var subtitleFont: Font {
-        switch self {
-        case .regular:
-            DesignTokens.Typography.caption
-        case .compact:
-            DesignTokens.Typography.caption
-        }
-    }
-
-    var textTopPadding: CGFloat {
-        switch self {
-        case .regular:
-            2
-        case .compact:
-            2
-        }
-    }
-}
-
-private struct CustomerRequestTimelineRow: View {
-    let step: CustomerRequestTimelineStep
-    let isLast: Bool
-    let density: CustomerRequestTimelineDensity
-
-    var body: some View {
-        HStack(alignment: .top, spacing: density.horizontalSpacing) {
-            VStack(spacing: 0) {
-                marker
-
-                if !isLast {
-                    Rectangle()
-                        .fill(step.connectorColor)
-                        .frame(
-                            width: density.connectorWidth,
-                            height: density.connectorHeight
-                        )
-                }
-            }
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(step.title)
-                    .font(density.titleFont)
-                    .foregroundStyle(step.titleColor)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(step.subtitle)
-                    .font(density.subtitleFont)
-                    .foregroundStyle(step.subtitleColor)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(.top, density.textTopPadding)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    @ViewBuilder
-    private var marker: some View {
-        ZStack {
-            Circle()
-                .fill(step.markerColor)
-                .frame(width: density.markerSize, height: density.markerSize)
-
-            if step.state == .complete {
-                Image(systemName: "checkmark")
-                    .font(completeMarkerFont)
-                    .foregroundStyle(DesignTokens.Colors.surface)
-            } else if step.state == .stopped {
-                Image(systemName: "xmark")
-                    .font(stoppedMarkerFont)
-                    .foregroundStyle(DesignTokens.Colors.surface)
-            }
-        }
-        .accessibilityHidden(true)
-    }
-
-    private var completeMarkerFont: Font {
-        density == .compact ? .subheadline.weight(.bold) : .headline.weight(.bold)
-    }
-
-    private var stoppedMarkerFont: Font {
-        density == .compact ? .caption.weight(.bold) : .subheadline.weight(.bold)
-    }
-}
-
-private struct CustomerRequestTimelineStep: Identifiable {
-    let id: String
-    let title: String
-    let subtitle: String
-    let state: CustomerRequestTimelineStepState
-
-    static func published(
-        createdAt: String,
-        state: CustomerRequestTimelineStepState
-    ) -> CustomerRequestTimelineStep {
-        CustomerRequestTimelineStep(
-            id: "published",
-            title: "Request published",
-            subtitle: publishedSubtitle(from: createdAt),
-            state: state
-        )
-    }
-
-    static func matching(
-        title: String = "Matching groomers",
-        subtitle: String = "Finding the best fit nearby",
-        state: CustomerRequestTimelineStepState
-    ) -> CustomerRequestTimelineStep {
-        CustomerRequestTimelineStep(
-            id: "matching",
-            title: title,
-            subtitle: subtitle,
-            state: state
-        )
-    }
-
-    static func offers(state: CustomerRequestTimelineStepState) -> CustomerRequestTimelineStep {
-        let subtitle = switch state {
-        case .complete:
-            "Offer accepted"
-        case .active:
-            "Review groomer offers"
-        case .upcoming:
-            "Waiting for groomers to respond"
-        case .stopped:
-            "No offer activity"
-        }
-
-        return CustomerRequestTimelineStep(
-            id: "offers",
-            title: "Offers received",
-            subtitle: subtitle,
-            state: state
-        )
-    }
-
-    static func booking(state: CustomerRequestTimelineStepState) -> CustomerRequestTimelineStep {
-        CustomerRequestTimelineStep(
-            id: "booking",
-            title: "Booking confirmed",
-            subtitle: state == .complete ? "Your appointment is booked" : "Accept an offer to book",
-            state: state
-        )
-    }
-
-    private static func publishedSubtitle(from createdAt: String) -> String {
-        guard let date = GroomingRequestDateFormatting.parsedDate(from: createdAt) else {
-            return "Published"
-        }
-
-        let elapsed = Date().timeIntervalSince(date)
-        if elapsed >= 0, elapsed < 60 * 60 {
-            return "Just now"
-        }
-
-        if Calendar.current.isDateInToday(date) {
-            return "Today"
-        }
-
-        return date.formatted(date: .abbreviated, time: .omitted)
-    }
-}
-
-private enum CustomerRequestTimelineStepState {
-    case complete
-    case active
-    case upcoming
-    case stopped
-}
-
-private extension CustomerRequestTimelineStep {
-    var markerColor: Color {
-        switch state {
-        case .complete:
-            DesignTokens.Colors.statusSuccessText
-        case .active:
-            DesignTokens.Colors.customerDeep
-        case .upcoming:
-            DesignTokens.Colors.borderSoft
-        case .stopped:
-            DesignTokens.Colors.statusErrorText
-        }
-    }
-
-    var connectorColor: Color {
-        switch state {
-        case .complete:
-            DesignTokens.Colors.statusSuccessFill
-        case .active:
-            DesignTokens.Colors.customerTint
-        case .upcoming:
-            DesignTokens.Colors.borderSoft
-        case .stopped:
-            DesignTokens.Colors.borderSoft
-        }
-    }
-
-    var titleColor: Color {
-        switch state {
-        case .complete, .active:
-            DesignTokens.Colors.textPrimary
-        case .upcoming:
-            DesignTokens.Colors.textTertiary
-        case .stopped:
-            DesignTokens.Colors.statusErrorText
-        }
-    }
-
-    var subtitleColor: Color {
-        switch state {
-        case .complete, .active:
-            DesignTokens.Colors.textSecondary
-        case .upcoming, .stopped:
-            DesignTokens.Colors.textTertiary
-        }
-    }
-}
-
-private struct CustomerRequestActionRow: View {
+/// One primary and two quiet actions: "Compare offers" is the only filled button; "Details" and "Cancel request" share one row of
+/// text actions under it, so the three never compete (and the card does not end in a stack of three different buttons).
+private struct CustomerRequestCardActions: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let request: CustomerGroomingRequest
     let store: CustomerRequestsStore
     let onCancelRequest: (CustomerGroomingRequest) -> Void
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                detailLink
-                offersLink
-            }
-
-            cancelButton
+            offersLink
+            quietActions
         }
     }
 
@@ -1059,65 +718,61 @@ private struct CustomerRequestActionRow: View {
         CustomerRequestCardActionsPresentation(status: request.status)
     }
 
+    private var quietActions: some View {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: 0))
+            : AnyLayout(HStackLayout(spacing: 0))
+        return layout {
+            detailLink
+            if !dynamicTypeSize.isAccessibilitySize {
+                Rectangle()
+                    .fill(DesignTokens.Colors.divider)
+                    .frame(width: 1, height: DesignTokens.Metrics.ledgeIconTile)
+                    .accessibilityHidden(true)
+            }
+            cancelButton
+        }
+    }
+
     private var detailLink: some View {
         NavigationLink {
-            CustomerRequestDetailView(
-                requestID: request.id,
-                store: store
-            )
+            CustomerRequestDetailView(requestID: request.id, store: store)
         } label: {
-            CustomerRequestActionLabel(
-                title: "Detail",
-                systemImage: "doc.text.magnifyingglass",
-                tone: .neutral
-            )
+            DesignQuietAction(title: "Details", systemImage: "doc.text.magnifyingglass")
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BeckonGuardedPlainButtonStyle())
         .accessibilityLabel("Request detail")
         .accessibilityIdentifier(
-            AppTestOpsAccessibility.identifier(
-                prefix: "customer.requests.detail",
-                serviceNotes: request.serviceNotes
-            ) ?? "customer.requests.detail"
+            AppTestOpsAccessibility.identifier(prefix: "customer.requests.detail", serviceNotes: request.serviceNotes)
+                ?? "customer.requests.detail"
         )
-        .accessibilityValue(
-            AppTestOpsAccessibility.requestReference(request.id)
-        )
+        .accessibilityValue(AppTestOpsAccessibility.requestReference(request.id))
     }
 
     private var offersLink: some View {
         NavigationLink {
-            CustomerRequestOffersView(
-                requestID: request.id,
-                store: store
-            )
+            CustomerRequestOffersView(requestID: request.id, store: store)
         } label: {
-            CustomerRequestActionLabel(
-                title: "Offers",
-                systemImage: "tag",
-                tone: .offersAvailable
-            )
+            DesignActionLabel(title: "Compare offers", systemImage: "tag.fill")
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BeckonLedgeButtonStyle(.pill))
         .disabled(!presentation.isOffersEnabled)
         .accessibilityLabel("Request offers")
         .accessibilityIdentifier("customer.requests.offers")
-        .accessibilityValue(
-            AppTestOpsAccessibility.requestReference(request.id)
-        )
+        .accessibilityValue(AppTestOpsAccessibility.requestReference(request.id))
     }
 
     private var cancelButton: some View {
         Button {
             onCancelRequest(request)
         } label: {
-            CustomerRequestActionLabel(
+            DesignQuietAction(
                 title: store.isCancelling(request) ? "Cancelling" : "Cancel request",
                 systemImage: store.isCancelling(request) ? "hourglass" : "xmark.circle",
-                tone: .destructiveFilled
+                isDestructive: true
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BeckonGuardedPlainButtonStyle())
         .disabled(!request.status.isOpenForOffers || store.isCancelling(request))
         .accessibilityLabel("Cancel request")
         .accessibilityIdentifier("customer.requests.cancel")
@@ -1133,89 +788,18 @@ struct CustomerRequestCardActionsPresentation: Equatable, Sendable {
     }
 }
 
-private struct CustomerRequestActionLabel: View {
-    enum Tone {
-        case primary
-        case neutral
-        case offersAvailable
-        case destructiveFilled
-
-        var foreground: Color {
-            switch self {
-            case .primary:
-                DesignTokens.Colors.customerDeep
-            case .neutral:
-                DesignTokens.Colors.textPrimary
-            case .offersAvailable:
-                DesignTokens.Colors.customerInk
-            case .destructiveFilled:
-                DesignTokens.Colors.statusErrorText
-            }
-        }
-
-        var border: Color {
-            switch self {
-            case .primary:
-                DesignTokens.Colors.customerTint
-            case .neutral:
-                DesignTokens.Colors.border
-            case .offersAvailable:
-                DesignTokens.Colors.customerDeep
-            case .destructiveFilled:
-                DesignTokens.Colors.statusErrorBorder
-            }
-        }
-
-        var background: Color {
-            switch self {
-            case .primary:
-                DesignTokens.Colors.customerTint
-            case .neutral:
-                DesignTokens.Colors.surface
-            case .offersAvailable:
-                DesignTokens.Colors.customerFill
-            case .destructiveFilled:
-                DesignTokens.Colors.surface
-            }
-        }
-    }
-
-    @Environment(\.isEnabled) private var isEnabled
-
-    let title: String
-    let systemImage: String
-    let tone: Tone
-
-    var body: some View {
-        Label(title, systemImage: systemImage)
-            .font(DesignTokens.Typography.action)
-            .foregroundStyle(isEnabled ? tone.foreground : DesignTokens.Colors.textTertiary)
-            .multilineTextAlignment(.center)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.actionHeight)
-            .padding(.horizontal, DesignTokens.Spacing.md)
-            .background {
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                    .fill(isEnabled ? tone.background : DesignTokens.Colors.borderSoft)
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                    .stroke(isEnabled ? tone.border : DesignTokens.Colors.borderSoft, lineWidth: 1.2)
-            }
-            .contentShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous))
-    }
-}
-
-struct CustomerCancelledRequestsSection: View {
+struct CustomerClosedRequestsSection: View {
     let requests: [CustomerGroomingRequest]
     let store: CustomerRequestsStore
     let onRepublishRequest: (CustomerGroomingRequest) -> Void
-    var title = "Recent closed requests"
+    var title = "Closed requests"
 
     var body: some View {
-        BeckonSection(title) {
+        VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
+            BeckonLedgeHeading(title: title, systemImage: "clock.arrow.circlepath")
+                .beckonEntrance(0)
             LazyVStack(spacing: DesignTokens.Spacing.md) {
-                ForEach(requests) { request in
+                ForEach(Array(requests.enumerated()), id: \.element.id) { index, request in
                     NavigationLink {
                         CustomerRequestDetailView(
                             requestID: request.id,
@@ -1223,12 +807,13 @@ struct CustomerCancelledRequestsSection: View {
                             onRepublishRequest: onRepublishRequest
                         )
                     } label: {
-                        CustomerCancelledRequestRow(
+                        CustomerClosedRequestRow(
                             request: request,
                             petAvatarPhotoData: store.primaryPetPhotoData(petID: request.petID)
                         )
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(BeckonLedgeButtonStyle(.card))
+                    .beckonEntrance(1 + min(index, 4))
                     .accessibilityIdentifier(AppTestOpsAccessibility.requestIdentifier(
                         prefix: "customer.requests.history.row", requestID: request.id))
                 }
@@ -1237,24 +822,24 @@ struct CustomerCancelledRequestsSection: View {
     }
 }
 
-private struct CustomerCancelledRequestRow: View {
+private struct CustomerClosedRequestRow: View {
     let request: CustomerGroomingRequest
     let petAvatarPhotoData: Data?
 
     var body: some View {
-        BeckonCard {
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-                    requestSummary
-                    cancelledChip
-                }
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+                requestSummary
+                cancelledChip
+            }
 
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    requestSummary
-                    cancelledChip
-                }
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                requestSummary
+                cancelledChip
             }
         }
+        .padding(DesignTokens.Spacing.md)
+        .multilineTextAlignment(.leading)
         .accessibilityElement(children: .combine)
     }
 
@@ -1270,14 +855,12 @@ private struct CustomerCancelledRequestRow: View {
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(request.title)
-                    .font(DesignTokens.Typography.cardTitle)
+                    .font(DesignTokens.Typography.Expressive.headline)
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text(timeSummary)
-                    .font(DesignTokens.Typography.supporting)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                Text(request.preferredTimePresentation.summary)
+                    .designSupportingText()
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -1287,20 +870,20 @@ private struct CustomerCancelledRequestRow: View {
     private var cancelledChip: some View {
         BeckonStatusChip(request.status.presentation)
     }
-
-    private var timeSummary: String {
-        request.preferredTimePresentation.summary
-    }
 }
 
 struct CustomerRequestsEmptyDashboard: View {
     var body: some View {
-        BeckonEmptyState(
-            title: CustomerRequestEmptyCopy.title,
-            message: CustomerRequestEmptyCopy.message,
-            systemImage: "doc.text.magnifyingglass",
-            accent: .customer
-        )
+        DesignPupPeek {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                Text(CustomerRequestEmptyCopy.title)
+                    .font(DesignTokens.Typography.Expressive.title)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                Text(CustomerRequestEmptyCopy.message)
+                    .designSupportingText()
+            }
+            .designCardBody()
+        }
     }
 }
 
