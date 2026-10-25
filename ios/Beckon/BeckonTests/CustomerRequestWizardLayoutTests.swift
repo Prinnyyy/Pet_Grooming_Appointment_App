@@ -25,7 +25,8 @@ final class CustomerRequestWizardLayoutTests: XCTestCase {
             (view as? UIScrollView).map { [$0] } ?? view.subviews.flatMap(scrolls)
         }
         let scroll = try XCTUnwrap(scrolls(host.view).first { $0.contentSize.height > $0.bounds.height })
-        let region = CGRect(x: 24, y: host.view.safeAreaInsets.top + 8, width: 280, height: 70)
+        // Sample the stationary title band, excluding the path's intentional idle pulse.
+        let region = CGRect(x: 24, y: host.view.safeAreaInsets.top + 8, width: 280, height: 20)
         func headerPixels() throws -> Data {
             let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
                 window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)

@@ -5,21 +5,29 @@ struct CustomerGroomerDetailView: View {
     let flow: CustomerRequestDiscoveryFlow
     let requests: CustomerRequestsStore
     let marketplace: CustomerMarketplaceSession
+    /// Passed by "Choose groomers" so the profile ticks the groomer into the same selection; nil keeps the per-groomer send.
+    var selection: Binding<GroomerSelection>? = nil
     @Environment(\.dismiss) private var dismiss
     @State private var current: DiscoveredGroomer?
     @State private var error: RequestDiscoveryError?
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                if let error {
-                    BeckonErrorBanner(title: "Profile unavailable", message: error.message)
-                    Button("Retry", systemImage: "arrow.clockwise") { Task { await load() } }
-                } else if let current {
-                    CustomerGroomerCandidateView(candidate: current, flow: flow, requests: requests,
-                        marketplace: marketplace, compact: false, onDetails: {})
-                } else { ProgressView("Loading profile...") }
-            }.padding(DesignTokens.Spacing.screenHorizontal)
+        // The profile is dealt in once it is there; the loading and failure states around it are shown at once.
+        DesignPage(cascades: false) {
+            if let error {
+                BeckonErrorBanner(title: "Profile unavailable", message: error.message)
+                Button { Task { await load() } } label: {
+                    DesignQuietAction(title: "Retry", systemImage: "arrow.clockwise")
+                }
+                .buttonStyle(BeckonGuardedPlainButtonStyle())
+            } else if let current {
+                CustomerGroomerCandidateView(candidate: current, flow: flow, requests: requests,
+                    marketplace: marketplace, compact: false, onDetails: {}, selection: selection)
+                    .designCardBody()
+                    .beckonEntrance(0)
+            } else {
+                BeckonLoadingView(title: "Loading profile…", message: "Fetching this groomer's details.", accent: .customer)
+            }
         }
         .navigationTitle("Groomer profile")
         .navigationBarTitleDisplayMode(.inline)

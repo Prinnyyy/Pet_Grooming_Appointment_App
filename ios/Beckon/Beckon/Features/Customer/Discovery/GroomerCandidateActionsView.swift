@@ -13,19 +13,20 @@ struct GroomerCandidateActionsView: View {
     var body: some View {
         actionLayout {
             Button(action: onFavorite) {
-                Image(systemName: isFavorite ? "heart.fill" : "heart").frame(width: 44, height: 44)
+                Image(systemName: isFavorite ? "heart.fill" : "heart")
+                    .font(DesignTokens.Typography.Expressive.glyph)
+                    .foregroundStyle(DesignTokens.Colors.customerDeep)
+                    .frame(width: DesignTokens.Metrics.ledgeRoundControl, height: DesignTokens.Metrics.ledgeRoundControl)
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(BeckonLedgeButtonStyle(.round))
             .accessibilityLabel(isFavorite ? "Remove favorite" : "Add favorite")
             .accessibilityIdentifier("discovery.favorite.\(id.uuidString)")
-            .help(isFavorite ? "Remove favorite" : "Add favorite")
             if invitation == .notSent {
                 CustomerRequestSendButton(title: "Send request", confirmation: publicationConfirmation, action: onSend)
-                    .buttonStyle(BeckonPrimaryButtonStyle(accent: .customer))
                     .accessibilityIdentifier("discovery.send.\(id.uuidString)")
             } else {
-                Label(invitation.title, systemImage: "checkmark.circle")
-                    .font(DesignTokens.Typography.supporting).frame(maxWidth: .infinity, alignment: .trailing)
+                BeckonMetaChip(text: invitation.title, systemImage: "checkmark.circle.fill")
+                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
         .tint(DesignTokens.Colors.customerDeep)
@@ -47,16 +48,16 @@ struct CustomerRequestSendButton: View {
     @State private var confirmedSummary = ""
 
     var body: some View {
-        Button(title, systemImage: "paperplane") {
+        Button {
             if let confirmation {
                 confirmedSummary = confirmation
                 isConfirming = true
             } else { action() }
+        } label: {
+            DesignActionLabel(title: title, systemImage: "paperplane.fill")
         }
-        .alert("Send this request?", isPresented: $isConfirming) {
-            Button("Confirm Send", action: action).accessibilityIdentifier("discovery.confirm-send")
-            Button("Cancel", role: .cancel) {}
-        } message: { Text(confirmedSummary) }
+        .buttonStyle(BeckonLedgeButtonStyle(.pill))
+        .sendRequestDialog(isPresented: $isConfirming, summary: confirmedSummary, send: action)
     }
 }
 

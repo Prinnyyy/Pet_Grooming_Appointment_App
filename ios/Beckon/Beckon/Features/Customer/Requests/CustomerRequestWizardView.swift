@@ -1,6 +1,9 @@
 import Foundation
+
 import PhotosUI
+
 import SwiftUI
+
 import UIKit
 
 typealias CustomerRequestServiceOption = GroomingServiceType
@@ -186,6 +189,7 @@ struct CustomerRequestWizardFitInputPresentation: Equatable {
 
 struct CustomerRequestWizardView: View {
     @Environment(\.beckonFeedbackCenter) private var feedbackCenter
+
     @Bindable var store: CustomerRequestsStore
 
     private let onAddPet: (() -> Void)?
@@ -194,6 +198,9 @@ struct CustomerRequestWizardView: View {
     @State private var globallyPresentedErrorMessage: String?
     @State private var bottomBarHeight: CGFloat = 0
     @State private var focusedInputTarget: String?
+    /// Which way the next step's blocks come from. Set the moment Continue or Back is tapped, before the step changes, so the
+    /// new step is built already knowing it.
+    @State private var travel = BeckonEntranceTravel.rise
     @FocusState private var isNotesFocused: Bool
 
     private static let notesFocusTarget = "customer.requests.wizard.notes.container"
@@ -211,32 +218,33 @@ struct CustomerRequestWizardView: View {
         ))
     }
 
+    /// Once the preview is ready the groomers step takes over the page below the same header, instead of pushing a new screen.
+    private var groomersFlow: CustomerRequestDiscoveryFlow? { store.marketplace == nil ? nil : store.discoveryFlow }
+
+    private var displayStep: CustomerRequestStep {
+        groomersFlow == nil ? CustomerRequestStep(flow.currentStep) : .groomers
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                CustomerRequestWizardHeader(currentStep: flow.currentStep)
-                Divider()
+                CustomerRequestWizardHeader(step: displayStep, isSent: groomersFlow?.requestID != nil)
+                Group {
+                if let groomersFlow, let marketplace = store.marketplace {
+                    CustomerGroomerDiscoveryView(flow: groomersFlow, requests: store, marketplace: marketplace,
+                        embeddedInWizard: true, onBack: { travel = .back; store.discoveryFlow = nil })
+                        .transition(.opacity)
+                } else {
                 ScrollViewReader { scrollProxy in
                     ZStack {
                         DesignTokens.Colors.appBackground
                             .ignoresSafeArea()
 
                         ScrollView {
-                            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                                    Text(flow.currentStep.headline)
-                                        .font(DesignTokens.Typography.pageTitle)
-                                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                                        .fixedSize(horizontal: false, vertical: true)
-
-                                    if let subtitle = flow.currentStep.subtitle {
-                                        Text(subtitle)
-                                            .font(DesignTokens.Typography.body)
-                                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                                            .fixedSize(horizontal: false, vertical: true)
-                                    }
-                                }
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+                                CustomerRequestWizardTitleBlock(step: flow.currentStep)
                                 .id(Self.scrollTopAnchor)
+                                .beckonEntrance(CustomerRequestStepMotion.titleOrder)
 
                                 stepContent
 
@@ -249,9 +257,13 @@ struct CustomerRequestWizardView: View {
                                     .accessibilityIdentifier("customer.requests.form-error")
                                 }
                             }
+                            // A new identity per step, so every step plays its own arrival (the title block would otherwise
+                            // keep its identity and only change its words).
+                            .id(flow.currentStep)
                             .beckonPageInsets(bottom: DesignTokens.Layout.sectionSpacing)
                             .padding(.bottom, bottomBarHeight)
                         }
+                            .beckonTracksScroll()
                         .scrollContentBackground(.hidden)
                         .scrollDismissesKeyboard(.interactively)
                         .scrollIndicators(.hidden)
@@ -287,40 +299,42 @@ struct CustomerRequestWizardView: View {
                         }
                     }
                 }
+                .transition(.opacity)
+                }
+                }
+                // Between the form steps and the groomers step only the page fades; the blocks of each step bring the motion,
+                // so the sixth step arrives in the same way as the first five.
+                .beckonAnimation(DesignTokens.Motion.reduced, value: groomersFlow?.id)
             }
             .beckonStationaryPageAction {
-                CustomerRequestWizardBottomBar(
-                    currentStep: flow.currentStep,
-                    isSubmitting: store.isSubmitting,
-                    isReplacingRequest: store.isRevisingRequest,
-                    isRecoveringPublication: store.isRecoveringPublication,
-                    usesDiscovery: store.marketplace != nil,
-                    isPrimaryActionEnabled: primaryActionState.isEnabled,
-                    needsAddressConfirmation: flow.currentStep == .time && store.requestCalendar == nil,
-                    backAction: flow.back,
-                    continueAction: continueForward
-                )
-                .background {
-                    GeometryReader { barGeometry in
-                        Color.clear.preference(
-                            key: CustomerRequestWizardBottomBarHeightKey.self,
-                            value: barGeometry.size.height
-                        )
+                // The groomers step draws its own bar, so it can react to the selection.
+                if groomersFlow == nil {
+                    CustomerRequestWizardBottomBar(
+                        step: flow.currentStep,
+                        backTitle: store.isRecoveringPublication || flow.currentStep == .pet ? "Close" : "Back",
+                        primaryTitle: designPrimaryTitle,
+                        isPrimaryEnabled: primaryActionState.isEnabled,
+                        isSubmitting: store.isSubmitting,
+                        back: { travel = .back; flow.back() },
+                        advance: continueForward
+                    )
+                    .background {
+                        GeometryReader { barGeometry in
+                            Color.clear.preference(
+                                key: CustomerRequestWizardBottomBarHeightKey.self,
+                                value: barGeometry.size.height
+                            )
+                        }
                     }
                 }
             }
+            // After the page action, so the bar shares the page's tempo, and above the steps so all six arrive the same way.
+            .beckonEntranceRhythm(.step, travel: travel)
             .onPreferenceChange(CustomerRequestWizardBottomBarHeightKey.self) {
                 bottomBarHeight = $0
             }
             .tint(DesignTokens.Colors.customerDeep)
             .toolbar(.hidden, for: .navigationBar)
-            .navigationDestination(isPresented: Binding(get: { store.discoveryFlow != nil }, set: {
-                if !$0 { store.discoveryFlow = nil }
-            })) {
-                if let flow = store.discoveryFlow, let marketplace = store.marketplace {
-                    CustomerGroomerDiscoveryView(flow: flow, requests: store, marketplace: marketplace)
-                }
-            }
         }
         .presentationDetents([.large])
         .foregroundRefreshable(nextDeadline: store.marketplace?.distribution.nextDeadline(requestIDs: store.discoveryFlow?.requestID.map { [$0] } ?? [])) {
@@ -346,9 +360,12 @@ struct CustomerRequestWizardView: View {
         }
         .overlay(alignment: .bottom) {
             if let feedbackCenter {
+                // Every step ends in a fixed bar: toasts sit above it. The groomers step says each outcome itself ("Sent" in the
+                // header, chips that change in place, banners for errors), so a toast there only repeats the page.
                 BeckonGlobalFeedbackOverlay(
                     center: feedbackCenter,
-                    bottomPadding: BeckonGlobalFeedbackOverlay.sheetBottomClearance
+                    bottomPadding: BeckonGlobalFeedbackOverlay.actionBarClearance,
+                    isQuiet: groomersFlow != nil
                 )
             }
         }
@@ -373,7 +390,7 @@ struct CustomerRequestWizardView: View {
     }
 
     private var petStep: some View {
-        VStack(spacing: DesignTokens.Spacing.lg) {
+        BeckonCascade(start: CustomerRequestStepMotion.contentStart, alignment: .center, spacing: DesignTokens.Spacing.lg) {
             ForEach(store.pets) { pet in
                 CustomerRequestPetChoiceCard(
                     pet: pet,
@@ -399,7 +416,7 @@ struct CustomerRequestWizardView: View {
     }
 
     private var serviceStep: some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
+        BeckonCascade(start: CustomerRequestStepMotion.contentStart, alignment: .center, spacing: DesignTokens.Spacing.md) {
             ForEach(CustomerRequestServiceOption.allCases) { option in
                 CustomerRequestServiceOptionCard(
                     option: option,
@@ -414,7 +431,7 @@ struct CustomerRequestWizardView: View {
     }
 
     private var timeStep: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+        BeckonCascade(start: CustomerRequestStepMotion.contentStart, spacing: DesignTokens.Spacing.xl) {
             groomingSetupSection
             locationSection
             if let calendar = store.requestCalendar {
@@ -535,7 +552,7 @@ struct CustomerRequestWizardView: View {
     }
 
     private var detailsStep: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+        BeckonCascade(start: CustomerRequestStepMotion.contentStart, spacing: DesignTokens.Spacing.xl) {
             BeckonFieldGroup(
                 "Notes To Groomers",
                 errorText: notesErrorText
@@ -588,75 +605,23 @@ struct CustomerRequestWizardView: View {
     }
 
     private var reviewStep: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-            if store.isRecoveringPublication {
-                Text("Publication is not yet confirmed. Retrying checks the original request without creating a second one.")
-                    .font(DesignTokens.Typography.body)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityIdentifier("customer.requests.publication-recovery")
-            }
-            if store.isRevisingRequest {
-                Text("Publishing these changes will replace the original request and close its existing offers.")
-                    .font(DesignTokens.Typography.body)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            BeckonCard(padding: DesignTokens.Spacing.xl) {
-                VStack(spacing: 0) {
-                    ForEach(reviewPresentation.rows) { row in
-                        CustomerRequestWizardReviewRow(row: row)
+        CustomerRequestWizardReview(
+            rows: reviewPresentation.rows,
+            photos: store.pendingRequestPhotos,
+            fitChips: reviewFitInputPresentation.chips,
+            isRecoveringPublication: store.isRecoveringPublication,
+            isRevisingRequest: store.isRevisingRequest,
+            entranceStart: CustomerRequestStepMotion.contentStart
+        )
+    }
 
-                        if row.id != reviewPresentation.rows.last?.id {
-                            Divider()
-                                .overlay(DesignTokens.Colors.borderSoft)
-                        }
-                    }
-                }
-            }
-
-            if !store.pendingRequestPhotos.isEmpty {
-                BeckonFieldGroup(
-                    "Selected Request Photos",
-                    supportingText: "These photos will be included with this request."
-                ) {
-                    CustomerRequestPendingPhotoList(
-                        photos: store.pendingRequestPhotos,
-                        onRemove: nil
-                    )
-                }
-            }
-
-            CustomerRequestWizardFitInputCard(
-                presentation: reviewFitInputPresentation
-            )
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                Label("How matching works", systemImage: "info.circle")
-                    .font(DesignTokens.Typography.headline)
-                    .foregroundStyle(DesignTokens.Colors.customerDeep)
-
-                Text(CustomerRequestMatchingCopy.customerReviewInfo)
-                    .font(DesignTokens.Typography.body)
-                    .foregroundStyle(DesignTokens.Colors.customerDeep)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(DesignTokens.Spacing.lg)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(DesignTokens.Colors.customerTint)
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius: DesignTokens.CornerRadius.card,
-                    style: .continuous
-                )
-            )
-
-            Label(
-                "Your phone and email stay hidden until you accept an offer. Groomers see the request location details needed to decide whether to offer.",
-                systemImage: "lock"
-            )
-            .font(DesignTokens.Typography.body)
-            .foregroundStyle(DesignTokens.Colors.textSecondary)
-            .fixedSize(horizontal: false, vertical: true)
-        }
+    // Same wording the original bottom bar uses.
+    private var designPrimaryTitle: String {
+        if store.isSubmitting { return "Publishing..." }
+        if store.isRecoveringPublication { return "Resume Request" }
+        if flow.currentStep == .time && store.requestCalendar == nil { return "Confirm Address" }
+        if flow.currentStep == .review && store.marketplace != nil { return "Find Groomers" }
+        return flow.currentStep == .review ? (store.isRevisingRequest ? "Replace Request" : "Publish Request") : "Continue"
     }
 
     private var primaryActionState: CustomerRequestWizardPrimaryActionState {
@@ -733,7 +698,9 @@ struct CustomerRequestWizardView: View {
     }
 
     private func continueForward() {
+        travel = .forward
         globallyPresentedErrorMessage = nil
+
         Task {
             if await flow.continueForward() { publish() }
         }
@@ -854,86 +821,6 @@ struct CustomerRequestWizardProgressLayout: Equatable {
 
 }
 
-private struct CustomerRequestWizardBottomBar: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
-    let currentStep: CustomerRequestWizardStep
-    let isSubmitting: Bool
-    var isReplacingRequest = false
-    var isRecoveringPublication = false
-    var usesDiscovery = false
-    let isPrimaryActionEnabled: Bool
-    let needsAddressConfirmation: Bool
-    let backAction: () -> Void
-    let continueAction: () -> Void
-
-    var body: some View {
-        Group {
-            if dynamicTypeSize.isAccessibilitySize {
-                VStack(spacing: DesignTokens.Spacing.sm) {
-                    actions
-                }
-            } else {
-                HStack(spacing: DesignTokens.Spacing.md) {
-                    actions
-                }
-            }
-        }
-        .padding(.horizontal, DesignTokens.Layout.pageHorizontalInset)
-        .padding(.vertical, DesignTokens.Layout.actionAreaInset)
-        .background(
-            LinearGradient(
-                colors: [
-                    DesignTokens.Colors.appBackground,
-                    DesignTokens.Colors.appBackground,
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
-        )
-    }
-
-    @ViewBuilder
-    private var actions: some View {
-        Button(isRecoveringPublication ? "Close" : "Back", action: backAction)
-            .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
-            .disabled(isSubmitting)
-            .accessibilityIdentifier(
-                currentStep == .pet || isRecoveringPublication
-                    ? "customer.requests.wizard.dismiss"
-                    : "customer.requests.wizard.back"
-            )
-
-        Button(action: continueAction) {
-            Text(primaryTitle)
-        }
-        .buttonStyle(
-            BeckonPrimaryButtonStyle(
-                isVisuallyEnabled: isPrimaryActionEnabled
-            )
-        )
-        .disabled(!isPrimaryActionEnabled)
-        .accessibilityIdentifier(
-            currentStep == .review
-                ? "customer.requests.publish"
-                : "customer.requests.wizard.continue"
-        )
-    }
-
-    private var primaryTitle: String {
-        if isSubmitting {
-            return "Publishing..."
-        }
-
-        if isRecoveringPublication { return "Resume Request" }
-
-        if needsAddressConfirmation { return "Confirm Address" }
-        if currentStep == .review && usesDiscovery { return "Find Groomers" }
-        return currentStep == .review ? (isReplacingRequest ? "Replace Request" : "Publish Request") : "Continue"
-    }
-}
-
 struct CustomerRequestPetChoiceCard: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let pet: CustomerPet
@@ -1013,6 +900,7 @@ struct CustomerRequestPetChoiceCard: View {
     }
 }
 
+/// "Add a new pet" at the end of the pet choice: the kit's dashed ledge surface, so it reads as an empty slot like the Home one.
 private struct CustomerRequestAddPetButton: View {
     let action: () -> Void
 
@@ -1020,32 +908,14 @@ private struct CustomerRequestAddPetButton: View {
         Button(action: action) {
             HStack(spacing: DesignTokens.Spacing.md) {
                 Image(systemName: "plus")
-                    .font(DesignTokens.Typography.cardTitle)
-
+                    .font(DesignTokens.Typography.Expressive.glyph)
                 Text("Add a new pet")
-                    .font(DesignTokens.Typography.body.weight(.bold))
+                    .font(DesignTokens.Typography.Expressive.emphasis)
             }
             .foregroundStyle(DesignTokens.Colors.customerDeep)
-            .frame(maxWidth: .infinity, minHeight: 78)
-            .background(DesignTokens.Colors.surface)
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius: DesignTokens.CornerRadius.card,
-                    style: .continuous
-                )
-            )
-            .overlay {
-                RoundedRectangle(
-                    cornerRadius: DesignTokens.CornerRadius.card,
-                    style: .continuous
-                )
-                .stroke(
-                    DesignTokens.Colors.border,
-                    style: StrokeStyle(lineWidth: 1.5, dash: [6, 4])
-                )
-            }
+            .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.ledgePrimaryButtonHeight)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BeckonLedgeButtonStyle(.dashed))
         .accessibilityIdentifier("customer.requests.wizard.add-pet")
     }
 }
@@ -1138,7 +1008,7 @@ private struct CustomerRequestDateStrip: View {
                                 )
                             }
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(BeckonGuardedPlainButtonStyle())
                     }
                 }
                 .padding(.vertical, DesignTokens.Spacing.xs)
@@ -1249,7 +1119,7 @@ private struct CustomerRequestTimeWindowGrid: View {
                                 )
                         }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(BeckonGuardedPlainButtonStyle())
             }
         }
     }
@@ -1383,7 +1253,7 @@ private struct CustomerRequestAddressFields: View {
                     .stroke(DesignTokens.Colors.customerDeep, lineWidth: 1)
                 }
             }
-            .buttonStyle(.plain)
+            .buttonStyle(BeckonGuardedPlainButtonStyle())
             .disabled(isApplyingProfileAddress)
             .accessibilityIdentifier("customer.requests.use-profile-address")
 
@@ -1518,7 +1388,7 @@ private struct CustomerRequestPendingPhotoThumbnail: View {
                         .clipShape(Circle())
                         .overlay { Circle().stroke(DesignTokens.Colors.statusErrorBorder, lineWidth: 1) }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(BeckonGuardedPlainButtonStyle())
                 .padding(DesignTokens.Spacing.xs)
                 .accessibilityLabel("Remove request photo")
                 .accessibilityIdentifier(
@@ -1545,132 +1415,4 @@ private struct CustomerRequestWizardPetAvatar: View {
         )
     }
 
-}
-
-private struct CustomerRequestWizardReviewRow: View {
-    let row: CustomerRequestWizardReviewPresentation.Row
-
-    var body: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.lg) {
-                title
-                    .frame(maxWidth: 132, alignment: .leading)
-                value
-            }
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                title
-                value
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .padding(.vertical, DesignTokens.Spacing.md)
-    }
-
-    private var title: some View {
-        Text(row.title)
-            .font(DesignTokens.Typography.supporting)
-            .foregroundStyle(DesignTokens.Colors.textSecondary)
-    }
-
-    private var value: some View {
-        Text(row.value)
-            .font(DesignTokens.Typography.action)
-            .foregroundStyle(DesignTokens.Colors.textPrimary)
-            .multilineTextAlignment(.trailing)
-            .frame(maxWidth: .infinity, alignment: .trailing)
-            .fixedSize(horizontal: false, vertical: true)
-    }
-}
-
-private struct CustomerRequestWizardFitInputCard: View {
-    let presentation: CustomerRequestWizardFitInputPresentation
-
-    private var columns: [GridItem] {
-        [
-            GridItem(
-                .adaptive(minimum: 132),
-                spacing: DesignTokens.Spacing.sm,
-                alignment: .leading
-            ),
-        ]
-    }
-
-    var body: some View {
-        BeckonCard(padding: DesignTokens.Spacing.lg) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                Label("Fit needs", systemImage: "sparkles")
-                    .font(DesignTokens.Typography.headline)
-                    .foregroundStyle(DesignTokens.Colors.customerDeep)
-
-                Text("Based on the selected pet and service.")
-                    .font(DesignTokens.Typography.body)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                if presentation.chips.isEmpty {
-                    Label("No specific needs detected", systemImage: "checkmark.circle")
-                        .font(DesignTokens.Typography.body.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else {
-                    LazyVGrid(
-                        columns: columns,
-                        alignment: .leading,
-                        spacing: DesignTokens.Spacing.sm
-                    ) {
-                        ForEach(presentation.chips) { chip in
-                            CustomerRequestWizardFitInputChip(chip: chip)
-                        }
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-}
-
-private struct CustomerRequestWizardFitInputChip: View {
-    let chip: CustomerRequestWizardFitInputPresentation.Chip
-
-    var body: some View {
-        HStack(alignment: .center, spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: chip.systemImage)
-                .font(DesignTokens.Typography.status)
-                .foregroundStyle(DesignTokens.Colors.customerDeep)
-                .frame(width: 18)
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(chip.label)
-                    .font(DesignTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(chip.title)
-                    .font(DesignTokens.Typography.body.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, DesignTokens.Spacing.md)
-        .padding(.vertical, DesignTokens.Spacing.sm)
-        .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
-        .background(DesignTokens.Colors.customerTint)
-        .clipShape(
-            RoundedRectangle(
-                cornerRadius: DesignTokens.CornerRadius.button,
-                style: .continuous
-            )
-        )
-        .overlay(
-            RoundedRectangle(
-                cornerRadius: DesignTokens.CornerRadius.button,
-                style: .continuous
-            )
-            .stroke(DesignTokens.Colors.customerDeep, lineWidth: 1)
-        )
-    }
 }
