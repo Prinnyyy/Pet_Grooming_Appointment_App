@@ -1,11 +1,11 @@
 # Flow Sandbox: Customer UI/UX handoff (Claude and Codex)
 
-Untracked root draft, same convention as the other external-agent drafts. It is the single channel for information between Claude (design) and Codex (implementation). Do not stage or commit it unless the user asks; archive it under `docs/09_frozen/external_agent_reports/` when consumed.
+Shared handoff between Claude (design) and Codex (implementation). Originally a local draft; retained here as the delivery record for the user-authorized T-420 production adoption. Historical instructions below remain labelled by date; current results and boundaries are at the start of section 5.
 
 **Status:** `DONE`
 Codex changes this to `IN_PROGRESS`, then `DONE` (or `BLOCKED` with the reason in section 6). Claude is paused until the user says Codex is done and Claude has read section 5.
 
-**Current architecture, user revision 2026-10-23:** Customer UI is now an independently editable snapshot in `FlowSandbox/Prototype/`, not a live reference to `Features/` Views. Existing isolated fixtures/Stores/session are reused. This supersedes the original live-View reuse direction below; see the current instructions at the start of section 5.
+**Current architecture, approved adoption 2026-10-25:** Customer UI is adopted into production. Active Preview hosts open real `Features/` Views with isolated fixtures/Stores/session for acceptance. Independent UI snapshots in `FlowSandbox/Prototype/` remain unchanged and local for future design work; editing real Views affects the App. This supersedes the 2026-10-23 host arrangement; see the start of section 5.
 
 ## 1. The user's rules (apply to both agents)
 
