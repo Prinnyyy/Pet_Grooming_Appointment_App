@@ -200,8 +200,30 @@ struct TabModelsTests {
 
 struct BeckonFeedbackCenterTests {
     @Test @MainActor
-    func noticeCountdownUsesTwoSeconds() {
-        #expect(BeckonFeedbackCenter.noticeDismissDelayNanoseconds == 2_000_000_000)
+    func noticeCountdownHasFourSecondReadingFloor() {
+        #expect(BeckonFeedbackCenter.noticeDismissDelayNanoseconds == 4_000_000_000)
+    }
+
+    @Test @MainActor
+    func aReadableErrorRemainsAfterTheOldTwoSecondTimeout() async throws {
+        let center = BeckonFeedbackCenter()
+        let error = BeckonGlobalFeedbackError(title: "Couldn't save", message: "Your changes are preserved.")
+        center.showError(error)
+        try await Task.sleep(for: .milliseconds(2300))
+        #expect(center.error == error)
+        center.clearError(matching: error)
+    }
+
+    @Test @MainActor
+    func noticeExpiresWithoutAnOverlayOwningItsTimer() async throws {
+        let center = BeckonFeedbackCenter()
+        center.showNotice("Saved.")
+        let clock = ContinuousClock()
+        let deadline = clock.now + .seconds(6)
+        while center.notice != nil, clock.now < deadline {
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        #expect(center.notice == nil)
     }
 
     @Test @MainActor
@@ -388,9 +410,7 @@ struct BeckonFeedbackCenterTests {
     private func waitForFeedbackPromptAutoDismiss(
         in center: BeckonFeedbackCenter
     ) async throws {
-        let deadline = Date().addingTimeInterval(
-            Double(BeckonFeedbackCenter.errorDismissDelayNanoseconds) / 1_000_000_000 + 2
-        )
+        let deadline = Date().addingTimeInterval((center.remainingPromptSeconds ?? 0) + 2)
         while center.error != nil, Date() < deadline {
             try await Task.sleep(nanoseconds: 50_000_000)
         }

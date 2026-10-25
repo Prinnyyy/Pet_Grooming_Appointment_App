@@ -470,8 +470,9 @@ struct BeckonBottomPromptArea<Content: View>: View {
 @MainActor
 @Observable
 final class BeckonFeedbackCenter {
-    static let noticeDismissDelayNanoseconds: UInt64 = 2_000_000_000
-    static let errorDismissDelayNanoseconds: UInt64 = 2_000_000_000
+    // Compatibility floors for existing callers; actual prompts use their own reading time below.
+    static let noticeDismissDelayNanoseconds: UInt64 = 4_000_000_000
+    static let errorDismissDelayNanoseconds: UInt64 = 5_000_000_000
     static let queuedPromptAdvanceDelayNanoseconds: UInt64 = 280_000_000
 
     private var debugRecorder: AppDebugEventRecorder?
@@ -482,7 +483,8 @@ final class BeckonFeedbackCenter {
     private var dismissedErrorKeys: Set<BeckonGlobalFeedbackError.ContentKey> = []
     private var isWaitingToShowQueuedPrompt = false
     private var queuedPromptAdvanceTask: Task<Void, Never>?
-    private var errorDismissTask: Task<Void, Never>?
+    private var promptDismissTask: Task<Void, Never>?
+    private(set) var promptExpiresAt: Date?
     private var hasAnnouncedActivePrompt = false
 
     init(debugRecorder: AppDebugEventRecorder? = nil) {
@@ -581,6 +583,10 @@ final class BeckonFeedbackCenter {
         notice != nil || error != nil || progress != nil
     }
 
+    var remainingPromptSeconds: TimeInterval? {
+        promptExpiresAt.map { max(0, $0.timeIntervalSinceNow) }
+    }
+
     var accessibilityAnnouncement: String? {
         if let notice { return notice.message }
         if let error { return [error.title, error.message].compactMap { $0 }.joined(separator: ". ") }
@@ -670,7 +676,7 @@ final class BeckonFeedbackCenter {
 
     private func present(_ prompt: QueuedPrompt) {
         hasAnnouncedActivePrompt = false
-        cancelErrorDismissTask()
+        cancelPromptDismissTask()
         notice = nil
         error = nil
         progress = nil
@@ -678,9 +684,15 @@ final class BeckonFeedbackCenter {
         switch prompt {
         case let .notice(notice):
             self.notice = notice
+            schedulePromptDismiss(after: FeedbackTimingPolicy.seconds(.notice, notice.message)) { center in
+                guard center.notice?.id == notice.id else { return }
+                center.clearNotice(id: notice.id)
+            }
         case let .error(error):
             self.error = error
-            scheduleErrorDismiss(for: error)
+            schedulePromptDismiss(after: FeedbackTimingPolicy.seconds(.error, error.title, error.message)) { center in
+                center.dismissActiveErrorIfNeeded(matching: error.contentKey)
+            }
         case let .progress(progress):
             self.progress = progress
         }
@@ -695,7 +707,7 @@ final class BeckonFeedbackCenter {
 
     private func dismissActivePrompt() {
         let dismissedPrompt = activePrompt
-        cancelErrorDismissTask()
+        cancelPromptDismissTask()
         notice = nil
         error = nil
         progress = nil
@@ -716,23 +728,20 @@ final class BeckonFeedbackCenter {
         dismissActivePrompt()
     }
 
-    private func scheduleErrorDismiss(for error: BeckonGlobalFeedbackError) {
-        let contentKey = error.contentKey
-        errorDismissTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: Self.errorDismissDelayNanoseconds)
+    private func schedulePromptDismiss(after seconds: TimeInterval, dismiss: @escaping @MainActor (BeckonFeedbackCenter) -> Void) {
+        promptExpiresAt = Date().addingTimeInterval(seconds)
+        promptDismissTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(seconds))
             guard !Task.isCancelled else { return }
-
-            await MainActor.run {
-                withAnimation(.easeInOut(duration: 0.28)) {
-                    self?.dismissActiveErrorIfNeeded(matching: contentKey)
-                }
-            }
+            guard let self else { return }
+            dismiss(self)
         }
     }
 
-    private func cancelErrorDismissTask() {
-        errorDismissTask?.cancel()
-        errorDismissTask = nil
+    private func cancelPromptDismissTask() {
+        promptDismissTask?.cancel()
+        promptDismissTask = nil
+        promptExpiresAt = nil
     }
 
     private func scheduleQueuedPromptAdvanceIfNeeded() {
@@ -1038,187 +1047,206 @@ struct BeckonGlobalFeedbackForwarder: View {
     }
 }
 
-struct BeckonGlobalFeedbackOverlay: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    static let bottomTabBarClearance = DesignTokens.Spacing.xl * 3 + DesignTokens.Spacing.sm
-    static let sheetBottomClearance = DesignTokens.Spacing.xl
+enum BeckonToastTone {
+    case success
+    case error
+    case neutral
 
-    let center: BeckonFeedbackCenter
-    let bottomPadding: CGFloat
-
-    init(
-        center: BeckonFeedbackCenter,
-        bottomPadding: CGFloat = Self.bottomTabBarClearance
-    ) {
-        self.center = center
-        self.bottomPadding = bottomPadding
-    }
-
-    var body: some View {
-        if center.hasVisiblePrompt {
-            BeckonBottomPromptStack(
-                bottomPadding: bottomPadding,
-                animationValue: center.animationKey
-            ) {
-                if let progress = center.progress {
-                    BeckonStatusProgressToast(
-                        progress.title,
-                        tint: progress.tone.tint
-                    )
-                }
-
-                if let error = center.error {
-                    BeckonBottomErrorPrompt(
-                        title: error.title,
-                        message: error.message
-                    )
-                }
-
-                if let notice = center.notice {
-                    BeckonNoticeToast(message: notice.message)
-                        .task(id: notice.id) {
-                            await dismissNotice(id: notice.id)
-                        }
-                }
-            }
-            .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
-            .allowsHitTesting(false)
-            .onChange(of: center.animationKey, initial: true) { _, _ in
-                if let announcement = center.consumeAccessibilityAnnouncement() {
-                    UIAccessibility.post(notification: .announcement, argument: announcement)
-                }
-            }
+    var disc: Color {
+        switch self {
+        case .success: DesignTokens.Colors.customerFill
+        case .error: DesignTokens.Colors.statusErrorFill
+        case .neutral: DesignTokens.Colors.iconTileFill
         }
     }
 
-    private func dismissNotice(id: UUID) async {
-        try? await Task.sleep(
-            nanoseconds: BeckonFeedbackCenter.noticeDismissDelayNanoseconds
-        )
-        guard !Task.isCancelled else { return }
+    var glyph: Color {
+        switch self {
+        case .success: DesignTokens.Colors.customerInk
+        case .error: DesignTokens.Colors.statusErrorText
+        case .neutral: DesignTokens.Colors.customerDeep
+        }
+    }
 
-        await MainActor.run {
-            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.28)) {
-                center.clearNotice(id: id)
-            }
+    var track: Color {
+        switch self {
+        case .success, .neutral: DesignTokens.Colors.customerTint
+        case .error: DesignTokens.Colors.statusErrorFill
+        }
+    }
+
+    var bar: Color {
+        switch self {
+        case .success, .neutral: DesignTokens.Colors.customerFill
+        case .error: DesignTokens.Colors.statusErrorText
         }
     }
 }
 
-struct BeckonNoticeToast: View {
-    private let message: String
 
-    init(message: String) {
-        self.message = message
+/// The one message layout, shared by toasts and the snackbar (`DesignSnackbar`): round icon, title (and an optional
+/// second line), an optional trailing control (the snackbar's action), and for self-dismissing messages a countdown bar along the
+/// bottom of the card. At accessibility sizes the trailing control drops under the text instead of squeezing it.
+struct BeckonToastCard<Icon: View, Trailing: View>: View {
+    let title: String
+    let detail: String?
+    let tone: BeckonToastTone
+    let duration: TimeInterval?
+    let icon: Icon
+    let trailing: Trailing
+    let hasTrailing: Bool
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    init(title: String, detail: String? = nil, tone: BeckonToastTone, duration: TimeInterval? = nil,
+         @ViewBuilder icon: () -> Icon, @ViewBuilder trailing: () -> Trailing) {
+        self.title = title
+        self.detail = detail
+        self.tone = tone
+        self.duration = duration
+        self.icon = icon()
+        self.trailing = trailing()
+        hasTrailing = true
     }
 
     var body: some View {
-        BeckonBottomPrompt(borderColor: DesignTokens.Colors.statusSuccessBorder) {
-            HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-                Image(systemName: "checkmark")
-                    .font(.footnote.weight(.heavy))
-                    .foregroundStyle(DesignTokens.Colors.surface)
-                    .frame(width: 32, height: 32)
-                    .background(DesignTokens.Colors.statusSuccessText)
-                    .clipShape(DesignTokens.Shapes.circular)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            HStack(alignment: typeSize.isAccessibilitySize ? .top : .center, spacing: DesignTokens.Spacing.md) {
+                icon
+                    .dynamicTypeSize(.large)
+                    .frame(width: DesignTokens.Metrics.ledgeIconTile, height: DesignTokens.Metrics.ledgeIconTile)
+                    .background(tone.disc, in: Circle())
                     .accessibilityHidden(true)
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(title)
-                        .font(DesignTokens.Typography.body.weight(.bold))
+                        .font(DesignTokens.Typography.Expressive.emphasis)
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
 
                     if let detail {
                         Text(detail)
-                            .font(DesignTokens.Typography.caption)
+                            .font(DesignTokens.Typography.Expressive.chip)
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+
+                if hasTrailing, !typeSize.isAccessibilitySize { trailing }
+            }
+
+            if hasTrailing, typeSize.isAccessibilitySize { trailing }
+
+            if let duration {
+                BeckonToastCountdown(duration: duration, tone: tone)
             }
         }
-    }
-
-    private var title: String {
-        Self.titleCase(parts.title)
-    }
-
-    private var detail: String? {
-        parts.detail
-    }
-
-    private var parts: (title: String, detail: String?) {
-        let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
-        let split = trimmed.split(separator: ".", maxSplits: 1, omittingEmptySubsequences: true)
-        guard let first = split.first else {
-            return (trimmed, nil)
-        }
-
-        let title = String(first)
-        guard split.count > 1 else {
-            return (title, nil)
-        }
-
-        let detail = String(split[1]).trimmingCharacters(in: .whitespacesAndNewlines)
-        return (title, detail.isEmpty ? nil : detail)
-    }
-
-    private static func titleCase(_ value: String) -> String {
-        value
-            .split(separator: " ")
-            .map { word in
-                let lowercased = word.lowercased()
-                guard let first = lowercased.first else { return "" }
-                return first.uppercased() + lowercased.dropFirst()
-            }
-            .joined(separator: " ")
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.vertical, DesignTokens.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .beckonLedge(.card)
+        // A toast with a control keeps it a separate element for VoiceOver; the others read as one sentence.
+        .accessibilityElement(children: hasTrailing ? .contain : .combine)
     }
 }
+
+
+extension BeckonToastCard where Trailing == EmptyView {
+    init(title: String, detail: String? = nil, tone: BeckonToastTone, duration: TimeInterval? = nil,
+         @ViewBuilder icon: () -> Icon) {
+        self.title = title
+        self.detail = detail
+        self.tone = tone
+        self.duration = duration
+        self.icon = icon()
+        trailing = EmptyView()
+        hasTrailing = false
+    }
+}
+
+
+/// A rounded bar that drains from full to empty over `duration`, anchored at the leading edge so it empties toward the icon. It
+/// starts when it appears, so a toast that is replaced (new `id`) starts a fresh bar. Hidden from VoiceOver: the toast
+/// is announced when it appears and the bar only repeats what the clock does anyway.
+private struct BeckonToastCountdown: View {
+    let duration: TimeInterval
+    let tone: BeckonToastTone
+    @State private var remaining: CGFloat = 1
+
+    private let height: CGFloat = 6
+
+    var body: some View {
+        GeometryReader { proxy in
+            Capsule()
+                .fill(tone.track)
+                .overlay(alignment: .leading) {
+                    Capsule()
+                        .fill(tone.bar)
+                        .frame(width: proxy.size.width * remaining)
+                }
+        }
+        .frame(height: height)
+        .onAppear {
+            withAnimation(.linear(duration: duration)) { remaining = 0 }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+
+struct BeckonNoticeToast: View {
+    private let message: String
+    private let duration: TimeInterval?
+
+    init(message: String, duration: TimeInterval? = nil) {
+        self.message = message
+        self.duration = duration
+    }
+
+    var body: some View {
+        let parts = Self.split(message)
+        BeckonToastCard(title: parts.title, detail: parts.detail, tone: .success, duration: duration) {
+            Image(systemName: "checkmark")
+                .font(DesignTokens.Typography.Expressive.label.weight(.heavy))
+                .foregroundStyle(DesignTokens.Colors.customerInk)
+        }
+    }
+
+    /// "Changes saved. Your edits are live." reads as a title and a second line; a message without a sentence break is only a
+    /// title, without its closing full stop.
+    static func split(_ message: String) -> (title: String, detail: String?) {
+        let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let range = trimmed.range(of: ". ") {
+            let detail = String(trimmed[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+            return (String(trimmed[..<range.lowerBound]), detail.isEmpty ? nil : detail)
+        }
+        return (trimmed.hasSuffix(".") ? String(trimmed.dropLast()) : trimmed, nil)
+    }
+}
+
 
 struct BeckonBottomErrorPrompt: View {
     private let title: String
     private let message: String?
+    private let duration: TimeInterval?
 
-    init(title: String, message: String? = nil) {
+    init(title: String, message: String? = nil, duration: TimeInterval? = nil) {
         self.title = title
         self.message = message
+        self.duration = duration
     }
 
     var body: some View {
-        BeckonBottomPrompt(borderColor: DesignTokens.Colors.statusErrorBorder) {
-            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(DesignTokens.Typography.body.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.statusErrorText)
-                    .frame(
-                        width: DesignTokens.Spacing.xl + DesignTokens.Spacing.sm,
-                        height: DesignTokens.Spacing.xl + DesignTokens.Spacing.sm
-                    )
-                    .background(DesignTokens.Colors.statusErrorFill)
-                    .clipShape(DesignTokens.Shapes.circular)
-                    .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(title)
-                        .font(DesignTokens.Typography.body.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    if let message {
-                        Text(message)
-                            .font(DesignTokens.Typography.caption)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
+        BeckonToastCard(title: title, detail: message, tone: .error, duration: duration) {
+            Image(systemName: "exclamationmark")
+                .font(DesignTokens.Typography.Expressive.label.weight(.heavy))
+                .foregroundStyle(DesignTokens.Colors.statusErrorText)
         }
     }
 }
 
+
+/// Work in progress: a spinner instead of a check and no countdown, because it ends when the work does, not on a timer.
 struct BeckonStatusProgressToast: View {
     private let title: String
     private let tint: Color
@@ -1229,21 +1257,16 @@ struct BeckonStatusProgressToast: View {
     }
 
     var body: some View {
-        BeckonBottomPrompt {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                ProgressView()
-                    .tint(tint)
-
-                Text(title)
-                    .font(DesignTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity)
+        BeckonToastCard(title: title, tone: .neutral) {
+            ProgressView()
+                .tint(tint)
         }
     }
 }
 
+
+/// Tap a button, watch the real overlay: slide in, countdown, slide out. Runs the shared `BeckonFeedbackCenter`, so the queue is the
+/// one the app uses; the times are the reading times of `FeedbackTimingPolicy` (about 4 s for a short notice, 8 s for the long one).
 struct BeckonLoadingView: View {
     enum Accent {
         case customer
