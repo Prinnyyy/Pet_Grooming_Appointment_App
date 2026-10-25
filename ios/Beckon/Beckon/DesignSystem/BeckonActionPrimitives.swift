@@ -348,3 +348,139 @@ private struct BeckonShadowModifier: ViewModifier {
         )
     }
 }
+
+
+
+/// What a scrolling page is doing right now, so a tap that is really the end of a scroll can be ignored. One instance per
+/// scroll view, handed down through the environment by `beckonTracksScroll()`; a scroll view inside another one
+/// (a carousel in a page) also answers to the outer one.
+@MainActor
+final class BeckonScrollActivity {
+    var parent: BeckonScrollActivity?
+    private(set) var isScrolling = false
+    private var lastChange = Date.distantPast
+
+    func update(isScrolling: Bool) {
+        self.isScrolling = isScrolling
+        lastChange = Date()
+    }
+
+    /// Not moving, and not just stopped: a finger that lands to stop a fling or lifts at the end of a drag is not a tap.
+    var acceptsTap: Bool {
+        !isScrolling && Date().timeIntervalSince(lastChange) > 0.3 && (parent?.acceptsTap ?? true)
+    }
+}
+
+
+private struct BeckonScrollActivityKey: EnvironmentKey {
+    static let defaultValue: BeckonScrollActivity? = nil
+}
+
+
+extension EnvironmentValues {
+    var beckonScrollActivity: BeckonScrollActivity? {
+        get { self[BeckonScrollActivityKey.self] }
+        set { self[BeckonScrollActivityKey.self] = newValue }
+    }
+}
+
+
+private struct BeckonTracksScrollModifier: ViewModifier {
+    @Environment(\.beckonScrollActivity) private var outer
+    @State private var activity = BeckonScrollActivity()
+
+    func body(content: Content) -> some View {
+        content
+            .environment(\.beckonScrollActivity, activity)
+            .onAppear { activity.parent = outer }
+            .onScrollPhaseChange { old, new in
+                // Only real scrolling counts. A plain tap passes through `.tracking` and back to `.idle` and must not look like one.
+                func moves(_ phase: ScrollPhase) -> Bool { phase == .interacting || phase == .decelerating || phase == .animating }
+                if moves(old) || moves(new) { activity.update(isScrolling: moves(new)) }
+            }
+    }
+}
+
+
+extension View {
+    /// Put on a `ScrollView`: the buttons and links inside (guarded styles) stop acting while it moves.
+    func beckonTracksScroll() -> some View { modifier(BeckonTracksScrollModifier()) }
+}
+
+
+/// Remembers whether a control has been on the move. Not a gesture: it only looks at where the control is on screen.
+final class BeckonTapGuard {
+    private var origin: CGPoint?
+    private var lastMove = Date.distantPast
+
+    /// Called with the control's position on screen whenever it changes.
+    func observe(_ newOrigin: CGPoint) {
+        if let origin, abs(origin.x - newOrigin.x) > 0.5 || abs(origin.y - newOrigin.y) > 0.5 { lastMove = Date() }
+        origin = newOrigin
+    }
+
+    /// A lift is a tap only if the control has held still for a moment (the page is not scrolling, coasting or being dragged)
+    /// and the scroll view around it is not moving or just stopped.
+    @MainActor
+    func allowsTap(activity: BeckonScrollActivity?) -> Bool {
+        Date().timeIntervalSince(lastMove) > 0.35 && (activity?.acceptsTap ?? true)
+    }
+}
+
+
+private struct BeckonObservesMotionModifier: ViewModifier {
+    let tapGuard: BeckonTapGuard
+
+    func body(content: Content) -> some View {
+        content.onGeometryChange(for: CGPoint.self) { geometry in
+            geometry.frame(in: .global).origin
+        } action: { origin in
+            tapGuard.observe(origin)
+        }
+    }
+}
+
+
+/// The one place that decides whether a lift is a tap. The platform cancels a tap when the touch turns into a scroll; this
+/// repeats that rule explicitly for every ledge and plain button and link, because a drag that starts on a big card and ends
+/// over it must never open it. It adds no gesture, so scrolling that starts on a card is untouched, and the wrapped button
+/// keeps its own press look (delayed until the touch settles) and its accessibility.
+struct BeckonGuardedButtonBody<Style: ButtonStyle>: View {
+    let configuration: PrimitiveButtonStyleConfiguration
+    let style: Style
+    @Environment(\.beckonScrollActivity) private var activity
+    @State private var tapGuard = BeckonTapGuard()
+
+    var body: some View {
+        Button(role: configuration.role) {
+            guard tapGuard.allowsTap(activity: activity) else { return }
+            configuration.trigger()
+        } label: {
+            configuration.label
+        }
+        .buttonStyle(style)
+        .modifier(BeckonObservesMotionModifier(tapGuard: tapGuard))
+    }
+}
+
+
+/// `.plain` made scroll-friendly: no chrome, a light dim while pressed, and the dim waits for the touch to settle like every
+/// other press, so scrolling over a row does not flash it.
+struct BeckonBarePressStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        let isEnabled = isEnabled
+        return BeckonSettledPress(isPressed: configuration.isPressed) { pressed in
+            configuration.label.opacity(!isEnabled ? 0.4 : pressed ? 0.6 : 1)
+        }
+    }
+}
+
+
+/// `.plain` for cards and rows that are links or buttons in a scrolling page, with the same drag-is-not-a-tap rule.
+struct BeckonGuardedPlainButtonStyle: PrimitiveButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        BeckonGuardedButtonBody(configuration: configuration, style: BeckonBarePressStyle())
+    }
+}

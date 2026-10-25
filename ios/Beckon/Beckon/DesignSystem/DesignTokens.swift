@@ -1,5 +1,6 @@
 import SwiftUI
 
+
 enum DesignTokens {
     struct ShadowStyle {
         let color: Color
@@ -133,6 +134,9 @@ enum DesignTokens {
         static let statusNeutralBorder = Color(hex: ColorHex.statusNeutralBorder)
         static let surfaceRaised = surface
         static let divider = borderSoft
+        /// What a dialog dims the page with: the warm ink, not black, so the page stays warm underneath. The one place a
+        /// translucent fill is allowed, because dimming is what a scrim is.
+        static let scrim = Color(hex: ColorHex.textPrimary, opacity: 0.46)
 
     }
 
@@ -175,6 +179,19 @@ enum DesignTokens {
         static let fieldHeight: CGFloat = 52
         static let actionHeight: CGFloat = 52
         static let settingsIconSlot: CGFloat = 36
+        // Expressive (Lively) surfaces; see docs/01_product/LIVELY_UI_SPEC.md.
+        static let ledgeRoundControl: CGFloat = 54
+        static let ledgeIconTile: CGFloat = 34
+        /// The large tinted disc (the Home add slot); `ledgeIconTile` and `minimumTouchTarget` are the other two sizes.
+        static let iconDiscLarge: CGFloat = 60
+        static let ledgePrimaryButtonHeight: CGFloat = 58
+        static let journeyNode: CGFloat = 42
+        /// Home pet card and its add slot: one fixed size, whatever the pet's data. Height scales with Dynamic Type.
+        static let carouselCardWidth: CGFloat = 172
+        static let petCardWidth: CGFloat = 176
+        static let petCardHeight: CGFloat = 288
+        /// Widest a dialog (alert or modal) grows; on a phone it is the screen minus the gutters.
+        static let dialogMaxWidth: CGFloat = 360
     }
 
     enum CornerRadius {
@@ -182,6 +199,82 @@ enum DesignTokens {
         static let button: CGFloat = 18
         static let input: CGFloat = 16
         static let bottomSheet: CGFloat = 28
+        // Expressive (Lively) surfaces.
+        static let hero: CGFloat = 30
+        static let ledgeButton: CGFloat = 20
+        /// Tiles and portraits nested inside a card.
+        static let inset: CGFloat = 18
+        static let pill: CGFloat = 14
+        /// Large enough to clamp a ledge control to a circle.
+        static let round: CGFloat = 99
+    }
+
+    /// Height of the opaque ledge under an expressive surface. A lip, never a blur or glow.
+    enum Ledge {
+        static let button: CGFloat = 6
+        static let card: CGFloat = 5
+        static let control: CGFloat = 4
+        static let pill: CGFloat = 3
+        static let edgeWidth: CGFloat = 2
+        static let dashedEdgeWidth: CGFloat = 2.5
+        static let dash: [CGFloat] = [7, 6]
+    }
+
+    /// Springs and timings for expressive (Tier L/M) motion. Reduce Motion collapses all of them to `reduced`.
+    enum Motion {
+        /// Face sinks into its lip, then springs back with overshoot.
+        static let press = Animation.spring(response: 0.26, dampingFraction: 0.46)
+        /// Progress and stage changes.
+        static let settle = Animation.spring(response: 0.6, dampingFraction: 0.62)
+        /// State flips on a node or badge.
+        static let bounce = Animation.spring(response: 0.5, dampingFraction: 0.5)
+        /// Content swaps.
+        static let swap = Animation.spring(response: 0.45, dampingFraction: 0.7)
+        static let reduced = Animation.easeOut(duration: 0.15)
+        /// A dialog drops in with a little overshoot and leaves quickly; the page behind it is not worth waiting for.
+        static let dialogEnter = Animation.spring(response: 0.42, dampingFraction: 0.66)
+        static let dialogExit = Animation.easeIn(duration: 0.16)
+        /// How long a finger must stay on a button before it sinks and buzzes. A touch that turns into a scroll cancels
+        /// well inside this, so scrolling over cards and pills stays quiet.
+        static let pressSettleMilliseconds = 80
+        static let stagger = 0.075
+        static let maxStaggerSteps = 8
+
+        /// How a family of pages arrives. Every block of a page lands one `beat` after the one above it (the first block, the
+        /// leader, lands with more bounce), travelling `travel` points from where it settles, so all pages of a family keep
+        /// one tempo. Springs overshoot on purpose: the page is dealt, not faded in.
+        struct Entrance {
+            /// Seconds between two blocks.
+            let beat: Double
+            /// Blocks past this many all land together with the last one, so a long page never trickles.
+            let maxBeats: Int
+            /// Points a block starts away from its place (up from below, or in from the side along a journey).
+            let travel: CGFloat
+            let scale: CGFloat
+            let leaderScale: CGFloat
+            /// Degrees a block starts turned; the sign alternates block by block. Zero keeps a page upright.
+            let tilt: Double
+            let spring: Animation
+            let leaderSpring: Animation
+        }
+
+        /// A journey of steps (request wizard, pet form): blocks slide in from the side the person is heading to, with a lean.
+        /// Quicker than the other two on purpose (S-039): a person taps Continue again and again, and each step is dealt for only
+        /// about a third of a second before the next tap can come.
+        static let stepEntrance = Entrance(beat: 0.045, maxBeats: 6, travel: 36, scale: 0.94, leaderScale: 0.88, tilt: 1.8,
+            spring: .spring(response: 0.4, dampingFraction: 0.6), leaderSpring: .spring(response: 0.44, dampingFraction: 0.54))
+        /// A detail page (request, booking, groomer): the hero lands first, the rest rises under it, upright and a touch slower.
+        static let detailEntrance = Entrance(beat: 0.085, maxBeats: 4, travel: 30, scale: 0.94, leaderScale: 0.88, tilt: 0,
+            spring: .spring(response: 0.52, dampingFraction: 0.62), leaderSpring: .spring(response: 0.58, dampingFraction: 0.52))
+        /// A tab root or a list: cards are dealt quickly, a small lean on each.
+        static let listEntrance = Entrance(beat: 0.055, maxBeats: 6, travel: 24, scale: 0.96, leaderScale: 0.9, tilt: 1.0,
+            spring: .spring(response: 0.46, dampingFraction: 0.62), leaderSpring: .spring(response: 0.52, dampingFraction: 0.54))
+        /// The primary action leans in a little after a page lands.
+        static let bumpScale: CGFloat = 0.92
+        /// The current node of a step path while a flow moves along it.
+        static let currentNodeScale: CGFloat = 1.14
+        /// Decorative loops redraw at this rate.
+        static let idleFrame = 1.0 / 30
     }
 
     enum Shapes {
@@ -220,6 +313,25 @@ enum DesignTokens {
         static let action = Font.headline.weight(.semibold)
         static let prominentAction = Font.title3.weight(.semibold)
 
+        /// SF Rounded roles for expressive (Tier L/M) screens. Still semantic text styles, so Dynamic Type applies.
+        enum Expressive {
+            static let display = Font.system(.largeTitle, design: .rounded, weight: .black)
+            static let hero = Font.system(.title, design: .rounded, weight: .black)
+            static let section = Font.system(.title2, design: .rounded, weight: .black)
+            static let title = Font.system(.title3, design: .rounded, weight: .black)
+            static let headline = Font.system(.headline, design: .rounded, weight: .black)
+            static let body = Font.system(.callout, design: .rounded, weight: .semibold)
+            static let supporting = Font.system(.subheadline, design: .rounded, weight: .semibold)
+            static let emphasis = Font.system(.subheadline, design: .rounded, weight: .black)
+            static let label = Font.system(.footnote, design: .rounded, weight: .black)
+            static let labelMuted = Font.system(.footnote, design: .rounded, weight: .bold)
+            static let caption = Font.system(.caption, design: .rounded, weight: .black)
+            static let chip = Font.system(.caption, design: .rounded, weight: .bold)
+            static let micro = Font.system(.caption2, design: .rounded, weight: .black)
+            static let glyph = Font.system(.title3, design: .rounded, weight: .bold)
+            static let glyphLarge = Font.system(.title, design: .rounded, weight: .bold)
+        }
+
         // Compatibility names remain until the source audit reports zero usage.
         static let largeTitle = Font.largeTitle.weight(.bold)
         static let title = Font.title.weight(.bold)
@@ -227,6 +339,7 @@ enum DesignTokens {
         static let caption = Font.caption.weight(.medium)
     }
 }
+
 
 private extension Color {
     init(hex: UInt, opacity: Double = 1) {
