@@ -1,11 +1,22 @@
 import SwiftUI
 
+
 struct GroomerCandidateSummaryView: View {
     let profile: MarketplaceGroomerSummary
     let avatarData: Data?
     var candidate: DiscoveredGroomer? = nil
     var compact = false
+    /// Where the groomer stands for the request ("Invited", "Not a fit"): a chip in the row of the Verified chip, so it never adds a row.
+    var status: (title: String, systemImage: String)? = nil
+    /// The card behind is mint (it is ticked): the chips go white.
+    var onTint = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    @ViewBuilder
+    private var badges: some View {
+        if profile.isVerified { BeckonMetaChip(text: "Verified", systemImage: "checkmark.seal.fill", onTint: onTint) }
+        if let status { BeckonMetaChip(text: status.title, systemImage: status.systemImage, onTint: onTint) }
+    }
 
     private var summaryLayout: AnyLayout {
         dynamicTypeSize.isAccessibilitySize
@@ -26,8 +37,11 @@ struct GroomerCandidateSummaryView: View {
                     Text(profile.displayName)
                         .font(compact ? DesignTokens.Typography.Expressive.headline : DesignTokens.Typography.Expressive.title)
                         .fixedSize(horizontal: false, vertical: true)
-                    if profile.isVerified {
-                        BeckonMetaChip(text: "Verified", systemImage: "checkmark.seal.fill")
+                    if profile.isVerified || status != nil {
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: DesignTokens.Spacing.sm) { badges }
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) { badges }
+                        }
                     }
                     let location = [profile.city, profile.state].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ")
                     if !location.isEmpty {
@@ -55,23 +69,27 @@ struct GroomerCandidateSummaryView: View {
                     HStack(spacing: DesignTokens.Spacing.sm) { candidateChips(candidate) }
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) { candidateChips(candidate) }
                 }
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    Image(systemName: candidate.eligibility.state == "assessment_required" ? "stethoscope" : "checkmark.circle.fill")
-                        .foregroundStyle(DesignTokens.Colors.customerDeep)
-                        .accessibilityHidden(true)
-                    Text(candidate.eligibility.state == "assessment_required" ? "Needs groomer assessment" : "Fits your request")
-                        .font(DesignTokens.Typography.Expressive.emphasis)
-                        .foregroundStyle(DesignTokens.Colors.customerInk)
+                // Everyone on the list fits the request, so a box saying so on every card said nothing; it appears only for the
+                // exception, a groomer who has to see the pet first.
+                if candidate.eligibility.state == "assessment_required" {
+                    HStack(spacing: DesignTokens.Spacing.sm) {
+                        Image(systemName: "stethoscope")
+                            .foregroundStyle(DesignTokens.Colors.customerDeep)
+                            .accessibilityHidden(true)
+                        Text("Needs groomer assessment")
+                            .font(DesignTokens.Typography.Expressive.emphasis)
+                            .foregroundStyle(DesignTokens.Colors.customerInk)
+                    }
+                    .padding(DesignTokens.Spacing.md)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(DesignTokens.Colors.customerTint,
+                        in: RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.pill, style: .continuous))
                 }
-                .padding(DesignTokens.Spacing.md)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(DesignTokens.Colors.customerTint,
-                    in: RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.pill, style: .continuous))
                 if !compact {
                     if let evidence = candidate.matchingEvidence {
                         BeckonFitEvidenceBlock(scoreText: nil, summary: evidence.summary, reason: evidence.detail, isCompact: false)
                     }
-                    Text("Reference pricing. Your appointment is confirmed only after you accept an offer.")
+                    Text("Reference price. Booked when you accept an offer.")
                         .font(DesignTokens.Typography.Expressive.chip)
                         .foregroundStyle(DesignTokens.Colors.textTertiary)
                 }

@@ -11,6 +11,14 @@ final class SupabaseCustomerGroomerDiscoveryRepository: CustomerGroomerDiscovery
 
     init(client: SupabaseClient) { self.client = client }
 
+    func publicProfile(groomerID: UUID) async throws -> CustomerGroomerProfile {
+        do {
+            let row: CustomerGroomerProfileRow = try await client.rpc("get_customer_groomer_profile_v1",
+                params: ["p_groomer_id": groomerID.uuidString.lowercased()]).execute().value
+            return try row.profile(expectedID: groomerID)
+        } catch { throw RequestDiscoveryWireError.map(error) }
+    }
+
     func prepare(draftID: UUID, draft: GroomingRequestDraft) async throws -> DiscoverySession {
         do {
             let row: RequestDiscoverySessionRow = try await client.rpc("prepare_request_discovery_v1",

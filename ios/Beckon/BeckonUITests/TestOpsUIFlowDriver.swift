@@ -146,8 +146,7 @@ final class TestOpsUIFlowDriver {
 
     func assertCustomerNavigation() {
         assertTab("customer.tab.home", destination: "customer.home")
-        assertTab("customer.tab.requests", destination: "customer.requests.list")
-        assertTab("customer.tab.bookings", destination: "bookings.list")
+        assertTab("customer.tab.requests", destination: "customer.grooming.list")
         assertTab("customer.tab.messages", destination: "chat.conversations.list")
         assertTab("customer.tab.account", destination: "customer.account")
         assertTab("customer.tab.home", destination: "customer.home")
@@ -319,9 +318,10 @@ final class TestOpsUIFlowDriver {
     }
 
     func publishTaggedRequest(_ context: TestOpsLifecycleContext) -> String {
-        let startRequest = app.buttons["customer.home.start-request"]
-        XCTAssertTrue(startRequest.waitForExistence(timeout: 12))
-        startRequest.tap()
+        tap(element("customer.tab.requests"))
+        let existing = Set(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'customer.grooming.details.'")).allElementsBoundByIndex.map(\.identifier))
+        tap(element("customer.tab.home"))
+        tap(app.buttons["customer.home.start-request"])
 
         XCTAssertTrue(element("customer.requests.wizard").waitForExistence(timeout: 8))
         tap(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@",
@@ -333,8 +333,9 @@ final class TestOpsUIFlowDriver {
 
         let useProfileAddress = element("customer.requests.use-profile-address")
         XCTAssertTrue(useProfileAddress.waitForExistence(timeout: 8))
+        scrollToHittable(useProfileAddress)
         useProfileAddress.tap()
-        let streetField = element("customer.requests.address.street")
+        let streetField = element("beckon.address.line1")
         XCTAssertTrue(streetField.waitForExistence(timeout: 5))
         XCTAssertTrue(waitForPopulatedValue(streetField, timeout: 15))
         tap(element("customer.requests.wizard.continue"))
@@ -349,11 +350,13 @@ final class TestOpsUIFlowDriver {
         let publishButton = element("customer.requests.publish")
         XCTAssertTrue(publishButton.waitForExistence(timeout: 8))
         tap(publishButton)
+        app.sendCurrentPreviewToPool()
         XCTAssertTrue(element("customer.requests.wizard").waitForNonExistence(timeout: 30))
 
         tap(element("customer.tab.requests"))
-        XCTAssertTrue(element("customer.requests.list").waitForExistence(timeout: 15))
-        let requestDetail = element("customer.requests.row.\(context.runID)")
+        XCTAssertTrue(element("customer.grooming.list").waitForExistence(timeout: 15))
+        let requestDetail = app.buttons.matching(NSPredicate(format:
+            "identifier BEGINSWITH 'customer.grooming.details.' AND NOT (identifier IN %@)", Array(existing))).firstMatch
         XCTAssertTrue(
             requestDetail.waitForExistence(timeout: 20),
             "Available request selectors: \(identifiers(withPrefix: "customer.requests"))"
@@ -396,12 +399,9 @@ final class TestOpsUIFlowDriver {
         requestReference: String
     ) {
         tap(element("customer.tab.requests"))
-        XCTAssertTrue(element("customer.requests.list").waitForExistence(timeout: 15))
+        XCTAssertTrue(element("customer.grooming.list").waitForExistence(timeout: 15))
 
-        let detail = app.buttons
-            .matching(identifier: "customer.requests.row.\(context.runID)")
-            .matching(NSPredicate(format: "label == 'Request Detail'"))
-            .firstMatch
+        let detail = app.groomingEntry(reference: requestReference)
         XCTAssertTrue(detail.waitForExistence(timeout: 20))
         tap(detail)
         XCTAssertTrue(element("customer.requests.detail").waitForExistence(timeout: 10))
@@ -411,21 +411,12 @@ final class TestOpsUIFlowDriver {
         offerRow.tap()
         XCTAssertTrue(element("customer.offers.detail").waitForExistence(timeout: 10))
 
-        let accept = button("customer.offers.accept")
+        let accept = button("customer.offers.confirm")
         scrollToHittable(accept)
         accept.tap()
         XCTAssertTrue(accept.waitForNonExistence(timeout: 30))
 
-        tap(element("customer.tab.bookings"))
-        XCTAssertTrue(element("bookings.list").waitForExistence(timeout: 15))
-        let bookingRow = button("bookings.row.request.\(requestReference)")
-        XCTAssertTrue(bookingRow.waitForExistence(timeout: 20))
-        tap(bookingRow)
-        XCTAssertTrue(element("bookings.detail").waitForExistence(timeout: 10))
-        XCTAssertTrue(
-            button("customer.booking.cancel.request.\(requestReference)")
-                .waitForExistence(timeout: 5)
-        )
+        XCTAssertTrue(element("bookings.detail").waitForExistence(timeout: 20))
 
         let openChat = button("bookings.detail.open-chat")
         scrollToHittable(openChat)
@@ -464,11 +455,10 @@ final class TestOpsUIFlowDriver {
         _ context: TestOpsLifecycleContext,
         requestReference: String
     ) {
-        tap(element("customer.tab.bookings"))
-        XCTAssertTrue(element("bookings.list").waitForExistence(timeout: 15))
-        tap(button("bookings.scope.past"))
+        tap(element("customer.tab.requests"))
+        XCTAssertTrue(element("customer.grooming.list").waitForExistence(timeout: 15))
 
-        let bookingRow = button("bookings.row.request.\(requestReference)")
+        let bookingRow = app.groomingEntry(reference: requestReference)
         XCTAssertTrue(bookingRow.waitForExistence(timeout: 20))
         tap(bookingRow)
         XCTAssertTrue(element("bookings.detail").waitForExistence(timeout: 10))
@@ -609,5 +599,27 @@ private extension XCUIElement {
         let predicate = NSPredicate(format: "exists == false")
         let expectation = XCTNSPredicateExpectation(predicate: predicate, object: self)
         return XCTWaiter.wait(for: [expectation], timeout: timeout) == .completed
+    }
+}
+
+@MainActor
+extension XCUIApplication {
+    /// The adopted publication boundary: preview, explicit pool consent, then Send.
+    func sendCurrentPreviewToPool() {
+        let pool = switches["discovery.pool-consent"].firstMatch
+        guard pool.waitForExistence(timeout: 20) else {
+            XCTFail("Expected request preview before publication")
+            return
+        }
+        if pool.value as? String == "0" { pool.tap() }
+        buttons["discovery.publish-pool"].tap()
+        let confirm = buttons["discovery.confirm-send"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        confirm.tap()
+    }
+
+    func groomingEntry(reference: String, past: Bool = false) -> XCUIElement {
+        buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@ AND value == %@",
+            past ? "customer.grooming.past." : "customer.grooming.details.", reference)).firstMatch
     }
 }

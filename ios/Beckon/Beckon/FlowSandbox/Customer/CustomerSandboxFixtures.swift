@@ -101,7 +101,7 @@ enum CustomerSandboxFixtures {
             groomingNotes: "Sensitive paws. Please take breaks.", isActive: true, revision: id(100 + index))
     }
 
-    static func request(state: CustomerSandboxState = .loaded, now: Date = .now) -> CustomerGroomingRequest {
+    static func request(state: CustomerSandboxState = .loaded, now: Date = .now, id: UUID? = nil) -> CustomerGroomingRequest {
         let pet = pet(longNames: state == .longNames)
         let status: GroomingRequestStatus = switch state {
         case .open: .open
@@ -111,14 +111,14 @@ enum CustomerSandboxFixtures {
         default: .hasOffers
         }
         let base = CustomerHomePreviewRequestRepository(pet: pet, now: now).storedRequests[0]
-        return CustomerGroomingRequest(id: requestID, customerID: customerID, petID: pet.id,
+        return CustomerGroomingRequest(id: id ?? requestID, customerID: customerID, petID: pet.id,
             petSnapshot: base.petSnapshot, photoSnapshot: [], serviceType: .fullGroom,
             serviceNotes: base.serviceNotes, preferredStart: base.preferredStart, preferredEnd: base.preferredEnd,
             locationMode: .groomerComesToCustomer, streetAddress: address.streetAddress,
             city: address.city, state: address.state, zipCode: address.zipCode, travelRadiusMiles: nil,
             status: status, expiresAt: now.addingTimeInterval(state == .expired ? -3600 : 86400).ISO8601Format(),
             createdAt: now.ISO8601Format(), updatedAt: now.ISO8601Format(),
-            preferenceTimeZoneIdentifier: zone, termsRevision: id(120))
+            preferenceTimeZoneIdentifier: zone, termsRevision: Self.id(120))
     }
 
     static func agreement(request: CustomerGroomingRequest, quote: UUID, start: String, end: String,

@@ -1,4 +1,8 @@
+// S-084: the pages before sign-in. The landing is `AuthenticationLanding` (the original's lockup, centered, buttons pinned).
+// Form: the mint banner of the app's pages with the pup, the fields with their symbol, the one decision pinned above the keyboard,
+// and the other mode as a quiet line instead of a second big button.
 import SwiftUI
+
 
 nonisolated enum AuthenticationFocusTarget: String, CaseIterable, Hashable {
     case email = "auth.email.container"
@@ -6,16 +10,16 @@ nonisolated enum AuthenticationFocusTarget: String, CaseIterable, Hashable {
     case passwordConfirmation = "auth.password-confirmation.container"
 }
 
+
 struct AuthenticationView: View {
     @Bindable var store: AuthenticationStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.scenePhase) private var scenePhase
 
     @State private var surface: AuthenticationSurface = .landing
-    @State private var heroHasEntered = false
     /// Which way the next surface's blocks come from: up when the app opens, from the right going into the form, from the left
     /// going back, like the steps of the request wizard.
     @State private var travel = BeckonEntranceTravel.rise
+    @State private var heroHasEntered = false
     @State private var isPasswordVisible = false
     @FocusState private var focusedField: AuthenticationFocusTarget?
 
@@ -30,7 +34,7 @@ struct AuthenticationView: View {
 
     var body: some View {
         ZStack {
-            landingBackground
+            BeckonExpressiveBackdrop()
 
             // Between the two surfaces only the page fades; the blocks of each surface bring the motion (the wizard's rule).
             switch surface {
@@ -56,165 +60,53 @@ struct AuthenticationView: View {
         }
     }
 
-    private var landingBackground: some View {
-        BeckonExpressiveBackdrop()
-    }
+    // MARK: Landing
 
     private var landingSurface: some View {
-        GeometryReader { proxy in
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 0) {
-                    Color.clear
-                        .frame(
-                            height: max(
-                                proxy.size.height * 0.16,
-                                DesignTokens.Spacing.xl * 2
-                            )
-                        )
-                        .accessibilityHidden(true)
-
-                    landingHero
-
-                    Spacer(minLength: DesignTokens.Spacing.xl)
-
-                    landingActions
-                        .padding(
-                            .bottom,
-                            max(
-                                proxy.safeAreaInsets.bottom + DesignTokens.Spacing.lg,
-                                DesignTokens.Spacing.xl
-                            )
-                        )
-                }
-                .frame(maxWidth: .infinity)
-                .frame(minHeight: proxy.size.height)
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                .beckonEntranceClock()
-            }
-        }
-        .accessibilityIdentifier("auth.landing")
+        AuthenticationLanding(hasEntered: heroHasEntered, isBusy: store.isSubmitting,
+            onGetStarted: { openForm(.signUp) }, onSignIn: { openForm(.signIn) })
     }
 
-    private var landingHero: some View {
-        VStack(spacing: DesignTokens.Spacing.lg) {
-            BeckonBrandBubble(isMotionEnabled: !reduceMotion && scenePhase == .active,
-                hasEntered: heroHasEntered || reduceMotion)
-
-            // The bubble lands with its own spring (heroHasEntered); the words follow it as the first block.
-            VStack(spacing: DesignTokens.Spacing.sm) {
-                Text("Beckon")
-                    .font(DesignTokens.Typography.Expressive.display)
-                    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-
-                Text("Pet groomers at your beck and call.")
-                    .font(DesignTokens.Typography.Expressive.body)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(3)
-                    .frame(maxWidth: 310)
-            }
-            .beckonEntrance(0)
-        }
-        .frame(maxWidth: .infinity, minHeight: 320)
-        .accessibilityElement(children: .combine)
-    }
-
-    private var landingActions: some View {
-        VStack(spacing: DesignTokens.Spacing.lg) {
-            Button {
-                openForm(.signUp)
-            } label: {
-                Text("Get started")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(BeckonPrimaryButtonStyle(accent: .customer))
-            .disabled(store.isSubmitting)
-            .accessibilityIdentifier("auth.get-started")
-
-            Button {
-                openForm(.signIn)
-            } label: {
-                Text("I already have an account")
-                    .font(DesignTokens.Typography.Expressive.emphasis)
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.minimumTouchTarget)
-            }
-            .buttonStyle(BeckonLedgeButtonStyle(.card))
-            .disabled(store.isSubmitting)
-            .accessibilityIdentifier("auth.already-have-account")
-        }
-        .frame(maxWidth: 430)
-        .beckonEntrance(1)
-    }
+    // MARK: Form
 
     private var authFormSurface: some View {
-        GeometryReader { proxy in
-            ScrollViewReader { scrollProxy in
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 0) {
+        ScrollViewReader { scrollProxy in
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
                     formTopBar
-
-                    Spacer(
-                        minLength: max(
-                            proxy.size.height * 0.1,
-                            DesignTokens.Spacing.xl + DesignTokens.Spacing.lg
-                        )
-                    )
 
                     formHeader
                         .beckonEntrance(0)
 
-                    #if DEBUG
-                    if store.mode == .signIn {
-                        Spacer(minLength: DesignTokens.Spacing.lg)
-
-                        debugQuickLoginActions
-                            .beckonEntrance(1)
-
-                        Spacer(minLength: DesignTokens.Spacing.xl)
-                    } else {
-                        Spacer(minLength: DesignTokens.Spacing.xl + DesignTokens.Spacing.lg)
-                    }
-                    #else
-                    Spacer(minLength: DesignTokens.Spacing.xl + DesignTokens.Spacing.lg)
-                    #endif
+                    feedback
 
                     authFields
                         .beckonEntrance(1)
 
-                    Spacer(minLength: fieldsToActionsSpacing)
-
-                    authActions
+                    modeSwitch
                         .beckonEntrance(2)
 
-                    feedback
-                        .padding(.top, DesignTokens.Spacing.lg)
-
-                    Spacer(
-                        minLength: max(
-                            proxy.safeAreaInsets.bottom + DesignTokens.Spacing.lg,
-                            DesignTokens.Spacing.xl
-                        )
-                    )
+                    #if DEBUG
+                    if store.mode == .signIn {
+                        debugQuickLoginActions
+                            .beckonEntrance(3)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .frame(minHeight: proxy.size.height, alignment: .top)
-                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                    .padding(.top, DesignTokens.Spacing.md)
-                    .beckonEntranceClock()
+                    #endif
                 }
-                .beckonKeyboardAvoidance(
-                    focusedTarget: focusedField?.rawValue,
-                    using: scrollProxy
-                )
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                .padding(.top, DesignTokens.Spacing.md)
+                .padding(.bottom, DesignTokens.Spacing.xl)
+                .beckonEntranceClock()
             }
+            .accessibilityIdentifier("auth.form")
+            .beckonKeyboardAvoidance(
+                focusedTarget: focusedField?.rawValue,
+                using: scrollProxy
+            )
         }
         .scrollDismissesKeyboard(.interactively)
-        .accessibilityIdentifier("auth.form")
+        .safeAreaInset(edge: .bottom, spacing: 0) { submitBar }
     }
 
     private var formTopBar: some View {
@@ -236,34 +128,46 @@ struct AuthenticationView: View {
         }
     }
 
+    /// The mint banner of the app's pages with the pup resting on it: the same welcome as Home, so the first page after the
+    /// landing already looks like the app.
     private var formHeader: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text(formTitle)
-                .font(DesignTokens.Typography.Expressive.display)
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
+        DesignPupPeek {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                Text(formTitle)
+                    .font(DesignTokens.Typography.Expressive.hero)
+                    .foregroundStyle(DesignTokens.Colors.customerInk)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
 
-            Text(formSubtitle)
-                .font(DesignTokens.Typography.Expressive.body)
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-                .lineSpacing(4)
-                .fixedSize(horizontal: false, vertical: true)
+                Text(formSubtitle)
+                    .font(DesignTokens.Typography.Expressive.supporting)
+                    .foregroundStyle(DesignTokens.Colors.customerInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            // The pup's paws rest on the banner; the title starts below them, however long it is.
+            .padding(.top, DesignTokens.Spacing.md)
+            .designBanner()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var authFields: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
             labeledField("Email") {
-                TextField("lian@example.com", text: $store.email)
-                    .textContentType(.emailAddress)
-                    .keyboardType(.emailAddress)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .submitLabel(.next)
-                    .focused($focusedField, equals: .email)
-                    .beckonFormField()
-                    .accessibilityIdentifier("auth.email")
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    fieldSymbol("envelope.fill")
+                    TextField("lian@example.com", text: $store.email)
+                        .textContentType(.emailAddress)
+                        .keyboardType(.emailAddress)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .submitLabel(.next)
+                        .focused($focusedField, equals: .email)
+                        .onSubmit { advance(from: .email) }
+                        .accessibilityIdentifier("auth.email")
+                }
+                .beckonFormField()
+                .contentShape(Rectangle())
+                .onTapGesture { focusedField = .email }
             }
             .beckonKeyboardFocusTarget(AuthenticationFocusTarget.email.rawValue)
 
@@ -274,35 +178,53 @@ struct AuthenticationView: View {
             .beckonKeyboardFocusTarget(AuthenticationFocusTarget.password.rawValue)
 
             if store.mode == .signIn {
-                Button {
-                    Task { await store.beginPasswordRecovery() }
-                } label: {
-                    DesignQuietAction(title: "Forgot password?", systemImage: "key.fill")
+                HStack {
+                    Spacer(minLength: 0)
+                    Button {
+                        Task { await store.beginPasswordRecovery() }
+                    } label: {
+                        Text("Forgot password?")
+                            .font(DesignTokens.Typography.Expressive.emphasis)
+                            .foregroundStyle(DesignTokens.Colors.customerDeep)
+                            .frame(minHeight: DesignTokens.Metrics.minimumTouchTarget)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(BeckonGuardedPlainButtonStyle())
+                    .disabled(store.isSubmitting || store.isRecovering)
+                    .accessibilityIdentifier("auth.forgot-password")
                 }
-                .buttonStyle(BeckonGuardedPlainButtonStyle())
-                .disabled(store.isSubmitting || store.isRecovering)
-                .accessibilityIdentifier("auth.forgot-password")
+                .transition(.opacity)
             }
 
             if store.mode == .signUp {
                 labeledField("Confirm password") {
-                    SecureField("••••••••", text: $store.passwordConfirmation)
-                        .textContentType(.newPassword)
-                        .submitLabel(.go)
-                        .focused($focusedField, equals: .passwordConfirmation)
-                        .beckonFormField()
-                        .accessibilityIdentifier("auth.password-confirmation")
+                    HStack(spacing: DesignTokens.Spacing.md) {
+                        fieldSymbol("lock.fill")
+                        SecureField("••••••••", text: $store.passwordConfirmation)
+                            .textContentType(.newPassword)
+                            .submitLabel(.go)
+                            .focused($focusedField, equals: .passwordConfirmation)
+                            .onSubmit { advance(from: .passwordConfirmation) }
+                            .accessibilityIdentifier("auth.password-confirmation")
+                    }
+                    .beckonFormField()
+                    .contentShape(Rectangle())
+                    .onTapGesture { focusedField = .passwordConfirmation }
                 }
                 .beckonKeyboardFocusTarget(
                     AuthenticationFocusTarget.passwordConfirmation.rawValue
                 )
+                .transition(.opacity)
             }
         }
         .frame(maxWidth: .infinity)
+        .disabled(store.isSubmitting)
     }
 
     private var passwordInput: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
+            fieldSymbol("lock.fill")
+
             Group {
                 if isPasswordVisible {
                     TextField("••••••••", text: $store.password)
@@ -315,53 +237,66 @@ struct AuthenticationView: View {
             .autocorrectionDisabled()
             .submitLabel(store.mode == .signUp ? .next : .go)
             .focused($focusedField, equals: .password)
+            .onSubmit { advance(from: .password) }
 
             Button {
                 withAnimation(DesignTokens.Motion.reduced) {
                     isPasswordVisible.toggle()
                 }
             } label: {
-                Text(isPasswordVisible ? "Hide" : "Show")
-                    .font(DesignTokens.Typography.body.weight(.bold))
+                Image(systemName: isPasswordVisible ? "eye.slash.fill" : "eye.fill")
+                    .font(DesignTokens.Typography.Expressive.emphasis)
+                    .dynamicTypeSize(...DynamicTypeSize.xLarge)
                     .foregroundStyle(DesignTokens.Colors.customerDeep)
+                    .contentTransition(.symbolEffect(.replace))
+                    .frame(width: DesignTokens.Metrics.minimumTouchTarget, height: 28)
+                    .contentShape(Rectangle().inset(by: -DesignTokens.Spacing.sm))
             }
             .buttonStyle(BeckonGuardedPlainButtonStyle())
+            .accessibilityLabel(isPasswordVisible ? "Hide password" : "Show password")
             .accessibilityIdentifier("auth.password-visibility")
         }
+        .padding(.trailing, -DesignTokens.Spacing.sm)
         .beckonFormField()
+        .contentShape(Rectangle())
+        .onTapGesture { focusedField = .password }
     }
 
-    private var authActions: some View {
-        VStack(spacing: DesignTokens.Spacing.lg) {
+    /// The one decision of the page, above the keyboard instead of below the fields.
+    private var submitBar: some View {
+        BeckonPinnedBar {
             Button {
                 Task {
                     await store.submit()
                 }
             } label: {
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    if store.isSubmitting {
-                        ProgressView()
-                            .tint(DesignTokens.Colors.customerInk)
-                    }
-                    Text(store.isSubmitting ? "Please wait…" : store.mode.rawValue)
-                }
-                .frame(maxWidth: .infinity)
+                DesignActionLabel(
+                    title: store.isSubmitting ? "Please wait…" : store.mode.rawValue,
+                    systemImage: store.mode == .signIn ? "arrow.right" : "person.crop.circle.badge.plus",
+                    isBusy: store.isSubmitting
+                )
             }
-            .buttonStyle(BeckonPrimaryButtonStyle(accent: .customer))
+            .buttonStyle(BeckonLedgeButtonStyle(.pill))
             .disabled(store.isSubmitting)
             .accessibilityIdentifier("auth.submit")
-
-            Button {
-                switchAuthMode()
-            } label: {
-                Text(secondaryActionTitle)
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
-            .disabled(store.isSubmitting)
-            .accessibilityIdentifier("auth.mode-secondary")
         }
-        .frame(maxWidth: .infinity)
+    }
+
+    /// The other mode, said as a question and answered by a tap, where someone who picked the wrong door looks for it.
+    private var modeSwitch: some View {
+        Button {
+            switchAuthMode()
+        } label: {
+            Text("\(Text(modeSwitchQuestion).foregroundStyle(DesignTokens.Colors.textSecondary)) \(Text(secondaryActionTitle).foregroundStyle(DesignTokens.Colors.customerDeep))")
+                .font(DesignTokens.Typography.Expressive.emphasis)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.minimumTouchTarget)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(BeckonGuardedPlainButtonStyle())
+        .disabled(store.isSubmitting)
+        .accessibilityIdentifier("auth.mode-secondary")
     }
 
     #if DEBUG
@@ -390,10 +325,10 @@ struct AuthenticationView: View {
                 }
             }
         }
-        .padding(.top, DesignTokens.Spacing.sm)
     }
     #endif
 
+    /// What the last try said, right under the welcome where the eye is, not under the button.
     @ViewBuilder
     private var feedback: some View {
         if let noticeMessage = store.noticeMessage {
@@ -407,6 +342,7 @@ struct AuthenticationView: View {
                     RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
                 )
                 .accessibilityIdentifier("auth.notice")
+                .transition(.opacity)
         }
 
         if let errorMessage = store.errorMessage {
@@ -415,22 +351,25 @@ struct AuthenticationView: View {
                 message: errorMessage
             )
             .accessibilityIdentifier("auth.error")
+            .transition(.opacity)
         }
     }
+
+    // MARK: Copy
 
     private var formTitle: String {
         switch store.mode {
         case .signIn:
             "Welcome back"
         case .signUp:
-            "Create Account"
+            "Create your account"
         }
     }
 
     private var formSubtitle: String {
         switch store.mode {
         case .signIn:
-            "Sign in to manage grooming requests and bookings."
+            "Sign in to manage your grooming."
         case .signUp:
             "Start with email and password. Profile setup continues after sign-in."
         }
@@ -445,14 +384,16 @@ struct AuthenticationView: View {
         }
     }
 
-    private var fieldsToActionsSpacing: CGFloat {
+    private var modeSwitchQuestion: String {
         switch store.mode {
         case .signIn:
-            DesignTokens.Spacing.lg
+            "New to Beckon?"
         case .signUp:
-            DesignTokens.Spacing.xl + DesignTokens.Spacing.md
+            "Already have an account?"
         }
     }
+
+    // MARK: Pieces and actions
 
     private func labeledField<Content: View>(
         _ title: String,
@@ -466,6 +407,29 @@ struct AuthenticationView: View {
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// The small symbol that opens a field, so the three fields tell apart at a glance.
+    private func fieldSymbol(_ systemImage: String) -> some View {
+        Image(systemName: systemImage)
+            .font(DesignTokens.Typography.Expressive.emphasis)
+            .dynamicTypeSize(...DynamicTypeSize.xLarge)
+            .foregroundStyle(DesignTokens.Colors.customerDeep)
+            .frame(width: DesignTokens.Spacing.xl)
+            .accessibilityHidden(true)
+    }
+
+    /// Return moves to the next field, and on the last one it sends.
+    private func advance(from field: AuthenticationFocusTarget) {
+        switch (field, store.mode) {
+        case (.email, _):
+            focusedField = .password
+        case (.password, .signUp):
+            focusedField = .passwordConfirmation
+        default:
+            focusedField = nil
+            Task { await store.submit() }
+        }
     }
 
     private func openForm(_ mode: AuthenticationMode) {
@@ -482,6 +446,7 @@ struct AuthenticationView: View {
         }
     }
 }
+
 
 private enum AuthenticationSurface {
     case landing

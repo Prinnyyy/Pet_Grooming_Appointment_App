@@ -592,3 +592,27 @@ struct BeckonGuardedPlainButtonStyle: PrimitiveButtonStyle {
         BeckonGuardedButtonBody(configuration: configuration, style: BeckonBarePressStyle())
     }
 }
+
+struct BeckonPinnedBar<Content: View>: View {
+    var summary: String?
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(spacing: DesignTokens.Spacing.sm) {
+            if let summary {
+                Text(summary)
+                    .font(DesignTokens.Typography.Expressive.supporting)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .lineLimit(1)
+                    .accessibilityHidden(true)
+            }
+            content
+        }
+        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+        .padding(.top, DesignTokens.Spacing.md)
+        .padding(.bottom, DesignTokens.Spacing.sm)
+        .frame(maxWidth: .infinity)
+        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
+        .overlay(alignment: .top) { DesignRowDivider() }
+    }
+}

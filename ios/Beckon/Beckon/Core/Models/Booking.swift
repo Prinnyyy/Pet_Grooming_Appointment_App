@@ -154,8 +154,8 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
         return now >= actualStart.addingTimeInterval(60)
     }
 
-    nonisolated func canReview(for role: UserRole) -> Bool {
-        guard role == .customer, status == .completed else {
+    nonisolated func canReview(for role: UserRole, now: Date = Date()) -> Bool {
+        guard role == .customer, GroomingLifecycle.isFinished(self, now: now) else {
             return false
         }
 

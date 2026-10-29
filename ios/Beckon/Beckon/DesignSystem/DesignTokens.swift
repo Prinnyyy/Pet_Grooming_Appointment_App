@@ -148,6 +148,7 @@ enum DesignTokens {
     }
 
     enum Spacing {
+        static let none: CGFloat = 0
         static let xs: CGFloat = 4
         static let sm: CGFloat = 8
         static let md: CGFloat = 12
@@ -187,9 +188,22 @@ enum DesignTokens {
         static let iconDiscLarge: CGFloat = 60
         static let ledgePrimaryButtonHeight: CGFloat = 58
         static let journeyNode: CGFloat = 42
-        /// Home pet card and its add slot: one fixed size, whatever the pet's data. Height scales with Dynamic Type.
+        /// The same path with four stops (a whole grooming) is a little smaller so four fit the width of a card.
+        static let journeyNodeMedium: CGFloat = 40
+        /// Sideways rows of cards (`BeckonPeekCarousel`): the first `carouselPeek` points of the next card always show, so the
+        /// row reads as something to swipe; `carouselCardMinimumWidth` is the floor of a card on a small phone.
+        static let carouselPeek: CGFloat = 44
+        static let carouselCardMinimumWidth: CGFloat = 140
+        /// Home pet card and its add slot: one size whatever the pet's data (the width is the carousel's). Height scales with
+        /// Dynamic Type.
         static let petCardWidth: CGFloat = 176
-        static let petCardHeight: CGFloat = 288
+        static let petCardHeight: CGFloat = 240
+        /// The grooming cards (Grooming tab, Home): one height for every card of a row, whatever the request or booking, so a longer
+        /// or shorter one never makes a card taller than its neighbour. `groomingCardHeight` is the full card (who and when, facts,
+        /// path, button, quiet actions), `groomingGlanceCardHeight` Home's (who and when, path). Both scale with Dynamic Type; accessibility sizes stack
+        /// natural-height cards.
+        static let groomingCardHeight: CGFloat = 384
+        static let groomingGlanceCardHeight: CGFloat = 212
         /// Widest a dialog (alert or modal) grows; on a phone it is the screen minus the gutters.
         static let dialogMaxWidth: CGFloat = 360
     }
@@ -231,6 +245,9 @@ enum DesignTokens {
         static let bounce = Animation.spring(response: 0.5, dampingFraction: 0.5)
         /// Content swaps.
         static let swap = Animation.spring(response: 0.45, dampingFraction: 0.7)
+        /// A button turning into another look (white card to mint pill, a pill to a round control): the face, its corners, its lip and its
+        /// edge stretch from one to the other with a little overshoot, instead of one fading out as the other fades in (S-066).
+        static let morph = Animation.spring(response: 0.42, dampingFraction: 0.64)
         static let reduced = Animation.easeOut(duration: 0.15)
         /// A dialog drops in with a little overshoot and leaves quickly; the page behind it is not worth waiting for.
         static let dialogEnter = Animation.spring(response: 0.42, dampingFraction: 0.66)
@@ -329,6 +346,11 @@ enum DesignTokens {
             static let micro = Font.system(.caption2, design: .rounded, weight: .black)
             static let glyph = Font.system(.title3, design: .rounded, weight: .bold)
             static let glyphLarge = Font.system(.title, design: .rounded, weight: .bold)
+            // Decorative artwork and ticks scale with their fixed drawing, not text content.
+            static let workPlaceholder = Font.system(size: 72, weight: .bold, design: .rounded)
+            static let workSparkle = Font.system(size: 22, weight: .bold, design: .rounded)
+            static let timelineGlyph = Font.system(size: 12, weight: .black, design: .rounded)
+            static let selectionGlyph = Font.system(size: 13, weight: .black, design: .rounded)
         }
 
         // Compatibility names remain until the source audit reports zero usage.

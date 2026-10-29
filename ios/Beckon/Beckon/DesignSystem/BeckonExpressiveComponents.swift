@@ -41,6 +41,7 @@ struct BeckonLedgeHeading: View {
 struct BeckonMetaChip: View {
     let text: String
     let systemImage: String
+    var onTint = false
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.xs + 1) {
@@ -54,7 +55,7 @@ struct BeckonMetaChip: View {
         }
         .padding(.horizontal, 9)
         .padding(.vertical, DesignTokens.Spacing.xs + 1)
-        .background(DesignTokens.Colors.customerTint, in: Capsule())
+        .background(onTint ? DesignTokens.Colors.surface : DesignTokens.Colors.customerTint, in: Capsule())
     }
 }
 

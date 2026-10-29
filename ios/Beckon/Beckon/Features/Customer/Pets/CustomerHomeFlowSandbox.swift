@@ -18,7 +18,7 @@ struct CustomerHomeFlowSandbox: View {
         NavigationStack(path: $path) {
             CustomerHomeView(previewSession: session) { path.append($0) }
                 .navigationDestination(for: UUID.self) { requestID in
-                    CustomerRequestDetailView(requestID: requestID, store: session.requests)
+                    GroomingDetailView(target: .request(requestID), requestStore: session.requests, bookingsStore: session.bookings)
                 }
         }
         .safeAreaInset(edge: .bottom) {

@@ -1,7 +1,12 @@
+// Who has heard about a request, in three views: the distribution card (sandbox screen "requestProgress" only), the reach summary
+// and the groomers card on the request detail page. Moved out of
+// the Grooming detail page (it was the request detail page) in S-037. Stores and fixtures stay shared.
+import Foundation
 import SwiftUI
 
+
 /// Who has the request, in words: the invited groomers as overlapping initials (a people icon when nobody is invited yet), a
-/// headline that says what it means, and one line of detail. The compact row on the request card folds "open to all matching
+/// headline that says what it means, and one line of detail. The summary folds "open to all matching
 /// groomers" into the words; the detail page passes `invitationsOnly` because it shows that state on its own row.
 struct CustomerRequestReachSummary: View {
     let requestID: UUID
@@ -78,7 +83,7 @@ struct CustomerRequestReachSummary: View {
             facts.detail = "Invite groomers you like to get offers."
         case (true, true):
             facts.headline = invitationsOnly ? "Nobody invited yet" : "Open to all matching groomers"
-            facts.detail = invitationsOnly ? nil : "Anyone who fits can send an offer."
+            facts.detail = invitationsOnly ? nil : "Any matching groomer can send offers."
         case (false, _):
             facts.headline = "\(invited.count) groomer\(invited.count == 1 ? "" : "s") invited"
             var parts: [String] = []
@@ -86,31 +91,24 @@ struct CustomerRequestReachSummary: View {
             if progress.validOfferCount > 0 {
                 parts.append("\(progress.validOfferCount) offer\(progress.validOfferCount == 1 ? "" : "s") in")
             }
-            if progress.poolEnabled, !invitationsOnly { parts.append("open to all matching") }
+            if progress.poolEnabled, !invitationsOnly { parts.append("open to all matching groomers") }
             facts.detail = parts.isEmpty ? "No replies pending" : parts.joined(separator: " · ")
         }
         return facts
     }
 }
 
-/// The compact version for the request card: summary and an "Invite" chip. It is only the label; the card wraps it in a button
-/// that opens the groomers sheet (`CustomerGroomerDiscoveryView`).
-struct CustomerRequestReachRow: View {
-    let requestID: UUID
-    let store: CustomerRequestDistributionStore
-    @Environment(\.dynamicTypeSize) private var typeSize
 
-    var body: some View {
-        (typeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.sm))
-            : AnyLayout(HStackLayout(alignment: .center, spacing: DesignTokens.Spacing.md))) {
-            CustomerRequestReachSummary(requestID: requestID, store: store)
-            BeckonMetaChip(text: "Invite", systemImage: "plus")
-        }
-        .frame(minHeight: DesignTokens.Metrics.minimumTouchTarget)
-        .contentShape(Rectangle())
+/// One short line for the request card: who can see the request. The initials and the detail sentence are on the detail page.
+enum CustomerRequestReachLine {
+    static func text(requestID: UUID, store: CustomerRequestDistributionStore) -> String {
+        guard let progress = store.progressByRequestID[requestID] else { return "Checking invitations" }
+        let count = progress.invitations.count
+        if count > 0 { return "\(count) groomer\(count == 1 ? "" : "s") invited" }
+        return progress.poolEnabled ? "Open to all matching groomers" : "Nobody invited yet"
     }
 }
+
 
 /// The groomers module of the request detail page: who was invited, whether the request is open to every matching groomer (a row
 /// of its own, so that state is seen, not read out of a sentence), and one labelled button. The pool switch, withdraw and the list
@@ -129,8 +127,6 @@ struct CustomerRequestReachCard: View {
             BeckonLedgeHeading(title: "Groomers", systemImage: "person.2.fill")
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 CustomerRequestReachSummary(requestID: requestID, store: store, invitationsOnly: true)
-                    .accessibilityIdentifier("discovery.checked-at")
-                    .accessibilityValue(progress?.checkedAt.ISO8601Format() ?? "Not checked yet")
                 openStateRow
                 Button(action: onInvite) {
                     HStack(spacing: DesignTokens.Spacing.sm) {
@@ -154,6 +150,7 @@ struct CustomerRequestReachCard: View {
         Button(action: onInvite) {
             HStack(spacing: DesignTokens.Spacing.sm) {
                 Image(systemName: isOpenToAll ? "person.3.fill" : "lock.fill")
+                    .contentTransition(.symbolEffect(.replace))
                     .accessibilityHidden(true)
                 Text(isOpenToAll ? "Open to all matching groomers" : "Only groomers you invite")
                     .fixedSize(horizontal: false, vertical: true)
@@ -169,11 +166,11 @@ struct CustomerRequestReachCard: View {
             .background(isOpenToAll ? DesignTokens.Colors.customerTint : Color.clear,
                 in: RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.pill, style: .continuous))
             .overlay {
-                if !isOpenToAll {
-                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.pill, style: .continuous)
-                        .strokeBorder(DesignTokens.Colors.border, lineWidth: DesignTokens.Ledge.edgeWidth)
-                }
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.pill, style: .continuous)
+                    .strokeBorder(DesignTokens.Colors.border, lineWidth: DesignTokens.Ledge.edgeWidth)
+                    .opacity(isOpenToAll ? 0 : 1)
             }
+            .animation(DesignTokens.Motion.morph, value: isOpenToAll)
             .contentShape(Rectangle())
         }
         .buttonStyle(BeckonGuardedPlainButtonStyle())
@@ -182,3 +179,24 @@ struct CustomerRequestReachCard: View {
         .accessibilityIdentifier("customer.requests.open-state")
     }
 }
+
+struct CustomerRequestReachRow: View {
+    let requestID: UUID
+    let store: CustomerRequestDistributionStore
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        (typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.sm))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: DesignTokens.Spacing.md))) {
+            CustomerRequestReachSummary(requestID: requestID, store: store)
+            BeckonMetaChip(text: "Invite", systemImage: "plus")
+        }
+        .frame(minHeight: DesignTokens.Metrics.minimumTouchTarget)
+        .contentShape(Rectangle())
+    }
+}
+
+/// The groomers module of the request detail page: who was invited, whether the request is open to every matching groomer (a row
+/// of its own, so that state is seen, not read out of a sentence), and one labelled button. The pool switch, withdraw and the list
+/// live in the sheet the button (or the open-state row) opens.

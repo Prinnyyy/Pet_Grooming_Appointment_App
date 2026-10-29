@@ -1,9 +1,8 @@
 import SwiftUI
 
-// Request wizard, Home style. Only the chrome is redesigned: header and progress, the title block, the bottom bar and
-// the review page. Every input control (pet and service choice, date and time, address, notes, photos) stays the
-// production one, unchanged and calm. These views take plain values so they can be previewed on their own; the live
-// wizard is `CustomerRequestWizardView`, which uses them.
+// Request wizard, Home style: header and progress, the title block, the bottom bar and the review page. The inputs of steps 1 to 4
+// are in `CustomerRequestPetAndService.swift`, `...TimeAndPlace.swift` and `...Details.swift`. These views take plain
+// values so they can be previewed on their own; the live wizard is `CustomerRequestWizardView`, which uses them.
 //
 // The customer sees six steps. The shared wizard has five (pet to review); "Groomers" is the sixth, where the request is
 // actually sent, so the path, the title block and the bottom bar treat it like any other step (S-011).
@@ -17,6 +16,7 @@ enum CustomerRequestStepMotion {
     static let titleOrder = 0
     static let contentStart = 1
 }
+
 
 enum CustomerRequestStep: Int, CaseIterable, Identifiable {
     case pet, service, time, details, review, groomers
@@ -40,9 +40,8 @@ enum CustomerRequestStep: Int, CaseIterable, Identifiable {
 
     var headline: String { formStep?.headline ?? "Who should hear about it?" }
 
-    var subtitle: String? {
-        formStep?.subtitle ?? (self == .groomers ? "Invite the groomers you like, open your request to everyone who matches, or both." : nil)
-    }
+    /// None: the headline of a step says what it asks, and a line under it only said it again (S-066).
+    var subtitle: String? { nil }
 
     var pathIcon: String {
         switch self {
@@ -58,8 +57,9 @@ enum CustomerRequestStep: Int, CaseIterable, Identifiable {
     var shortTitle: String { self == .time ? "Time" : title }
 }
 
-/// Progress band: caption, "2 of 6" chip, a six-node path, the current step name. Fades into the page. Once the request
-/// has been sent every node is done and the chip reads "Sent".
+/// Progress band: the six-node path and nothing else. The nodes say how far you are and how many steps there are, the headline
+/// under it says which step this is, so the "Grooming request" caption, the "2 of 6" chip and the step name under the path were
+/// the same thing three more times (S-066). Once the request has been sent every node is done and it says "Request sent".
 struct CustomerRequestWizardHeader: View {
     let step: CustomerRequestStep
     var isSent = false
@@ -67,34 +67,22 @@ struct CustomerRequestWizardHeader: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            HStack {
-                Text("Grooming request")
-                    .font(DesignTokens.Typography.Expressive.chip)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                Spacer()
-                Text(isSent ? "Sent" : "\(step.rawValue + 1) of \(steps.count)")
-                    .font(DesignTokens.Typography.Expressive.chip)
-                    .foregroundStyle(DesignTokens.Colors.customerDeep)
-                    .padding(.horizontal, DesignTokens.Spacing.md)
-                    .padding(.vertical, DesignTokens.Spacing.xs)
-                    .background(DesignTokens.Colors.surface, in: Capsule())
-                    .contentTransition(.numericText())
-            }
             DesignStepPath(labels: steps.map(\.shortTitle), systemImages: steps.map(\.pathIcon),
                 current: isSent ? steps.count + 1 : step.rawValue + 1, nodeSize: 32, showsLabels: false,
                 pulsesCurrent: true)
                 .padding(.bottom, DesignTokens.Spacing.xs)
-            Text(isSent ? "Request sent" : step.title)
-                .font(DesignTokens.Typography.Expressive.emphasis)
-                .foregroundStyle(DesignTokens.Colors.customerDeep)
-                .fixedSize(horizontal: false, vertical: true)
-                .id(isSent ? -1 : step.rawValue)
-                .transition(.push(from: .trailing))
+            if isSent {
+                Text("Request sent")
+                    .font(DesignTokens.Typography.Expressive.emphasis)
+                    .foregroundStyle(DesignTokens.Colors.customerDeep)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .transition(.push(from: .trailing))
+            }
         }
         .beckonAnimation(DesignTokens.Motion.swap, value: isSent ? -1 : step.rawValue)
         .padding(.horizontal, DesignTokens.Layout.pageHorizontalInset)
-        .padding(.top, DesignTokens.Spacing.md)
-        .padding(.bottom, DesignTokens.Spacing.lg)
+        .padding(.top, DesignTokens.Spacing.lg)
+        .padding(.bottom, DesignTokens.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(LinearGradient(colors: [DesignTokens.Colors.customerTint, DesignTokens.Colors.appBackground],
             startPoint: .top, endPoint: .bottom))
@@ -150,6 +138,8 @@ struct DesignActionBar: View {
     let primaryTitle: String
     let primaryImage: String
     var isPrimaryEnabled = true
+    /// False for a moment when the left button must not be tapped (the page is about to leave by itself); it dims like any disabled one.
+    var isLeadingEnabled = true
     var isBusy = false
     var confirmation: String?
     var leadingIdentifier = "customer.requests.wizard.back"
@@ -178,7 +168,7 @@ struct DesignActionBar: View {
                 .frame(maxWidth: typeSize.isAccessibilitySize ? .infinity : nil)
             }
             .buttonStyle(BeckonLedgeButtonStyle(.card))
-            .disabled(isBusy)
+            .disabled(isBusy || !isLeadingEnabled)
             .accessibilityIdentifier(leadingIdentifier)
 
             Button {
@@ -213,9 +203,10 @@ struct DesignActionBar: View {
         .padding(.vertical, DesignTokens.Layout.actionAreaInset)
         .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .overlay(alignment: .top) { DesignTokens.Colors.borderSoft.frame(height: DesignTokens.Ledge.edgeWidth / 2) }
-        .sendRequestDialog(isPresented: $isConfirming, summary: confirmedSummary, send: primary)
+        .sendRequestDialog(isPresented: $isConfirming, summary: confirmedSummary, send: { primary() })
     }
 }
+
 
 /// The form steps' bar: Back (Close on the first step) and Continue. The review step's action is the last form action.
 struct CustomerRequestWizardBottomBar: View {
@@ -248,12 +239,15 @@ struct CustomerRequestWizardReview: View {
     var isRevisingRequest = false
     /// Where this page's blocks start counting when a title block above them leads; 0 when they lead themselves.
     var entranceStart = 0
+    /// A row asks for its step; nil leaves the rows as plain facts (the chrome gallery).
+    var onEdit: ((CustomerRequestWizardStep) -> Void)?
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         BeckonCascade(start: entranceStart, spacing: DesignTokens.Layout.sectionSpacing) {
             if isRecoveringPublication {
                 BeckonLedgeNote(systemImage: "arrow.clockwise",
-                    text: "Publication is not yet confirmed. Retrying checks the original request without creating a second one.")
+                    text: "Not confirmed yet. Retrying will not create a second request.")
                     .accessibilityIdentifier("customer.requests.publication-recovery")
             }
             if isRevisingRequest {
@@ -263,49 +257,28 @@ struct CustomerRequestWizardReview: View {
 
             DesignPupPeek { summary }
 
-            VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
-                BeckonLedgeHeading(title: "Fit needs", systemImage: "sparkles")
-                DesignFactCard {
-                    Text("Based on the selected pet and service.")
-                        .designSupportingText()
-                    if fitChips.isEmpty {
-                        Label("No specific needs detected", systemImage: "checkmark.circle")
-                            .font(DesignTokens.Typography.Expressive.emphasis)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    } else {
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 148), spacing: DesignTokens.Spacing.sm, alignment: .leading)],
-                            alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            // What matching looks for, only when there is something specific to say; the line that said "based on the pet and the
+            // service" and the one that explained why a time helps are gone: the page above already shows both.
+            if !fitChips.isEmpty {
+                VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
+                    BeckonLedgeHeading(title: "Fit needs", systemImage: "sparkles")
+                    DesignFactCard {
+                        VStack(spacing: DesignTokens.Spacing.sm) {
                             ForEach(fitChips) { chip in fitChip(chip) }
                         }
                     }
                 }
             }
 
-            BeckonLedgeNote(systemImage: "info.circle", text: CustomerRequestMatchingCopy.customerReviewInfo)
-            BeckonLedgeNote(systemImage: "lock",
-                text: "Your phone and email stay hidden until you accept an offer. Groomers see the request location details needed to decide whether to offer.")
+            BeckonLedgeNote(systemImage: "lock", text: "Your phone and email stay hidden until you accept an offer.")
         }
     }
 
     private var summary: some View {
         VStack(spacing: 0) {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                Image(systemName: "paperplane.fill")
-                Text("Your request")
-                Spacer(minLength: 0)
-            }
-            .font(DesignTokens.Typography.Expressive.emphasis)
-            .foregroundStyle(DesignTokens.Colors.customerInk)
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
-            .background(DesignTokens.Colors.customerFill)
-            .accessibilityElement(children: .ignore)
-            .accessibilityHidden(true)
-
+            // The title above says it is your request; the mint band that said so again is gone, the pup rests on the top edge.
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                ForEach(rows) { row in
-                    DesignFactRow(systemImage: icon(for: row.title), title: row.title, value: row.value)
-                }
+                ForEach(rows) { row in summaryRow(row) }
                 if !photos.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: DesignTokens.Spacing.md) {
@@ -328,6 +301,41 @@ struct CustomerRequestWizardReview: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous))
         .beckonLedge(.card)
+    }
+
+    @ViewBuilder
+    private func summaryRow(_ row: CustomerRequestWizardReviewPresentation.Row) -> some View {
+        let fact = DesignFactRow(systemImage: icon(for: row.title), title: row.title, value: row.value)
+        if let onEdit {
+            Button { onEdit(step(for: row.title)) } label: {
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    fact
+                    Image(systemName: "chevron.right")
+                        .font(DesignTokens.Typography.Expressive.micro)
+                        .foregroundStyle(DesignTokens.Colors.customerDeep)
+                        .accessibilityHidden(true)
+                }
+                .frame(minHeight: DesignTokens.Metrics.minimumTouchTarget)
+                .contentShape(Rectangle())
+                .accessibilityElement(children: .ignore)
+            }
+            .buttonStyle(BeckonGuardedPlainButtonStyle())
+            .accessibilityLabel("\(row.title), \(row.value)")
+            .accessibilityHint("Goes back to change it")
+            .accessibilityIdentifier("customer.requests.review.edit.\(step(for: row.title).rawValue)")
+        } else {
+            fact
+        }
+    }
+
+    /// The step a review row is answered in.
+    private func step(for title: String) -> CustomerRequestWizardStep {
+        switch title {
+        case "Pet": .pet
+        case "Service": .service
+        case "Preferred time", "Location": .time
+        default: .details
+        }
     }
 
     private func icon(for title: String) -> String {

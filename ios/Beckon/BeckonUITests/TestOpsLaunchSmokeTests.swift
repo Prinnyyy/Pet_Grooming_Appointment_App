@@ -185,10 +185,7 @@ final class TestOpsBookingAdversarialTests: XCTestCase {
             tap(element("customer.requests.use-profile-address"))
             let populated = NSPredicate(format: "value != '' AND value != 'Street Address'")
             XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: populated,
-                object: element("customer.requests.address.street"))], timeout: 15), .completed)
-            tap(element("customer.requests.wizard.continue"))
-            let confirmation = app.buttons["Use Suggested Address"].firstMatch
-            if confirmation.waitForExistence(timeout: 20) { confirmation.tap() }
+                object: element("beckon.address.line1"))], timeout: 15), .completed)
             tap(app.buttons["Afternoon"].firstMatch)
             if index == 2 {
                 var calendar = Calendar(identifier: .gregorian)
@@ -208,13 +205,14 @@ final class TestOpsBookingAdversarialTests: XCTestCase {
             finishInput()
             tap(element("customer.requests.wizard.continue"))
             tap(element("customer.requests.publish"))
+            app.sendCurrentPreviewToPool()
             XCTAssertTrue(element("customer.requests.wizard").waitForNonExistence(timeout: 35))
         }
         app.terminate()
         app.launchArguments = ["--beckon-testops-run-id", runID, "--beckon-testops-disable-animations"]
         app.launch()
         tap(element("customer.tab.requests"))
-        XCTAssertTrue(element("customer.requests.list").waitForExistence(timeout: 15))
+        XCTAssertTrue(element("customer.grooming.list").waitForExistence(timeout: 15))
     }
 
     func testMatchingSortPreferenceAndPaging() throws {
@@ -313,7 +311,7 @@ final class TestOpsBookingAdversarialTests: XCTestCase {
         try start(.customer)
         tap(element("customer.tab.requests"))
         tap(app.buttons.matching(NSPredicate(format:
-            "(identifier == 'customer.requests.offers' OR label == 'Request Offers') AND value == %@", references[0])).firstMatch)
+            "(identifier BEGINSWITH 'customer.grooming.primary.' OR identifier BEGINSWITH 'customer.grooming.primary.') AND value == %@", references[0])).firstMatch)
         for (index, title) in ["Recommended", "Nearest", "Earliest appointment", "Lowest price"].enumerated() {
             tap(element("customer.offers.sort"))
             tap(app.buttons[title].firstMatch)
@@ -393,9 +391,8 @@ final class TestOpsBookingAdversarialTests: XCTestCase {
         try start(.customer)
         tap(element("customer.tab.requests"))
         tap(app.buttons.matching(NSPredicate(format:
-            "(identifier == 'customer.requests.offers' OR label == 'Request Offers') AND value == %@", references[0])).firstMatch)
+            "(identifier BEGINSWITH 'customer.grooming.primary.' OR identifier BEGINSWITH 'customer.grooming.primary.') AND value == %@", references[0])).firstMatch)
         tap(element("customer.offers.row.\(runID)"))
-        tap(element("customer.offers.accept"))
         let confirm = app.buttons.matching(NSPredicate(format:
             "identifier == 'customer.offers.confirm' OR label == 'Confirm & Book' OR label == 'Offer Expired'")).firstMatch
         XCTAssertTrue(confirm.waitForExistence(timeout: 15))
@@ -413,8 +410,8 @@ final class TestOpsBookingAdversarialTests: XCTestCase {
     func testMatchingProposeTimeChange() throws {
         XCTAssertEqual(references.count, 1)
         try start(.customer)
-        tap(element("customer.tab.bookings"))
-        tap(element("bookings.row.request.\(references[0])"))
+        tap(element("customer.tab.requests"))
+        tap(app.groomingEntry(reference: references[0]))
         tap(element("booking.reschedule.propose"))
         tap(element("booking.reschedule.confirm"))
         XCTAssertTrue(element("booking.reschedule.confirm").waitForNonExistence(timeout: 30))
@@ -490,9 +487,8 @@ final class TestOpsBookingAdversarialTests: XCTestCase {
     func testMatchingSubmitVerifiedReview() throws {
         XCTAssertEqual(references.count, 1)
         try start(.customer)
-        tap(element("customer.tab.bookings"))
-        tap(element("bookings.scope.past"))
-        tap(element("bookings.row.request.\(references[0])"))
+        tap(element("customer.tab.requests"))
+        tap(app.groomingEntry(reference: references[0]))
         let content = element("bookings.review.content")
         tap(content)
         content.typeText("TESTOPS:\(runID) verified live service")
@@ -542,19 +538,14 @@ final class TestOpsBookingAdversarialTests: XCTestCase {
         for reference in references {
             tap(element("customer.tab.requests"))
             tap(app.buttons.matching(NSPredicate(format:
-                "(identifier == 'customer.requests.offers' OR label == 'Request Offers') AND value == %@", reference)).firstMatch)
+                "(identifier BEGINSWITH 'customer.grooming.primary.' OR identifier BEGINSWITH 'customer.grooming.primary.') AND value == %@", reference)).firstMatch)
             tap(element("customer.offers.row.\(runID)"))
-            let accept = app.buttons.matching(NSPredicate(format:
-                "identifier == 'customer.offers.accept' OR label == 'Review & Accept'")).firstMatch
-            tap(accept)
-            XCTAssertTrue(element("customer.offers.confirmation").waitForExistence(timeout: 15))
             tap(app.buttons.matching(NSPredicate(format:
                 "identifier == 'customer.offers.confirm' OR label == 'Confirm & Book'")).firstMatch)
-            XCTAssertTrue(element("customer.offers.confirmation").waitForNonExistence(timeout: 35))
             XCTAssertTrue(element("bookings.detail").waitForExistence(timeout: 20))
-            for _ in 0..<3 { tap(app.navigationBars.buttons.firstMatch) }
-            tap(element("customer.tab.bookings"))
-            XCTAssertTrue(element("bookings.row.request.\(reference)").waitForExistence(timeout: 3),
+            tap(app.navigationBars.buttons.firstMatch)
+            tap(element("customer.tab.requests"))
+            XCTAssertTrue(app.groomingEntry(reference: reference).waitForExistence(timeout: 3),
                 "A committed booking must reach the loaded list without a refresh or relaunch")
         }
     }
@@ -562,20 +553,20 @@ final class TestOpsBookingAdversarialTests: XCTestCase {
     func testCancelOneRequest() throws {
         XCTAssertEqual(references.count, 2)
         try start(.customer)
-        tap(element("customer.tab.bookings"))
+        tap(element("customer.tab.requests"))
         for reference in references {
-            XCTAssertTrue(element("bookings.row.request.\(reference)").waitForExistence(timeout: 20),
+            XCTAssertTrue(app.groomingEntry(reference: reference).waitForExistence(timeout: 20),
                 "A fresh customer session must show both confirmed bookings without scrolling")
         }
         print("T387 fresh customer list contains both UI bookings before cancellation")
-        tap(element("bookings.row.request.\(references[0])"))
+        tap(app.groomingEntry(reference: references[0]))
         tap(app.buttons.matching(NSPredicate(format:
             "identifier == 'booking.fulfillment.cancel' OR label == 'Cancel Booking'")).firstMatch)
         tap(element("booking.fulfillment.confirm"))
         XCTAssertTrue(element("booking.fulfillment.confirm").waitForNonExistence(timeout: 35))
         tap(app.navigationBars.buttons.firstMatch)
-        XCTAssertTrue(element("bookings.row.request.\(references[0])").waitForNonExistence(timeout: 20))
-        XCTAssertTrue(element("bookings.row.request.\(references[1])").waitForExistence(timeout: 20))
+        XCTAssertTrue(app.groomingEntry(reference: references[0]).waitForNonExistence(timeout: 20))
+        XCTAssertTrue(app.groomingEntry(reference: references[1]).waitForExistence(timeout: 20))
     }
 
     func testOpenMessageNotification() throws {

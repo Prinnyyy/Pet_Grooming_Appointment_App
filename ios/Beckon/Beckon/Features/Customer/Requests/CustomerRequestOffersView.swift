@@ -68,11 +68,13 @@ struct CustomerRequestOffersView: View {
                     section("Pending offers", systemImage: "tag.fill", offers: pending, request: request, now: now,
                         isHistorical: false, order: 1, highlights: CustomerOfferHighlights(pending,
                             isComplete: store.loadedCurrentOfferCount(for: request, now: now) != nil))
+                        .accessibilityElement(children: .contain)
                         .accessibilityIdentifier("customer.offers.pending-list")
                 }
                 if !history.isEmpty {
                     section("Offer history", systemImage: "clock.arrow.circlepath", offers: history, request: request,
                         now: now, isHistorical: true, order: historyOrder)
+                        .accessibilityElement(children: .contain)
                         .accessibilityIdentifier("customer.offers.history-list")
                 }
                 if let message = store.offerError(for: request) {

@@ -1,47 +1,72 @@
+//  brand artwork (S-085). The landing's orb, drawn in the customer style: a mint disc with the Home hero's gradient and
+// an opaque lip (never a blur), the drawn Beckon pup in it (the one character of the app, not an emoji), and shampoo bubbles drifting
+// around it like the ones in the Home hero. Stores and fixtures stay shared.
 import SwiftUI
 
-/// Brand artwork has its own material and elevation; it is not an actionable card.
+
+/// Brand artwork has its own material; it is not an actionable card.
 struct BeckonBrandBubble: View {
     let isMotionEnabled: Bool
     var hasEntered = true
+    /// The pup flings its ears: while the call to action is pressed, and for a beat when the orb lands.
+    var isExcited = false
+    @State private var hasLanded = false
+
+    private let diameter: CGFloat = 176
+    private let lip: CGFloat = 8
+    /// The bubbles' places were set around a 156 pt orb; they widen with it.
+    private let spread: CGFloat = 1.1
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !isMotionEnabled)) { context in
+        TimelineView(.animation(minimumInterval: DesignTokens.Motion.idleFrame, paused: !isMotionEnabled)) { context in
             let time = isMotionEnabled ? context.date.timeIntervalSinceReferenceDate : 0
-            let lift = isMotionEnabled
-                ? sin(time * .pi / 2) * 4
-                : 0
+            let lift = isMotionEnabled ? sin(time * .pi / 2) * 4 : 0
 
-            ZStack(alignment: .top) {
-                ZStack {
-                    Circle()
-                        .fill(DesignTokens.BrandIllustration.body)
-                    Circle()
-                        .fill(RadialGradient(
-                            colors: [DesignTokens.BrandIllustration.highlight, .clear],
-                            center: .init(x: 0.28, y: 0.22),
-                            startRadius: 0, endRadius: 100
-                        ))
-                    Text("🐶")
-                        .font(.system(size: 62))
-                        .offset(y: 3)
-                }
-                .frame(width: 156, height: 156)
-                .compositingGroup()
-                .beckonShadow(DesignTokens.Shadows.brandBubble)
+            orb(time: time)
                 .offset(y: lift)
                 .scaleEffect(hasEntered ? 1 : 0.82)
                 .offset(y: hasEntered ? 0 : -420)
                 .opacity(hasEntered ? 1 : 0)
-            }
-            .frame(width: 156, height: 180, alignment: .top)
-            .background(alignment: .top) {
-                satellites(time: time)
-                    .frame(width: 156, height: 156)
-            }
+                .frame(width: diameter, height: diameter + lip + 12, alignment: .top)
+                .background(alignment: .top) {
+                    satellites(time: time)
+                        .frame(width: diameter, height: diameter)
+                }
         }
         .accessibilityHidden(true)
         .allowsHitTesting(false)
+        .task(id: hasEntered && isMotionEnabled) {
+            hasLanded = false
+            guard hasEntered, isMotionEnabled else { return }
+            do {
+                try await Task.sleep(for: .milliseconds(420))
+                hasLanded = true
+                try await Task.sleep(for: .milliseconds(850))
+                hasLanded = false
+            } catch { hasLanded = false }
+        }
+    }
+
+    private func orb(time: TimeInterval) -> some View {
+        ZStack {
+            Circle()
+                .fill(DesignTokens.Colors.customerFillPressed)
+                .offset(y: lip)
+            Circle()
+                .fill(LinearGradient(
+                    colors: [DesignTokens.Colors.customerFill, DesignTokens.Colors.customerHeroEnd],
+                    startPoint: .topLeading, endPoint: .bottomTrailing))
+            Circle()
+                .fill(RadialGradient(
+                    colors: [DesignTokens.BrandIllustration.highlight, .clear],
+                    center: .init(x: 0.28, y: 0.22),
+                    startRadius: 0, endRadius: 100))
+            BeckonPup(time: time, excited: isExcited || hasLanded)
+                .frame(width: 120, height: 92)
+                .scaleEffect(1.26)
+                .offset(y: 2)
+        }
+        .frame(width: diameter, height: diameter)
     }
 
     private func satellites(time: TimeInterval) -> some View {
@@ -56,12 +81,17 @@ struct BeckonBrandBubble: View {
         }
     }
 
+    /// A shampoo bubble: the same two-circle drawing as the Home hero's, in the quiet tint a wash can hold.
     private func satellite(size: CGFloat, x: CGFloat, y: CGFloat,
                            time: TimeInterval, period: Double, phase: Double) -> some View {
         let drift = isMotionEnabled ? sin(time * 2 * .pi / period + phase) : 0
-        return Circle()
-            .fill(DesignTokens.BrandIllustration.satellite)
-            .frame(width: size, height: size)
-            .offset(x: x + drift * 3, y: y + drift * 7)
+        return ZStack(alignment: .topLeading) {
+            Circle().fill(DesignTokens.BrandIllustration.satellite)
+            Circle().fill(DesignTokens.Colors.surface)
+                .frame(width: size * 0.26, height: size * 0.26)
+                .offset(x: size * 0.2, y: size * 0.18)
+        }
+        .frame(width: size, height: size)
+        .offset(x: x * spread + drift * 3, y: y * spread + drift * 7)
     }
 }

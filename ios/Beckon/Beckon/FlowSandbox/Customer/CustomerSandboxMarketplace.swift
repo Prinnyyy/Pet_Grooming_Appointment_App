@@ -114,6 +114,26 @@ final class CustomerSandboxMarketplace: CustomerRequestRepository, CustomerGroom
     func candidates(scope: GroomerDiscoveryScope, page: RankedPageRequest<GroomerDiscoverySort>) async throws -> RankedPage<DiscoveredGroomer> {
         try await boundary.check(); return ranked(candidates, mode: page.mode.rawValue)
     }
+    func publicProfile(groomerID: UUID) async throws -> CustomerGroomerProfile {
+        try await boundary.check()
+        guard let candidate = candidates.first(where: { $0.id == groomerID }) else { throw RequestDiscoveryError.groomerUnavailable }
+        let service = GroomerService(id: CustomerSandboxFixtures.id(140), groomerID: groomerID,
+            serviceType: .fullGroom, title: "Full groom", description: "Bath, brush and a comfortable trim.",
+            basePrice: 85, durationMinutes: 90, acceptedPetSizes: GroomerServicePetSize.allCases,
+            isActive: true, acceptedSpecies: [.dog])
+        let windows = GroomerAvailabilityWeekday.allCases.filter { $0.rawValue >= 1 && $0.rawValue <= 5 }.map {
+            GroomerAvailabilityWindow(id: CustomerSandboxFixtures.id(150 + $0.rawValue), groomerID: groomerID,
+                weekday: $0, startMinutes: 540, endMinutes: 1020, isEnabled: true, timezone: "America/Los_Angeles")
+        }
+        let works = (0..<2).map { index in
+            GroomerWork(photo: GroomerPortfolioPhoto(id: CustomerSandboxFixtures.id(160 + index),
+                groomerID: groomerID, storageBucket: "sandbox", storagePath: "memory/portfolio-\(index)",
+                caption: "Local portfolio fixture \(index + 1)", sortOrder: index),
+                tags: [], symbol: "pawprint.fill", look: index, image: CustomerSandboxFixtures.imageData)
+        }
+        return CustomerGroomerProfile(profile: candidate.profile, content: .init(services: [service], works: works,
+            specialties: [], modes: [.groomerComesToCustomer], radiusMiles: 20, windows: windows, noticeDays: 1, timeOff: nil))
+    }
     func profile(scope: GroomerDiscoveryScope, groomerID: UUID) async throws -> DiscoveredGroomer {
         try await boundary.check()
         guard let value = candidates.first(where: { $0.id == groomerID }) else { throw RequestDiscoveryError.groomerUnavailable }

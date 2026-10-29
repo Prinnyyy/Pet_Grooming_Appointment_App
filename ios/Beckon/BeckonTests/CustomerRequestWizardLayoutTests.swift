@@ -64,7 +64,7 @@ final class CustomerRequestWizardLayoutTests: XCTestCase {
     private func measure(pet: CustomerPet, selected: Bool, width: CGFloat,
                          size: DynamicTypeSize) -> CGSize {
         let host = UIHostingController(rootView: CustomerRequestPetChoiceCard(
-            pet: pet, petPhotoData: nil, isSelected: selected, isInvalid: false, action: {})
+            pet: pet, petPhotoData: nil, isSelected: selected, action: {})
             .environment(\.dynamicTypeSize, size))
         return host.sizeThatFits(in: CGSize(width: width, height: 10_000))
     }

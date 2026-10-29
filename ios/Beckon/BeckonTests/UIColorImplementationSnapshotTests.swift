@@ -53,9 +53,8 @@ final class UIColorImplementationSnapshotTests: XCTestCase {
     func testSummaryAndActionGeometryAtDefaultAndAX3() async throws {
         let request = CustomerRequestsStoreTests.request(customerID: UUID(), petID: UUID(), status: .hasOffers)
         for size: DynamicTypeSize in [.large, .accessibility3] {
-            let card = UIHostingController(rootView: Button {} label: {
-                CustomerRequestSummaryCard(card: .init(request: request, handoff: nil, loadedOfferCount: 3))
-            }.buttonStyle(.plain).environment(\.dynamicTypeSize, size))
+            let card = UIHostingController(rootView: GroomingCard(content: .request(.init(request: request, handoff: nil, loadedOfferCount: 3), reach: nil), style: .glance, onOpen: {})
+                .environment(\.dynamicTypeSize, size))
             let measured = card.sizeThatFits(in: CGSize(width: 320, height: 10_000))
             XCTAssertLessThanOrEqual(measured.width, 320)
             XCTAssertGreaterThanOrEqual(measured.height, 44)
@@ -86,7 +85,7 @@ final class UIColorImplementationSnapshotTests: XCTestCase {
             try await capture(ScrollView {
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     ForEach(Array(cards.enumerated()), id: \.offset) { _, card in
-                        Button {} label: { CustomerRequestSummaryCard(card: card) }.buttonStyle(.plain)
+                        GroomingCard(content: .entry(card.handoff.map { .booking($0.booking, handoff: $0, avatar: nil) } ?? .request(card)), style: .glance, onOpen: {})
                     }
                 }.beckonPageInsets()
             }.background(DesignTokens.Colors.appBackground), name: "customer-request-states",
@@ -111,7 +110,7 @@ final class UIColorImplementationSnapshotTests: XCTestCase {
             CustomerRequestOffersView(requestID: customer.request.id, store: customer.requests)
         }.tint(DesignTokens.Colors.customerDeep), name: "customer-offers-status", largeText: false)
         try await capture(NavigationStack {
-            CustomerRequestDetailView(requestID: customer.request.id, store: customer.requests)
+            GroomingDetailView(target: .request(customer.request.id), requestStore: customer.requests, bookingsStore: customer.bookings)
         }.tint(DesignTokens.Colors.customerDeep), name: "customer-request-status", largeText: false)
         try await capture(NavigationStack {
             GroomerRequestsView(groomerID: groomer.owner, repository: groomer.requests,

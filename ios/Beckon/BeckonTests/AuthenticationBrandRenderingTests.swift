@@ -5,20 +5,22 @@ import XCTest
 
 @MainActor
 final class AuthenticationBrandRenderingTests: XCTestCase {
-    func testShadowSeparatesTheIconLayerFromItsBackground() throws {
+    func testAdoptedOrbUsesAnOpaqueMintLipBelowItsFace() throws {
         let image = try XCTUnwrap(ImageRenderer(content:
             BeckonBrandBubble(isMotionEnabled: false).padding(40).background(Color.white)).cgImage)
-        var pixels = [UInt8](repeating: 0, count: image.width * image.height * 4)
-        let context = try XCTUnwrap(CGContext(data: &pixels, width: image.width, height: image.height,
-            bitsPerComponent: 8, bytesPerRow: image.width * 4, space: CGColorSpace(name: CGColorSpace.sRGB)!,
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
-        context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
-        // Sample just outside both sides of the 156pt icon, not the space below it.
-        for x in [33, 203] {
-            let i = (118 * image.width + x) * 4
-            XCTAssertLessThan(pixels[i], 249, "A detached ground ellipse does not lift the icon layer")
-            XCTAssertLessThan(abs(Int(pixels[i]) - Int(pixels[i + 1])), 8, "Shadow should be neutral, not a colored outline")
+        let pixels = try rgba(image)
+        // Handoff 2 uses a 176pt orb and an 8pt opaque lip, replacing the earlier blurred shadow.
+        let center = image.width / 2
+        let lip = (220 * image.width + center) * 4
+        let expected = UIColor(DesignTokens.Colors.customerFillPressed)
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        expected.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        for (channel, component) in [red, green, blue].enumerated() {
+            XCTAssertEqual(Double(pixels[lip + channel]), Double(component * 255), accuracy: 2)
         }
+        // No control outline around the sides of the decorative orb.
+        let edge = (128 * image.width + 42) * 4
+        XCTAssertGreaterThan(pixels[edge + 1], 170)
     }
 
     func testBubbleFloatsThenStopsAndResumesWithoutRemounting() async throws {
@@ -57,57 +59,31 @@ final class AuthenticationBrandRenderingTests: XCTestCase {
         XCTAssertGreaterThan(Set(resumed).count, 1, "Motion did not resume when re-enabled")
     }
 
-    func testLandingEntranceRevealsMintBodyWithoutAControlOutline() async throws {
-        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
-        let previous = scene.windows.first(where: \.isKeyWindow)
-        let window = UIWindow(windowScene: scene)
-        window.overrideUserInterfaceStyle = .light
-        window.rootViewController = UIHostingController(rootView:
-            AuthenticationView(store: AuthenticationStore(repository: AuthSessionRepositoryFake())))
-        window.makeKeyAndVisible()
-        defer { window.isHidden = true; window.rootViewController = nil; previous?.makeKey() }
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
-        try await Task.sleep(for: .milliseconds(50))
-        let early = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
-            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+    func testEntranceStartsHiddenAndRevealsTheAdoptedArtwork() throws {
+        func render(entered: Bool) throws -> CGImage {
+            try XCTUnwrap(ImageRenderer(content: BeckonBrandBubble(isMotionEnabled: false, hasEntered: entered)
+                .padding(40).background(Color.white)).cgImage)
         }
-        let earlyBody = try artworkPixels(early).body
-        try await Task.sleep(for: .seconds(2))
-        let image = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
-            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
-        }
-        let attachment = XCTAttachment(image: image)
-        attachment.name = "auth-brand-material"
-        attachment.lifetime = .keepAlways
-        add(attachment)
-
-        let settled = try artworkPixels(image)
-        XCTAssertLessThan(earlyBody, settled.body / 2, "The one-time entrance was removed; artwork appeared instantly")
-        XCTAssertGreaterThan(settled.body, 1_200, "Brand body was washed out into a selected-control Tint")
-        XCTAssertLessThan(settled.outline, 20, "The decorative brand bubble has a dark control outline")
-    }
-
-    private func artworkPixels(_ image: UIImage) throws -> (body: Int, outline: Int) {
-        let cgImage = try XCTUnwrap(image.cgImage)
-        let width = cgImage.width
-        let height = cgImage.height
-        var pixels = [UInt8](repeating: 0, count: width * height * 4)
-        let context = try XCTUnwrap(CGContext(data: &pixels, width: width, height: height,
-            bitsPerComponent: 8, bytesPerRow: width * 4, space: CGColorSpace(name: CGColorSpace.sRGB)!,
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
-        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
-        var mintBodyPixels = 0
-        var darkTealOutlinePixels = 0
-        // Exclude the action area: only the illustration above the wordmark is under test.
-        for y in 100..<Int(Double(height) * 0.55) {
-            for x in (width / 2 - 85)..<(width / 2 + 85) {
-                let i = (y * width + x) * 4
-                let r = Int(pixels[i]), g = Int(pixels[i + 1]), b = Int(pixels[i + 2])
-                if abs(r - 129) < 18 && abs(g - 208) < 18 && abs(b - 194) < 18 { mintBodyPixels += 1 }
-                if r < 80 && g > r + 45 && b > r + 30 && g < 160 { darkTealOutlinePixels += 1 }
+        let hidden = try render(entered: false)
+        let visible = try render(entered: true)
+        let before = try rgba(hidden), after = try rgba(visible)
+        // Sample the main disc, excluding satellites; changing the entrance state must reveal real artwork.
+        var changed = 0
+        for y in 50..<205 {
+            for x in 50..<205 {
+                let i = (y * visible.width + x) * 4
+                if before[i..<i+3] != after[i..<i+3] { changed += 1 }
             }
         }
-        return (mintBodyPixels, darkTealOutlinePixels)
+        XCTAssertGreaterThan(changed, 15_000)
+    }
+
+    private func rgba(_ image: CGImage) throws -> [UInt8] {
+        var pixels = [UInt8](repeating: 0, count: image.width * image.height * 4)
+        let context = try XCTUnwrap(CGContext(data: &pixels, width: image.width, height: image.height,
+            bitsPerComponent: 8, bytesPerRow: image.width * 4, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        return pixels
     }
 }

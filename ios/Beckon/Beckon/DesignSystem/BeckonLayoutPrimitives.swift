@@ -523,3 +523,59 @@ struct BeckonSectionHeading<Trailing: View>: View {
             : AnyLayout(HStackLayout(alignment: .top, spacing: DesignTokens.Spacing.md))
     }
 }
+
+/// Chips that sit side by side and wrap to the next line when the row is full (S-072): each one as wide as its own words (a chip
+/// longer than the row gets the whole row and wraps inside), every row starting at the leading edge, one gap between chips and one
+/// between rows. A grid of equal cells (`LazyVGrid(.adaptive)`) puts a long chip in a short cell and leaves holes after it.
+struct BeckonFlowLayout: Layout {
+    var spacing: CGFloat
+    var rowSpacing: CGFloat
+
+    // `Layout` is not main-actor, the tokens are: the defaults are read where the layout is made, in a view's body.
+    @MainActor
+    init(spacing: CGFloat = DesignTokens.Spacing.sm, rowSpacing: CGFloat = DesignTokens.Spacing.sm) {
+        self.spacing = spacing
+        self.rowSpacing = rowSpacing
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let rows = arranged(in: proposal.width ?? .infinity, subviews: subviews)
+        let width = rows.map(\.width).max() ?? 0
+        let height = rows.reduce(0) { $0 + $1.height } + rowSpacing * CGFloat(max(rows.count - 1, 0))
+        return CGSize(width: proposal.width.map { min($0, max(width, 0)) } ?? width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var y = bounds.minY
+        for row in arranged(in: bounds.width, subviews: subviews) {
+            var x = bounds.minX
+            for item in row.items {
+                subviews[item.index].place(at: CGPoint(x: x, y: y), anchor: .topLeading,
+                    proposal: ProposedViewSize(width: item.size.width, height: item.size.height))
+                x += item.size.width + spacing
+            }
+            y += row.height + rowSpacing
+        }
+    }
+
+    private struct Row {
+        var items: [(index: Int, size: CGSize)] = []
+        var width: CGFloat = 0
+        var height: CGFloat = 0
+    }
+
+    private func arranged(in maxWidth: CGFloat, subviews: Subviews) -> [Row] {
+        var rows = [Row()]
+        for index in subviews.indices {
+            var size = subviews[index].sizeThatFits(.unspecified)
+            if size.width > maxWidth { size = subviews[index].sizeThatFits(ProposedViewSize(width: maxWidth, height: nil)) }
+            let gap = rows[rows.count - 1].items.isEmpty ? 0 : spacing
+            if rows[rows.count - 1].width + gap + size.width > maxWidth, !rows[rows.count - 1].items.isEmpty { rows.append(Row()) }
+            let last = rows.count - 1
+            rows[last].width += (rows[last].items.isEmpty ? 0 : spacing) + size.width
+            rows[last].height = max(rows[last].height, size.height)
+            rows[last].items.append((index, size))
+        }
+        return rows
+    }
+}

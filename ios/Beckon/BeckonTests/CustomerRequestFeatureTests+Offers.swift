@@ -389,8 +389,6 @@ extension CustomerRequestsStoreTests {
             offerReview: offerReview
         )
 
-        #expect(presentation.title == "Confirm booking")
-        #expect(presentation.groomer == "Fresh Paws Grooming")
         #expect(presentation.service == "Full groom")
         #expect(presentation.price == "$125.00")
         #expect(presentation.time == offerReview.proposedTimeSummary)
@@ -401,10 +399,8 @@ extension CustomerRequestsStoreTests {
         )
         #expect(
             presentation.cancellation ==
-            "You can cancel from Booking details before service starts. Cancelling will not reopen this request or its other offers."
+            "You can cancel from Manage on the grooming page before service starts. Cancelling will not reopen this request or its other offers."
         )
-        #expect(presentation.confirmActionTitle == "Confirm & Book")
-        #expect(presentation.supportingText.localizedCaseInsensitiveContains("backend") == false)
     }
 
     @Test @MainActor

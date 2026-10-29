@@ -23,7 +23,7 @@ final class CustomerTimingRecoveryRenderingTests: XCTestCase {
             addressProvider: provider)
         await store.load()
         let host = UIHostingController(rootView: NavigationStack {
-            CustomerRequestDetailView(requestID: request.id, store: store)
+            GroomingDetailView(target: .request(request.id), requestStore: store)
                 .sheet(isPresented: Binding(get: { store.isShowingWizard }, set: { store.setWizardPresentation($0) })) {
                     CustomerRequestWizardView(store: store)
                 }
@@ -117,8 +117,8 @@ extension CustomerRequestsStoreTests {
             requestRepository: CustomerRequestRepositoryFake(requestsResult: .success([request])),
             bookingRepository: CustomerRequestBookingRepositoryFake())
         await store.load()
-        let detail = CustomerRequestDetailView(requestID: request.id, store: store)
-        detail.onRepublishRequest(request)
+        let detail = GroomingDetailView(target: .request(request.id), requestStore: store)
+        detail.republish(request)
         #expect(store.isShowingWizard)
         #expect(store.wizardInitialStep == .time)
         #expect(store.addressEditorState.confirmedAddress == nil)
@@ -159,11 +159,11 @@ extension CustomerRequestsStoreTests {
 
     @Test @MainActor
     func requestCardOffersActionUsesAuthoritativeRequestStatus() {
-        let open = CustomerRequestCardActionsPresentation(status: .open)
-        let hasOffers = CustomerRequestCardActionsPresentation(status: .hasOffers)
+        let open = GroomingCardContent.request(.init(request: Self.request(customerID: UUID(), petID: UUID(), status: .open), handoff: nil), reach: nil)
+        let hasOffers = GroomingCardContent.request(.init(request: Self.request(customerID: UUID(), petID: UUID(), status: .hasOffers), handoff: nil), reach: nil)
 
-        #expect(open.isOffersEnabled == false)
-        #expect(hasOffers.isOffersEnabled)
+        #expect(open.primaryTitle == "Invite groomers")
+        #expect(hasOffers.primaryTitle == "Compare offers")
     }
 
     @Test @MainActor

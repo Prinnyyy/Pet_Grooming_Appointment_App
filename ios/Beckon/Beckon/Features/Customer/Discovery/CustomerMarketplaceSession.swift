@@ -42,6 +42,14 @@ final class CustomerMarketplaceSession {
         favorites = .init(customerID: customerID, repository: services.favorites, sessionIsCurrent: sessionIsCurrent)
     }
 
+    func profileStore(groomerID: UUID) -> CustomerGroomerProfileStore {
+        let expectedGeneration = generation
+        return CustomerGroomerProfileStore(groomerID: groomerID, repository: discoveryRepository, images: images) { [weak self] in
+            guard let self else { return false }
+            return self.generation == expectedGeneration && self.sessionIsCurrent()
+        }
+    }
+
     func loadAvatar(_ profile: MarketplaceGroomerSummary) async {
         guard sessionIsCurrent() else { return }
         guard let path = profile.avatarPath else { revokeAvatar(profile.id); return }

@@ -513,7 +513,7 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
             if let reference = input.publicationSourceReference {
                 tap(element("customer.tab.requests"))
                 let detail = app.buttons.matching(NSPredicate(
-                    format: "label == 'Request Detail' AND value == %@", reference)).firstMatch
+                    format: "identifier BEGINSWITH 'customer.grooming.details.' AND value == %@", reference)).firstMatch
                 reveal(detail)
                 tap(detail)
                 let revise = element("customer.requests.revise")
@@ -562,6 +562,9 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
             }
             XCTAssertEqual(row.window.count, 2)
             let start = try localDate(row.window[0]), end = try localDate(row.window[1])
+            let moreDates = element("customer.requests.wizard.more-dates")
+            reveal(moreDates)
+            tap(moreDates)
             selectDay(start, field: element("customer.requests.wizard.date-picker"), dismissLabel: "Choose Another Date")
             let detailedTime = app.buttons["Detailed Time"].firstMatch
             reveal(detailedTime)
@@ -582,6 +585,7 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
                 continue
             }
             if input.publicationDoubleTap == true { publish.doubleTap() } else { tap(publish) }
+            if input.publicationFault == nil { app.sendCurrentPreviewToPool() }
             if let fault = input.publicationFault {
                 XCTAssertEqual(row.id, fault.marker)
                 XCTAssertTrue(app.staticTexts["We could not publish request"].firstMatch.waitForExistence(timeout: 20))
@@ -614,7 +618,7 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
             XCTAssertTrue(element("customer.requests.wizard").waitForNonExistence(timeout: 35))
             if input.publicationSourceReference != nil { tap(app.navigationBars.buttons.firstMatch) }
             tap(element("customer.tab.requests"))
-            XCTAssertTrue(element("customer.requests.list").waitForExistence(timeout: 15))
+            XCTAssertTrue(element("customer.grooming.list").waitForExistence(timeout: 15))
             evidence("\(row.id) publication returned")
         }
     }
@@ -681,7 +685,7 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
                 } else {
                     let reference = try XCTUnwrap(row.reference)
                     let offers = app.buttons.matching(NSPredicate(
-                        format: "label == 'Request Offers' AND value == %@", reference)).firstMatch
+                        format: "identifier BEGINSWITH 'customer.grooming.primary.' AND value == %@", reference)).firstMatch
                     reveal(offers)
                     tap(offers)
                 }
@@ -815,7 +819,7 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
         tap(element("customer.tab.requests"))
         for row in input.rows {
             let detail = app.buttons.matching(NSPredicate(
-                format: "label == 'Request Detail' AND value == %@", row.reference)).firstMatch
+                format: "identifier BEGINSWITH 'customer.grooming.details.' AND value == %@", row.reference)).firstMatch
             for _ in 0..<3 {
                 if detail.exists { break }
                 let more = element("customer.requests.load-more")
@@ -830,7 +834,7 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
             evidence("\(row.id) customer authoritative detail")
             tap(app.navigationBars.buttons.firstMatch)
             let offers = app.buttons.matching(NSPredicate(
-                format: "label == 'Request Offers' AND value == %@", row.reference)).firstMatch
+                format: "identifier BEGINSWITH 'customer.grooming.primary.' AND value == %@", row.reference)).firstMatch
             guard let quotes = row.quotes, !quotes.isEmpty else {
                 reveal(offers, requiresHitTarget: false)
                 XCTAssertFalse(offers.isEnabled, "An empty source pool must not expose an actionable offer")
@@ -867,15 +871,10 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
                 XCTAssertTrue(message.exists)
                 evidence("\(quote.id) customer quote after restart")
                 if ["R03", "R04", "R05"].contains(row.id) {
-                    let accept = element("customer.offers.accept")
-                    reveal(accept)
-                    tap(accept)
-                    XCTAssertTrue(element("customer.offers.confirmation").waitForExistence(timeout: 10))
+                    XCTAssertTrue(element("customer.offers.confirm").exists)
                     assertVisibleText(row.locationMode == "groomer_comes_to_customer" ? "My home" : "Groomer's place")
                     assertVisibleText(quote.confirmationAddress)
                     evidence("\(quote.id) confirmation location verified without booking")
-                    tap(app.buttons["Not Yet"].firstMatch)
-                    XCTAssertTrue(element("customer.offers.confirmation").waitForNonExistence(timeout: 10))
                 }
                 tap(app.navigationBars.buttons.firstMatch)
             }
@@ -981,8 +980,8 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
         for row in input.rows {
             tap(element("customer.tab.requests"))
             let offers = app.buttons.matching(NSPredicate(
-                format: "label == 'Request Offers' AND value == %@", row.reference)).firstMatch
-            XCTAssertTrue(element("customer.requests.list").waitForExistence(timeout: 20))
+                format: "identifier BEGINSWITH 'customer.grooming.primary.' AND value == %@", row.reference)).firstMatch
+            XCTAssertTrue(element("customer.grooming.list").waitForExistence(timeout: 20))
             for _ in 0..<6 {
                 if offers.exists { break }
                 // Lazy carousel cards do not enter the AX tree until approached.
@@ -1005,7 +1004,7 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
             reveal(offer)
             tap(offer)
             let accept = app.buttons.matching(NSPredicate(
-                format: "identifier == 'customer.offers.accept' OR label == 'Review & Accept'")).firstMatch
+                format: "identifier == 'customer.offers.confirm'")).firstMatch
             reveal(accept)
             if !accept.isEnabled {
                 let details = XCTAttachment(string: element("customer.offers.detail").debugDescription)
@@ -1014,20 +1013,17 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
                 add(details)
             }
             XCTAssertTrue(accept.isEnabled, "Offer is not currently confirmable; inspect its displayed reason")
-            tap(accept)
-            XCTAssertTrue(element("customer.offers.confirmation").waitForExistence(timeout: 15))
             let confirm = app.buttons.matching(NSPredicate(
                 format: "identifier == 'customer.offers.confirm' OR label == 'Confirm & Book'")).firstMatch
             XCTAssertTrue(confirm.isEnabled)
             evidence("\(row.id) acceptance ready")
             if input.previewOnly { app.terminate(); continue }
             tap(confirm)
-            XCTAssertTrue(element("customer.offers.confirmation").waitForNonExistence(timeout: 35))
             XCTAssertTrue(element("bookings.detail").waitForExistence(timeout: 20))
             evidence("\(row.id) acceptance returned")
-            for _ in 0..<3 { tap(app.navigationBars.buttons.firstMatch) }
-            tap(element("customer.tab.bookings"))
-            XCTAssertTrue(element("bookings.row.request.\(row.reference)").waitForExistence(timeout: 5),
+            tap(app.navigationBars.buttons.firstMatch)
+            tap(element("customer.tab.requests"))
+            XCTAssertTrue(app.groomingEntry(reference: row.reference).waitForExistence(timeout: 5),
                 "Committed booking must reach the already loaded list without a refresh")
             evidence("\(row.id) customer booking visible")
         }
@@ -1096,7 +1092,7 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
         tap(element("customer.tab.requests"))
         for (index, row) in input.rows.enumerated() {
             let offers = app.buttons.matching(NSPredicate(
-                format: "label == 'Request Offers' AND value == %@", row.reference)).firstMatch
+                format: "identifier BEGINSWITH 'customer.grooming.primary.' AND value == %@", row.reference)).firstMatch
             reveal(offers)
             tap(offers)
             let offer = app.buttons.matching(identifier: "customer.offers.row.\(input.runID)")
@@ -1104,10 +1100,8 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
             reveal(offer)
             tap(offer)
             let accept = app.buttons.matching(NSPredicate(
-                format: "identifier == 'customer.offers.accept' OR label == 'Review & Accept'")).firstMatch
+                format: "identifier == 'customer.offers.confirm'")).firstMatch
             reveal(accept)
-            tap(accept)
-            XCTAssertTrue(element("customer.offers.confirmation").waitForExistence(timeout: 15))
             let confirm = app.buttons.matching(NSPredicate(
                 format: "identifier == 'customer.offers.confirm' OR label == 'Confirm & Book' OR label == 'Offer Expired'")).firstMatch
             XCTAssertTrue(confirm.exists && confirm.isEnabled)
@@ -1122,7 +1116,6 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
             } else {
                 evidence("\(row.id) later offer remains selectable after A expiry")
             }
-            tap(app.buttons["Not Yet"].firstMatch)
             tap(app.navigationBars.buttons.firstMatch)
             tap(app.navigationBars.buttons.firstMatch)
         }
@@ -1133,14 +1126,14 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
         app.launchArguments.removeAll { $0 == "--beckon-testops-clear-session" }
         app.terminate()
         app.launch()
-        tap(element("customer.tab.bookings"))
+        tap(element("customer.tab.requests"))
         for row in input.rows {
-            let booking = element("bookings.row.request.\(row.reference)")
+            let booking = app.groomingEntry(reference: row.reference)
             reveal(booking)
             tap(booking)
             let detail = element("bookings.detail")
             XCTAssertTrue(detail.waitForExistence(timeout: 10))
-            assertVisibleText("Booking confirmed", within: detail)
+            assertVisibleText("Booked", within: detail)
             try assertBookingDetails(row, within: detail)
             evidence("\(row.id) customer confirmed booking after restart")
             tap(app.navigationBars.buttons.firstMatch)

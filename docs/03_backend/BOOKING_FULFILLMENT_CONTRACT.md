@@ -36,7 +36,7 @@ Public status adds unfulfilled; fulfillment phase separates scheduled, in-servic
 - Owned read-only receipt lookup reconciles uncertainty. Same operation/intent returns the original receipt and current Booking, never a second event or stale success projection. Different intent cannot reuse an operation ID.
 - Old unversioned completion/cancellation requires a compatible client; direct table/event writes remain denied.
 - Planned agreement/timing stays immutable. Explicit effective pet/groomer release timestamps feed constraints, admission, matching, quote evaluation and coverage checks.
-- Repository/Store own mutations/recovery. SwiftUI presents valid actions. Only completed service permits one customer review; allegations do not.
+- Repository/Store own mutations/recovery. SwiftUI presents valid actions. Verified completion permits one customer review with its frozen service evidence. T-421 also permits an elapsed confirmed booking to receive a rating with an empty, unverified context; unresolved outcome reports remain excluded. The [current eligibility contract](SUPABASE_CONTRACT.md) governs this customer journey projection without changing fulfillment state.
 
 ## Recovery And Acceptance
 

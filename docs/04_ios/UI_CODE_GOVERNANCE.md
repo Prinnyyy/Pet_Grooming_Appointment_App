@@ -112,3 +112,7 @@ Code review must account for at least one low single-line field and one multilin
 T-420/D-064 adopts the customer scope listed in `SCREEN_INVENTORY.md`. `LEDGE_TIER_PATHS` now explicitly includes those feature files and the approved shared branches. `beckonCustomerDesign` controls shared visual adoption; do not use the path allowance to restyle groomer branches. The old deck/list and their dead motion state are removed. Existing unrelated debt is retained in the ratchet; adopted changes may only remove or preserve it, never baseline new errors.
 
 T-312/Q-120 completes the first reference slice: Customer Home, Requests, Request Wizard, and Account have zero strict errors and passed default/Accessibility 3 compact/large integration checks. Remaining repository debt, reviewed geometry, concentrations, and migration ordering live in `UI_CONSISTENCY_DEBT.md`.
+
+## Customer flow ownership after handoff 2
+
+D-065 places the unified feed, card, detail, History, customer dialogs and review under `Features/Customer/Grooming/`. The request/booking Stores and repositories remain shared business owners; customer navigation does not depend on old groomer page layouts. `GroomingLifecycle` and the server eligibility helper must agree on service-zone midnight, cross-midnight end, reported outcomes and review retention. Profile reads reuse public projections and image loading, never the groomer's editor repository or sample content. The frozen prototype remains isolated; the production-backed sandbox uses existing local repositories with the newly adopted pages.

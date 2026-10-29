@@ -45,6 +45,12 @@ T-399 separates candidate discovery, new-quote eligibility, retained-offer manag
 
 Pre-booking Request DTOs omit exact street/unit/coordinates/contact data; the owner retains their full Request and confirmed Booking participants use the existing exact-address contract. Candidate and favorites repositories share a marketplace-safe groomer projection, not owner profile DTOs. New private sessions, favorites, invitations and receipt personal content participate in the existing anonymization path. Exact APIs and rollout semantics are in the [discovery contract](SUPABASE_CONTRACT.md#request-discovery-and-distribution---t-399).
 
+## Customer journey and profile reads (T-421)
+
+`get_customer_groomer_profile_v1` reuses the non-anonymous customer and active marketplace groomer guards. Its explicit projection includes public services, owned portfolio metadata/tags, active claims and schedule summaries. Private time-off titles, exact addresses and booking-management preferences are omitted; no table or Storage grants change.
+
+Review eligibility uses `app_private.grooming_finished_at`: verified completion, or the later of the next service-local midnight and scheduled end for a confirmed booking without an unresolved outcome report. Elapsed eligibility does not complete a booking. Its frozen context is `elapsed_unverified`, with no service timestamp or pet-fit keys. Review writes retain customer ownership, booking row locking, context revisions, uniqueness and anonymization rechecks. Fourteen days controls client reminder retention, not server review expiry.
+
 ## Controlled Operations
 
 Public controlled RPCs currently include:

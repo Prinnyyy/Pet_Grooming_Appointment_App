@@ -86,6 +86,11 @@ extension View {
 /// The look of a ledge button and nothing else. Use `BeckonLedgeButtonStyle` for buttons and links; use this one only
 /// where the control is not a plain button (a `Menu`, a `PhotosPicker`) and a guarded tap cannot be applied.
 ///
+/// A button whose surface changes with its state (`isSelected ? .pill : .card`) does not swap one look for another: the face
+/// colour, the corner radius, the lip and the edge are the same pieces in every surface and only their values change, under
+/// `Motion.morph`, so the button stretches from the white card to the mint pill instead of fading (S-066). A dashed edge and a
+/// solid edge are two strokes of which one is always clear, because a dash pattern cannot be tweened.
+///
 /// Physical press: the face sinks into its lip, then springs back with overshoot, with a medium haptic. The press starts only
 /// once the touch has settled (see `BeckonSettledPress`), so scrolling over buttons neither sinks them nor buzzes.
 /// Reduce Motion keeps the haptic and drops the travel.
@@ -105,22 +110,25 @@ struct BeckonLedgePressStyle: ButtonStyle {
         let surface = surface, onPressChange = onPressChange, reduceMotion = reduceMotion, isEnabled = isEnabled
         return BeckonSettledPress(isPressed: configuration.isPressed) { pressed in
             let shape = RoundedRectangle(cornerRadius: surface.radius, style: .continuous)
+            // A surface without an edge draws its edge in the colour of its face: invisible, and a colour the real edge can fade to.
+            let edge = surface.edge ?? surface.face
             configuration.label
                 .background(shape.fill(surface.face))
                 .overlay {
-                    if let edge = surface.edge {
-                        if surface.isDashed {
-                            shape.strokeBorder(edge, style: StrokeStyle(lineWidth: DesignTokens.Ledge.dashedEdgeWidth,
-                                dash: DesignTokens.Ledge.dash))
-                        } else {
-                            shape.strokeBorder(edge, lineWidth: DesignTokens.Ledge.edgeWidth)
-                        }
+                    ZStack {
+                        shape.strokeBorder(edge, lineWidth: DesignTokens.Ledge.edgeWidth)
+                            .opacity(surface.isDashed ? 0 : 1)
+                        shape.strokeBorder(edge, style: StrokeStyle(lineWidth: DesignTokens.Ledge.dashedEdgeWidth,
+                            dash: DesignTokens.Ledge.dash))
+                            .opacity(surface.isDashed ? 1 : 0)
                     }
                 }
                 .offset(y: pressed && !reduceMotion ? surface.depth : 0)
                 .background { shape.fill(surface.lip).offset(y: surface.depth) }
                 .padding(.bottom, surface.depth)
                 .contentShape(Rectangle())
+                // The look turning into another look. Under the press animation below, so a press is still the press spring.
+                .animation(reduceMotion ? DesignTokens.Motion.reduced : DesignTokens.Motion.morph, value: surface)
                 .animation(reduceMotion ? DesignTokens.Motion.reduced : DesignTokens.Motion.press, value: pressed)
                 .sensoryFeedback(.impact(weight: .medium), trigger: pressed) { _, now in now }
                 .onChange(of: pressed) { _, now in onPressChange?(now) }

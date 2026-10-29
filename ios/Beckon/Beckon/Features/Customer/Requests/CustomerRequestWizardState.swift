@@ -160,17 +160,52 @@ final class CustomerRequestWizardState {
     }
 
     func addressConfirmationChanged(from oldAddress: BeckonConfirmedAddress?, to confirmedAddress: BeckonConfirmedAddress?) {
-        if store.requestCalendar != nil,
+        if let calendar = store.requestCalendar,
            oldAddress?.timeZoneIdentifier != confirmedAddress?.timeZoneIdentifier {
-            selectedDate = store.preferredStart
-            selectedTimeWindow = .detailed
-            isFlexibleWithTime = false
+            if oldAddress?.timeZoneIdentifier == nil {
+                // Before an address exists, the controls represent local wall-clock choices, not instants.
+                let source = Calendar.current
+                var day = source.dateComponents([.year, .month, .day], from: selectedDate)
+                day.hour = 12
+                if let localDay = calendar.date(from: day) { selectedDate = localDay }
+                if selectedTimeWindow == .detailed && !isFlexibleWithTime {
+                    let start = reinterpret(store.preferredStart, from: source, in: calendar)
+                    let end = reinterpret(store.preferredEnd, from: source, in: calendar)
+                    if let start, let end {
+                        store.preferredStart = start
+                        store.preferredEnd = end
+                    } else {
+                        store.preferredTimeAdjustmentRequired = true
+                        invalidFields.insert(.timeWindow)
+                        store.errorMessage = "That time does not exist at this address. Choose another time."
+                    }
+                } else {
+                    applySelectedTimeWindow()
+                }
+            } else {
+                // An already confirmed schedule retains its instants when its reference address changes.
+                selectedDate = store.preferredStart
+                selectedTimeWindow = .detailed
+                isFlexibleWithTime = false
+            }
         }
         guard isContinuingAfterAddressConfirmation, confirmedAddress != nil else { return }
         isContinuingAfterAddressConfirmation = false
         let validation = store.validateWizardStep(.time)
         invalidFields = validation.fields
         store.errorMessage = validation.isValid ? nil : validation.message
+    }
+
+    private func reinterpret(_ date: Date, from source: Calendar, in destination: Calendar) -> Date? {
+        let parts = source.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+        guard let result = try? GroomingServiceTiming.resolveWallTime(year: parts.year ?? 0,
+            month: parts.month ?? 0, day: parts.day ?? 0, hour: parts.hour ?? -1,
+            minute: parts.minute ?? -1, timeZoneIdentifier: destination.timeZone.identifier) else { return nil }
+        switch result {
+        case .unique(let date): return date
+        case .ambiguous(let first, _): return first // Store validation still requires an explicit occurrence choice.
+        case .nonexistent: return nil
+        }
     }
 
     func back() {
@@ -236,7 +271,7 @@ final class CustomerRequestWizardState {
     }
 
     func applySelectedTimeWindow() {
-        guard let calendar = store.requestCalendar else { return }
+        let calendar = store.requestCalendar ?? .current
         if isFlexibleWithTime {
             let range = CustomerRequestTimeWindowOption.flexibleRange(on: selectedDate, calendar: calendar)
             store.preferredStart = range.start
@@ -245,7 +280,17 @@ final class CustomerRequestWizardState {
         }
 
         guard let range = selectedTimeWindow.range(on: selectedDate, calendar: calendar) else {
-            if !store.applyDetailedDate(selectedDate) { selectedDate = store.preferredStart }
+            if store.requestCalendar == nil {
+                let day = calendar.dateComponents([.year, .month, .day], from: selectedDate)
+                func onDay(_ time: Date) -> Date? {
+                    var parts = calendar.dateComponents([.hour, .minute], from: time)
+                    parts.year = day.year; parts.month = day.month; parts.day = day.day
+                    return calendar.date(from: parts)
+                }
+                if let start = onDay(store.preferredStart), let end = onDay(store.preferredEnd) {
+                    store.preferredStart = start; store.preferredEnd = end
+                }
+            } else if !store.applyDetailedDate(selectedDate) { selectedDate = store.preferredStart }
             return
         }
 

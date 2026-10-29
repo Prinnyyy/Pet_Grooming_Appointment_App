@@ -292,6 +292,23 @@ struct CustomerRequestAddressIntegrationTests {
         confirmedAddress().accepted
     }
 
+    @Test
+    func firstConfirmedZoneKeepsChosenDayAndEvening() async throws {
+        let store = await makeStore()
+        let flow = CustomerRequestWizardState(store: store)
+        flow.selectedDate = try #require(Calendar.current.date(from: DateComponents(year: 2032, month: 6, day: 15, hour: 12)))
+        flow.selectedTimeWindow = .evening
+        flow.isFlexibleWithTime = false
+        var address = Self.confirmedAddress()
+        address.timeZoneIdentifier = "America/New_York"
+        store.addressEditorState.replaceInput(address.accepted, confirmedAddress: address)
+        flow.addressConfirmationChanged(from: nil, to: address)
+        let calendar = try #require(store.requestCalendar)
+        #expect(flow.selectedTimeWindow == .evening)
+        #expect(calendar.component(.day, from: store.preferredStart) == 15)
+        #expect(calendar.component(.hour, from: store.preferredStart) == 17)
+    }
+
     private static func confirmedAddress(
         placeID: String? = "apple-place"
     ) -> BeckonConfirmedAddress {

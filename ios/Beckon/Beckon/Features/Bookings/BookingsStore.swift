@@ -786,7 +786,7 @@ final class BookingsStore {
             return
         }
         guard let context = reviewContexts[booking.id] else {
-            errorMessage = "Load the verified service details before submitting a review."
+            errorMessage = "Load the review details before submitting a review."
             return
         }
         let keys = petFitOutcomes.map { ReviewEvidenceKey(dimension: $0.signal.traitType, value: $0.signal.traitValue) }
@@ -882,7 +882,7 @@ final class BookingsStore {
               sessionIsCurrent(), !Task.isCancelled, rows.count == 1,
               let current = rows.first, current.id == booking.id, owns(current),
               current.customerID == booking.customerID, current.groomerID == booking.groomerID,
-              current.status == .completed, let review = current.review,
+              GroomingLifecycle.isFinished(current), let review = current.review,
               review.bookingID == current.id, review.customerID == current.customerID,
               review.groomerID == current.groomerID else { return false }
         synchronizeExternalBooking(current)

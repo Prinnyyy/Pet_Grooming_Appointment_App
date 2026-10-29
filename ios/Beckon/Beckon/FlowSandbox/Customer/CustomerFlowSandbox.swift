@@ -121,8 +121,9 @@ private struct CustomerSandboxAppScreen: View {
         } else {
             NavigationStack(path: $requestPath) {
                 content
-                    .navigationDestination(for: UUID.self) { id in CustomerRequestDetailView(requestID: id, store: session.requests) }
+                    .navigationDestination(for: UUID.self) { id in GroomingDetailView(target: session.bookings.booking(withID: id) != nil ? .booking(id) : .request(id), requestStore: session.requests, bookingsStore: session.bookings) }
             }
+            .modifier(CustomerRequestFlowPresenter(store: session.requests, profileRepository: session.accountRepository))
         }
     }
 
@@ -154,12 +155,6 @@ private struct CustomerSandboxAppScreen: View {
             AuthenticatedAccountView(session: session.authSession, profile: session.marketplaceProfile, authenticationStore: session.authentication)
         case .home:
             CustomerHomeView(sandbox: session, onSelectRequest: { requestPath.append($0) })
-                .sheet(item: Binding(get: { session.requests.isShowingWizard ? nil : session.requests.discoveryFlow },
-                    set: { session.requests.discoveryFlow = $0 })) { flow in
-                    NavigationStack {
-                        CustomerGroomerDiscoveryView(flow: flow, requests: session.requests, marketplace: session.marketplace)
-                    }
-                }
         case .notifications:
             CustomerNotificationsView(store: session.notifications, requestStore: session.requests,
                 bookingStore: session.bookings, chatStore: session.chat)
@@ -167,10 +162,9 @@ private struct CustomerSandboxAppScreen: View {
             CustomerSandboxPetList(session: session)
         case .requests, .dashboard, .publication, .photoRetry,
              .wizardPet, .wizardService, .wizardTime, .wizardDetails, .wizardReview:
-            CustomerRequestsView(customerID: session.customerID, petRepository: session.pets.repository,
-                requestRepository: session.marketplaceRepository, bookingRepository: session.bookingRepository,
-                customerProfileRepository: session.accountRepository, store: session.requests)
-        case .requestDetail: CustomerRequestDetailView(requestID: requestID, store: session.requests)
+            CustomerGroomingView(requestStore: session.requests, bookingsStore: session.bookings,
+                customerProfileRepository: session.accountRepository)
+        case .requestDetail: GroomingDetailView(target: .request(requestID), requestStore: session.requests, bookingsStore: session.bookings)
         case .offers: CustomerRequestOffersView(requestID: requestID, store: session.requests)
         case .groomerPicker:
             CustomerGroomerDiscoveryView(flow: session.discoveryFlow, requests: session.requests, marketplace: session.marketplace)
@@ -180,15 +174,11 @@ private struct CustomerSandboxAppScreen: View {
         case .candidateActions:
             CustomerSandboxCandidate(session: session)
         case .favorites: CustomerFavoriteGroomersView(marketplace: session.marketplace)
-        case .bookings: BookingsView(sandbox: session)
-        case .bookingDetail: BookingDetailView(bookingID: bookingID, role: .customer, store: session.bookings)
-        case .fulfillment, .reschedule: BookingDetailView(bookingID: bookingID, role: .customer, store: session.bookings)
+        case .bookings: GroomingHistoryView(requestStore: session.requests, bookingsStore: session.bookings, onOpenChat: { _ in })
+        case .bookingDetail: GroomingDetailView(target: .booking(bookingID), requestStore: session.requests, bookingsStore: session.bookings)
+        case .fulfillment, .reschedule: GroomingDetailView(target: .booking(bookingID), requestStore: session.requests, bookingsStore: session.bookings)
         case .review:
-            if booking.review != nil {
-                BookingDetailView(bookingID: bookingID, role: .customer, store: session.bookings)
-            } else {
-                ScrollView { BookingReviewForm(booking: booking, store: session.bookings, accent: .customer, focusedTarget: $reviewFocus).padding() }
-            }
+            GroomingDetailView(target: .booking(bookingID), requestStore: session.requests, bookingsStore: session.bookings)
         case .reminder: AppointmentReminderDestinationView(sandbox: session)
         case .messages:
             ChatConversationsView(participantID: session.customerID, role: .customer, repository: session.chatRepository,

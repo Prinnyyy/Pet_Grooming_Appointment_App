@@ -27,7 +27,7 @@ struct CustomerNotificationsView: View {
             } else if store.notifications.isEmpty, let message = store.errorMessage {
                 loadError(message)
             } else if store.notifications.isEmpty {
-                BeckonLedgeNote(systemImage: "bell", text: "No updates yet. News about your requests and bookings lands here.")
+                BeckonLedgeNote(systemImage: "bell", text: "No updates yet. News about your grooming lands here.")
                     .accessibilityIdentifier("customer.notifications.empty")
             } else {
                 summary.beckonEntrance(0)
@@ -62,13 +62,13 @@ struct CustomerNotificationsView: View {
         .navigationDestination(item: $destination) { target in
             switch target {
             case let .request(id):
-                if let requestStore { CustomerRequestDetailView(requestID: id, store: requestStore) }
+                if let requestStore { GroomingDetailView(target: .request(id), requestStore: requestStore, bookingsStore: bookingStore) }
             case let .offer(requestID, offerID):
                 if let requestStore, let request = requestStore.request(withID: requestID) {
                     CustomerOfferDetailView(request: request, offerID: offerID, store: requestStore)
                 }
             case let .booking(id):
-                if let bookingStore { BookingDetailView(bookingID: id, role: .customer, store: bookingStore) }
+                if let bookingStore { GroomingDetailView(target: .booking(id), requestStore: requestStore, bookingsStore: bookingStore) }
             case let .message(conversation):
                 if let chatStore { ChatThreadView(participantID: conversation.customerID, role: .customer, conversation: conversation, store: chatStore) }
             }

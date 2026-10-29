@@ -1,6 +1,8 @@
 import SwiftUI
 
+
 struct CustomerHomeView: View {
+    @Environment(\.customerRequestFlowHosted) private var requestFlowHosted
     private let displayName: String
     private let isActiveTab: Bool
     private let customerProfileRepository: (any CustomerProfileRepository)?
@@ -26,6 +28,7 @@ struct CustomerHomeView: View {
         notificationStore: CustomerNotificationsStore? = nil,
         requestStore: CustomerRequestsStore? = nil,
         chatStore: ChatStore? = nil,
+        bookingsStore: BookingsStore? = nil,
         onActiveRequestSelected: @escaping (UUID) -> Void = { _ in },
         onBookingChatSelected: @escaping (Booking) -> Void = { _ in },
         sessionIsCurrent: @escaping @MainActor () -> Bool = { true }
@@ -57,7 +60,7 @@ struct CustomerHomeView: View {
             )
         )
         _bookingStore = State(
-            initialValue: BookingsStore(
+            initialValue: bookingsStore ?? BookingsStore(
                 participantID: customerID,
                 role: .customer,
                 repository: bookingRepository,
@@ -108,7 +111,7 @@ struct CustomerHomeView: View {
                 bookingStore: bookingStore, chatStore: chatStore)
         }
         .foregroundRefreshable(isEnabled: isActiveTab && !requestStore.isShowingWizard && requestStore.discoveryFlow == nil,
-            nextDeadline: requestStore.nextDistributionDeadline) {
+            nextDeadline: GroomingFeed.nextTransition(bookings: bookingStore.bookings, requestDeadline: requestStore.nextDistributionDeadline)) {
             await loadHome()
         }
         .accessibilityIdentifier("customer.home")
@@ -152,37 +155,29 @@ struct CustomerHomeView: View {
                 .beckonEntrance(1)
                 .beckonScrollEase()
 
-                CustomerRequestPhotoUploadRetryList(store: requestStore)
+                GroomingPhotoUploadRetryList(store: requestStore)
                     .beckonEntrance(2)
 
                 CustomerHomePetsSection(store: petStore)
 
-                CustomerHomeActiveRequestSection(
-                    presentation: activeRequestPresentation,
-                    onSelectRequest: onActiveRequestSelected,
-                    retry: {
+                CustomerHomeNextUpSection(
+                    entries: nextUpEntries,
+                    requests: activeRequestPresentation,
+                    booking: nextBookingPresentation,
+                    staleBookingNote: nextBooking == nil ? nil : bookingStore.errorMessage,
+                    onSelect: onActiveRequestSelected,
+                    retryRequests: {
                         Task {
                             await requestStore.load()
+                        }
+                    },
+                    retryBookings: {
+                        Task {
+                            await bookingStore.load()
                         }
                     }
                 )
                 .beckonEntrance(5)
-                .beckonScrollEase()
-
-                if let message = bookingStore.nearestReadError, bookingStore.nearestBooking != nil {
-                    Text(message).font(DesignTokens.Typography.supporting).foregroundStyle(DesignTokens.Colors.textSecondary)
-                }
-                CustomerHomeNextBookingSection(
-                    presentation: nextBookingPresentation,
-                    store: bookingStore,
-                    onOpenChat: onBookingChatSelected,
-                    retry: {
-                        Task {
-                            await bookingStore.loadNearest()
-                        }
-                    }
-                )
-                .beckonEntrance(6)
                 .beckonScrollEase()
             }
             .beckonPageInsets(bottom: DesignTokens.Layout.pageBottomInset * 2)
@@ -205,7 +200,7 @@ struct CustomerHomeView: View {
             requestStep: card.flatMap { CustomerRequestSummaryPresentation(card: $0).step },
             offerCount: card?.loadedOfferCount,
             petName: card?.request.petSnapshot.name ?? petStore.pets.first?.name,
-            bookingCountdown: bookingStore.nearestBooking.flatMap { BeckonBookingCountdown.label(for: $0) }
+            bookingCountdown: nextBooking.flatMap { BeckonBookingCountdown.label(for: $0) }
         )
     }
 
@@ -218,14 +213,21 @@ struct CustomerHomeView: View {
     }
 
     private var nextBooking: Booking? {
-        bookingStore.nearestBooking
+        bookingStore.bookings.filter { $0.status == .confirmed && !GroomingLifecycle.isFinished($0) }
+            .sorted { $0.scheduledStart < $1.scheduledStart }.first
+    }
+
+    /// Home and Grooming use the same current request/booking projection.
+    private var nextUpEntries: [GroomingEntry] {
+        GroomingFeed.activeEntries(cards: requestStore.visibleActionCards, bookings: bookingStore.bookings,
+            avatar: { requestStore.primaryPetPhotoData(petID: $0) })
     }
 
     private var nextBookingPresentation: CustomerHomeNextBookingPresentation {
         CustomerHomeNextBookingPresentation(
             booking: nextBooking,
-            isLoading: bookingStore.nearestReadState == .idle || bookingStore.nearestReadState == .loading,
-            loadErrorMessage: bookingStore.nearestReadError
+            isLoading: bookingStore.isLoading,
+            loadErrorMessage: bookingStore.errorMessage
         )
     }
 
@@ -233,7 +235,7 @@ struct CustomerHomeView: View {
     private func loadHome() async {
         if !petStore.isShowingPetForm { await petStore.load() }
         await requestStore.load()
-        await bookingStore.loadNearest()
+        await bookingStore.load()
         await notificationStore.load()
     }
 
@@ -246,16 +248,17 @@ struct CustomerHomeView: View {
             get: {
                 CustomerRequestWizardPresentationOwnership.shouldPresent(
                     storeRequested: requestStore.isShowingWizard,
-                    isActiveTab: isActiveTab
+                    isActiveTab: isActiveTab && !requestFlowHosted
                 )
             },
             set: { isPresented in
-                guard isActiveTab else { return }
+                guard isActiveTab, !requestFlowHosted else { return }
                 requestStore.setWizardPresentation(isPresented)
             }
         )
     }
 }
+
 
 struct CustomerHomeRequestHeroPresentation: Equatable {
     static let title = "Need grooming for your pet?"
@@ -269,6 +272,7 @@ struct CustomerHomeRequestHeroPresentation: Equatable {
         !hasPets
     }
 }
+
 
 struct CustomerHomeActiveRequestPresentation: Equatable {
     let cards: [CustomerRequestActionCardItem]
@@ -285,7 +289,7 @@ struct CustomerHomeActiveRequestPresentation: Equatable {
         self.loadErrorMessage = loadErrorMessage
     }
 
-    var state: CustomerRequestCollectionState {
+    var state: GroomingCollectionState {
         if !cards.isEmpty {
             return .loaded
         }
@@ -300,6 +304,7 @@ struct CustomerHomeActiveRequestPresentation: Equatable {
         return .empty
     }
 }
+
 
 struct CustomerHomeNextBookingPresentation: Equatable {
     let booking: Booking?
@@ -316,9 +321,9 @@ struct CustomerHomeNextBookingPresentation: Equatable {
         self.loadErrorMessage = loadErrorMessage
     }
 
-    var shouldShowBooking: Bool {
-        booking != nil
-    }
+    var shouldShowBooking: Bool { booking != nil }
+    var shouldShowEmptyText: Bool { booking == nil && !shouldShowLoading && !shouldShowLoadError }
+    var shouldShowEmptyCard: Bool { false }
 
     var shouldShowLoading: Bool {
         booking == nil && isLoading
@@ -332,14 +337,6 @@ struct CustomerHomeNextBookingPresentation: Equatable {
             ).isEmpty ?? true)
     }
 
-    var shouldShowEmptyText: Bool {
-        booking == nil && !shouldShowLoading && !shouldShowLoadError
-    }
-
-    var shouldShowEmptyCard: Bool {
-        false
-    }
-
     var globalErrorPrompt: BeckonGlobalFeedbackError? {
         guard shouldShowLoadError, let loadErrorMessage else {
             return nil
@@ -347,11 +344,12 @@ struct CustomerHomeNextBookingPresentation: Equatable {
         return BeckonGlobalFeedbackError(
             scope: .page("customer.home"),
             sourceKey: "customer.home.bookings.load",
-            title: "Bookings didn't load",
+            title: "Grooming didn't load",
             message: loadErrorMessage
         )
     }
 }
+
 
 /// The one line under the greeting: always names the next step, from the data the modules below show.
 struct CustomerHomeGreetingPresentation: Equatable {
@@ -375,6 +373,7 @@ struct CustomerHomeGreetingPresentation: Equatable {
         }
     }
 }
+
 
 private struct CustomerHomeHeader: View {
     let displayName: String
@@ -409,6 +408,7 @@ private struct CustomerHomeHeader: View {
         }
     }
 }
+
 
 private struct CustomerHomeRequestHero: View {
     let isDisabled: Bool
@@ -453,6 +453,7 @@ private struct CustomerHomeRequestHero: View {
     }
 }
 
+
 struct CustomerHomePetsSection: View {
     @Bindable var store: CustomerPetsStore
     @State private var removing: CustomerPet?
@@ -490,24 +491,12 @@ struct CustomerHomePetsSection: View {
             } else if typeSize.isAccessibilitySize {
                 // Accessibility sizes reflow the carousel into full-width cards instead of squeezing text.
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    tiles
+                    tiles(width: 0)
                 }
                 .padding(.vertical, DesignTokens.Spacing.sm)
                 .accessibilityIdentifier("customer.pets.list")
             } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(alignment: .top, spacing: DesignTokens.Spacing.lg) {
-                        tiles
-                    }
-                    .padding(.vertical, DesignTokens.Spacing.sm)
-                    .scrollTargetLayout()
-                }
-                .contentMargins(.horizontal, DesignTokens.Spacing.screenHorizontal, for: .scrollContent)
-                // Horizontal carousels cancel the page inset so cards can bleed to the screen edge.
-                .padding(.horizontal, -DesignTokens.Spacing.screenHorizontal)
-                .scrollClipDisabled()
-                .scrollTargetBehavior(.viewAligned)
-                .beckonTracksScroll()
+                BeckonPeekCarousel(wholeCards: 2) { width in tiles(width: width) }
                 .accessibilityIdentifier("customer.pets.list")
             }
         }
@@ -522,24 +511,27 @@ struct CustomerHomePetsSection: View {
         }
     }
 
+    /// `width` is the carousel's card width; accessibility sizes stack full-width cards and ignore it.
     @ViewBuilder
-    private var tiles: some View {
+    private func tiles(width: CGFloat) -> some View {
         ForEach(Array(store.pets.enumerated()), id: \.element.id) { index, pet in
-            CustomerHomePetTile(pet: pet, index: index, store: store) { removing = $0 }
+            CustomerHomePetTile(pet: pet, index: index, store: store, width: width) { removing = $0 }
                 .beckonEntrance(3 + min(index, 1))
         }
 
-        CustomerHomeAddPetTile {
+        CustomerHomeAddPetTile(width: width) {
             store.startCreate()
         }
         .beckonEntrance(3 + min(store.pets.count, 1))
     }
 }
 
+
 private struct CustomerHomePetTile: View {
     let pet: CustomerPet
     let index: Int
     @Bindable var store: CustomerPetsStore
+    let width: CGFloat
     let onRemove: (CustomerPet) -> Void
     @Environment(\.dynamicTypeSize) private var typeSize
 
@@ -547,53 +539,40 @@ private struct CustomerHomePetTile: View {
         Button {
             store.startEdit(pet)
         } label: {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                BeckonPortrait(
-                    data: store.primaryPhotoData(for: pet),
-                    symbol: BeckonPetPresentation.symbol(for: pet.displaySpecies),
-                    index: index
-                )
-                .overlay(alignment: .topTrailing) {
-                    Image(systemName: "pencil")
-                        .font(DesignTokens.Typography.Expressive.label)
-                        .foregroundStyle(DesignTokens.Colors.customerDeep)
-                        .frame(width: DesignTokens.Metrics.ledgeIconTile, height: DesignTokens.Metrics.ledgeIconTile)
-                        .background(DesignTokens.Colors.surface, in: Circle())
-                        .overlay(Circle().strokeBorder(DesignTokens.Colors.customerFill, lineWidth: 2))
-                        .padding(DesignTokens.Spacing.sm)
-                        .accessibilityHidden(true)
-                }
-
-                // The card has a fixed size, so long text is truncated here and the full text lives in the editor.
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(pet.name)
-                        .font(DesignTokens.Typography.Expressive.title)
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .lineLimit(typeSize.isAccessibilitySize ? nil : 1)
-
-                    Text(petBreedLine)
-                        .font(DesignTokens.Typography.Expressive.supporting)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .lineLimit(typeSize.isAccessibilitySize ? nil : 2)
-                }
-
-                // Pins the chips to the bottom edge so they line up across cards, with or without a second breed line.
-                Spacer(minLength: 0)
+            VStack(alignment: .leading, spacing: 0) {
+                portrait
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    if let age = pet.displayAge {
-                        BeckonMetaChip(text: age, systemImage: "birthday.cake.fill")
+                    // The card has a fixed size, so long text is truncated here and the full text lives in the editor.
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text(pet.name)
+                            .font(DesignTokens.Typography.Expressive.title)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+                            .lineLimit(typeSize.isAccessibilitySize ? nil : 1)
+
+                        Text(petBreedLine)
+                            .font(DesignTokens.Typography.Expressive.supporting)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .lineLimit(typeSize.isAccessibilitySize ? nil : 1)
                     }
-                    if let weight = pet.displayWeightAndSize {
-                        BeckonMetaChip(text: weight, systemImage: "scalemass.fill")
+
+                    // Age and weight, one to a line in one type size: nothing is shrunk to fit, so a 12-year-old and a 100 lb dog
+                    // read as well as a puppy.
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        ForEach(facts, id: \.self) { CustomerHomePetFactRow(fact: $0) }
                     }
+
+                    // A pet without an age or weight leaves its room at the bottom, so the names still line up across the cards.
+                    Spacer(minLength: 0)
                 }
+                .padding(DesignTokens.Spacing.md)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
-            .padding(DesignTokens.Spacing.md)
-            .homePetCardFrame()
+            .homePetCardFrame(width: width)
+            // The head runs edge to edge, so the card's own corners clip it (the face's border is drawn over this).
+            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous))
         }
         .buttonStyle(BeckonLedgeButtonStyle(.card))
-        .beckonCarouselTilt(isEnabled: !typeSize.isAccessibilitySize)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(pet.name)
         .accessibilityValue(pet.accessibilitySummary)
@@ -610,6 +589,16 @@ private struct CustomerHomePetTile: View {
         .accessibilityIdentifier("customer.pets.card")
     }
 
+    /// The card's head: the photo (or the artwork) edge to edge. No edit button on it: the whole card opens the editor.
+    private var portrait: some View {
+        BeckonPortrait(
+            data: store.primaryPhotoData(for: pet),
+            symbol: BeckonPetPresentation.symbol(for: pet.displaySpecies),
+            index: index,
+            clipsToShape: false
+        )
+    }
+
     private var petBreedLine: String {
         let breed = pet.displayBreed?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let breed, !breed.isEmpty {
@@ -618,11 +607,57 @@ private struct CustomerHomePetTile: View {
 
         return pet.displaySpecies
     }
+
+    /// Age and weight, the two numbers an owner glances at; a fact the profile does not have is not shown.
+    private var facts: [CustomerHomePetFact] {
+        var result: [CustomerHomePetFact] = []
+        if let age = pet.displayAge {
+            result.append(.init(systemImage: "birthday.cake.fill", value: Self.shortAge(age)))
+        }
+        if let weight = pet.weightLbs, weight.isFinite, weight > 0 {
+            result.append(.init(systemImage: "scalemass.fill", value: "\(weight.formatted(.number.precision(.fractionLength(0...1)))) lb"))
+        }
+        return result
+    }
+
+    /// "4 years old" becomes "4 years": the symbol says it is the age.
+    private static func shortAge(_ age: String) -> String {
+        age.replacingOccurrences(of: " old", with: "")
+    }
 }
 
-/// One size for every pet card and the add slot: fixed width and height, so the carousel never changes shape with the data.
-/// Height follows Dynamic Type; accessibility sizes reflow to full-width cards that grow with their text instead of clipping.
+
+private struct CustomerHomePetFact: Hashable {
+    let systemImage: String
+    let value: String
+}
+
+
+/// One fact of the pet card: its symbol and its text, one line, one size for every fact and every pet.
+private struct CustomerHomePetFactRow: View {
+    let fact: CustomerHomePetFact
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+            Image(systemName: fact.systemImage)
+                .font(DesignTokens.Typography.Expressive.label)
+                .foregroundStyle(DesignTokens.Colors.customerDeep)
+                .frame(width: DesignTokens.Spacing.lg)
+                .accessibilityHidden(true)
+            Text(fact.value)
+                .font(DesignTokens.Typography.Expressive.emphasis)
+                .foregroundStyle(DesignTokens.Colors.customerInk)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+
+/// One size for every pet card and the add slot, whatever the data: the width comes from the row (two cards and the start of the
+/// third), the height is fixed. Height follows Dynamic Type; accessibility sizes reflow to full-width cards that grow with their
+/// text instead of clipping.
 private struct CustomerHomePetCardFrame: ViewModifier {
+    let width: CGFloat
     var flexibleMinHeight: CGFloat = 0
     @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .body) private var scaledHeight = DesignTokens.Metrics.petCardHeight
@@ -632,25 +667,28 @@ private struct CustomerHomePetCardFrame: ViewModifier {
             content.frame(maxWidth: .infinity, minHeight: flexibleMinHeight, alignment: .topLeading)
         } else {
             // Grows with larger text but never drops below the design height: the portrait and spacings do not scale.
-            content.frame(width: DesignTokens.Metrics.petCardWidth,
+            content.frame(width: width,
                 height: max(scaledHeight, DesignTokens.Metrics.petCardHeight), alignment: .topLeading)
         }
     }
 }
 
+
 private extension View {
-    func homePetCardFrame(flexibleMinHeight: CGFloat = 0) -> some View {
-        modifier(CustomerHomePetCardFrame(flexibleMinHeight: flexibleMinHeight))
+    func homePetCardFrame(width: CGFloat, flexibleMinHeight: CGFloat = 0) -> some View {
+        modifier(CustomerHomePetCardFrame(width: width, flexibleMinHeight: flexibleMinHeight))
     }
 }
 
+
 private struct CustomerHomeAddPetTile: View {
+    let width: CGFloat
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             BeckonLedgeAddSlot(title: "Add pet")
-                .homePetCardFrame(flexibleMinHeight: 160)
+                .homePetCardFrame(width: width, flexibleMinHeight: 160)
         }
         .buttonStyle(BeckonLedgeButtonStyle(.dashed))
         .accessibilityLabel("Add pet")
@@ -659,102 +697,95 @@ private struct CustomerHomeAddPetTile: View {
     }
 }
 
-private struct CustomerHomeActiveRequestSection: View {
-    let presentation: CustomerHomeActiveRequestPresentation
-    let onSelectRequest: (UUID) -> Void
-    let retry: () -> Void
+
+/// Home's one module for what is in progress (S-057): the requests and the next booking were two modules (Active request, Next
+/// booking) while the Grooming tab already holds them as one. Same cards, glance size, same order, no page dots (the next card
+/// peeking in says it swipes). A tap opens the Grooming tab on that card, where the button and the menu live. Everything the two
+/// modules said when something was wrong is kept: loading, requests that failed (Try again), bookings that failed (Try again), a
+/// stale note when the booking could not refresh, and the empty line.
+private struct CustomerHomeNextUpSection: View {
+    let entries: [GroomingEntry]
+    let requests: CustomerHomeActiveRequestPresentation
+    let booking: CustomerHomeNextBookingPresentation
+    let staleBookingNote: String?
+    let onSelect: (UUID) -> Void
+    let retryRequests: () -> Void
+    let retryBookings: () -> Void
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
-            BeckonLedgeHeading(title: "Active request", systemImage: "paperplane.fill", count: presentation.cards.count)
+            BeckonLedgeHeading(title: "Next up", systemImage: "sparkles", count: entries.count)
 
-            switch presentation.state {
-            case .loaded:
-                CustomerRequestSummaryCarousel(
-                    cards: presentation.cards,
-                    onSelectRequest: onSelectRequest
-                )
-                    .accessibilityIdentifier("customer.home.active-request.carousel")
-
-            case .loading:
+            if !entries.isEmpty {
+                row
+                if let staleBookingNote {
+                    Text(staleBookingNote)
+                        .font(DesignTokens.Typography.supporting)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                }
+            } else if requests.state == .loading || booking.shouldShowLoading {
                 BeckonLoadingView(
-                    title: "Loading requests…",
-                    message: "Checking your active grooming requests.",
+                    title: "Loading your grooming…",
+                    message: "Checking what is in progress.",
                     accent: .customer
                 )
-                .accessibilityIdentifier("customer.home.active-request.loading")
-
-            case .error(let message):
-                CustomerRequestLoadFailureBanner(
-                    message: message,
-                    accessibilityIdentifier: "customer.home.active-request.error",
-                    retry: retry
-                )
-
-            case .empty:
-                BeckonLedgeNote(systemImage: "paperplane", text: CustomerRequestEmptyCopy.message)
-                    .accessibilityIdentifier("customer.home.active-request.empty")
-            }
-        }
-    }
-}
-
-private struct CustomerHomeNextBookingSection: View {
-    let presentation: CustomerHomeNextBookingPresentation
-    let store: BookingsStore
-    let onOpenChat: (Booking) -> Void
-    let retry: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
-            BeckonLedgeHeading(title: "Next booking", systemImage: "calendar")
-
-            if presentation.shouldShowLoading {
-                BeckonLoadingView(
-                    title: "Loading booking…",
-                    message: "Checking confirmed appointments.",
-                    accent: .customer
-                )
-                .accessibilityIdentifier("customer.home.next-booking.loading")
-            } else if presentation.shouldShowLoadError,
-                      let message = presentation.loadErrorMessage {
-                BeckonErrorBanner(
-                    title: "Bookings didn't load",
-                    message: message,
-                    systemImage: "calendar.badge.exclamationmark"
-                ) {
-                    Button("Try again", action: retry)
-                        .buttonStyle(
-                            BeckonSecondaryButtonStyle(
-                                accent: .customer,
-                                isFullWidth: false
-                            )
-                        )
-                }
-                .accessibilityIdentifier("customer.home.next-booking.error")
-            } else if let booking = presentation.booking {
-                NavigationLink {
-                    BookingDetailView(
-                        bookingID: booking.id,
-                        role: .customer,
-                        store: store,
-                        onOpenChat: onOpenChat
-                    )
-                } label: {
-                    BookingCard(booking: booking, role: .customer)
-                }
-                .buttonStyle(BeckonLedgeButtonStyle(.card))
-                .accessibilityIdentifier("customer.home.next-booking.view")
+                .accessibilityIdentifier("customer.home.next-up.loading")
             } else {
-                BeckonLedgeNote(
-                    systemImage: "calendar",
-                    text: "Accepted offers will appear here as upcoming appointments."
-                )
-                .accessibilityIdentifier("customer.home.next-booking.empty")
+                if case .error(let message) = requests.state {
+                    GroomingLoadFailureBanner(
+                        message: message,
+                        accessibilityIdentifier: "customer.home.next-up.requests-error",
+                        retry: retryRequests
+                    )
+                }
+                if booking.shouldShowLoadError, let message = booking.loadErrorMessage {
+                    BeckonErrorBanner(
+                        title: "Grooming didn't load",
+                        message: message,
+                        systemImage: "calendar.badge.exclamationmark"
+                    ) {
+                        Button("Try again", action: retryBookings)
+                            .buttonStyle(
+                                BeckonSecondaryButtonStyle(
+                                    accent: .customer,
+                                    isFullWidth: false
+                                )
+                            )
+                    }
+                    .accessibilityIdentifier("customer.home.next-up.bookings-error")
+                }
+                if requests.state == .empty, !booking.shouldShowLoadError {
+                    BeckonLedgeNote(systemImage: "sparkles", text: GroomingEmptyCopy.message)
+                        .accessibilityIdentifier("customer.home.next-up.empty")
+                }
             }
         }
     }
+
+    @ViewBuilder
+    private var row: some View {
+        if typeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                ForEach(entries) { card($0) }
+            }
+        } else if entries.count > 1 {
+            BeckonPeekCarousel(wholeCards: 1) { width in
+                ForEach(entries) { entry in
+                    card(entry).frame(width: width)
+                }
+            }
+            .accessibilityIdentifier("customer.home.next-up.carousel")
+        } else if let entry = entries.first {
+            card(entry)
+        }
+    }
+
+    private func card(_ entry: GroomingEntry) -> some View {
+        GroomingCard(content: .entry(entry), style: .glance, onOpen: { onSelect(entry.id) })
+    }
 }
+
 
 private struct CustomerHomeStatusView: View {
     let petStore: CustomerPetsStore

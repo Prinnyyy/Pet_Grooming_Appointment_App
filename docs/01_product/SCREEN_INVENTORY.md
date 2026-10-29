@@ -1,6 +1,6 @@
 # Screen Inventory
 
-Customer ownership updated: 2026-10-25 (T-420); runtime evidence is recorded in its adoption plan.
+Customer ownership updated: 2026-10-29 (T-421); implementation/acceptance status is recorded in its adoption plan.
 Groomer ownership and navigation rechecked: 2026-10-04 (T-402); other role entries retain their previous verification date.
 
 Status values: `beckon adapted`, `planned`, `deferred`. Planned paths are placement contracts, not proof that a file exists.
@@ -17,9 +17,9 @@ Future UI work is screenshot-driven. Map every visible module to this table plus
 | CustomerHomeView | Customer | pets, pet photos, unread notifications / `CustomerPetsStore`, `CustomerNotificationsStore` | `Features/Customer/Home/CustomerHomeView.swift` | beckon adapted; semantic/AX3 reference |
 | CustomerNotificationsView | Customer | `customer_notifications`, mark-read RPCs / `CustomerNotificationsStore` | `Features/Customer/Notifications/CustomerNotificationsView.swift` | beckon adapted |
 | CustomerHomePetsSection / CustomerPetFormView | Customer | `pets`, `pet_photos`, Storage / `CustomerPetsStore` | `Features/Customer/Home/CustomerHomeView.swift` | beckon adapted |
-| CustomerRequestsView / RequestWizardView | Customer | own requests, pets, request RPC / `CustomerRequestsStore` | `Features/Customer/Requests/CustomerRequestsView.swift`, `Features/Customer/Requests/CustomerRequestWizardView.swift` | beckon adapted; semantic/AX3 reference |
-| CustomerRequestDetailView / CustomerRequestOffersView / CustomerOfferDetailView | Customer | requests, offers and accept/recovery operations / `CustomerRequestsStore` | `Features/Customer/Requests/CustomerRequestDetailView.swift`, `CustomerRequestOffersView.swift`, `CustomerOfferDetailView.swift` | beckon adapted |
-| Customer booking list / CustomerBookingDetailContent | Customer | `bookings`, `reviews`, cancel/review RPCs / `BookingsStore` | `Features/Bookings/BookingsView.swift` | beckon adapted |
+| CustomerGroomingView / CustomerRequestWizardView | Customer | request and booking Stores / wizard state | `Features/Customer/Grooming/CustomerGroomingView.swift`, `Features/Customer/Requests/CustomerRequestWizardView.swift` | beckon adapted; T-421 acceptance in progress |
+| GroomingDetailView / CustomerRequestOffersView / CustomerOfferDetailView | Customer | requests, offers, bookings, review eligibility and accept/recovery | `Features/Customer/Grooming/GroomingDetailView.swift`, `Features/Customer/Requests/CustomerRequestOffersView.swift`, `CustomerOfferDetailView.swift` | beckon adapted; T-421 acceptance in progress |
+| GroomingHistoryView | Customer | closed requests and inactive bookings / shared Stores | `Features/Customer/Grooming/GroomingHistory.swift` | beckon adapted; T-421 acceptance in progress |
 | GroomerHomeView | Groomer | Read-only profile/request/offer/booking summary / `GroomerHomeStore`; shared notification/chat badge sources | `Features/Groomer/Home/GroomerHomeView.swift` | beckon adapted; failed reads are unknown, not zero |
 | GroomerAccountHomeView / profile routes | Groomer | profile, services, availability, fit claims and evidence / `GroomerProfileStore` | `Features/Groomer/Profile/GroomerProfileManagementView.swift`, `GroomerProfileAccountView.swift` | beckon adapted; direct Account tab |
 | Profile / Services / Portfolio editors | Groomer | Existing profile/service/photo mutations / `GroomerProfileStore` | `Features/Groomer/Profile/GroomerProfileFormView.swift`, `GroomerServicesEditorView.swift`, `GroomerPortfolioEditorView.swift` | beckon adapted; one back route per editor |
@@ -44,16 +44,28 @@ Future UI work is screenshot-driven. Map every visible module to this table plus
 
 D-064 extends [Lively UI Spec](LIVELY_UI_SPEC.md). Customer Home and authentication landing use Tier L illustration; customer lists/details, form chrome, account/settings, notifications and dialogs use Tier M. Inputs and chat-thread content stay calm; chat receives no page entrance. Groomer workspaces retain Tier C, with the approved shared account actions/booking dialogs. `LEDGE_TIER_PATHS` enumerates the adopted files; role-scoped branches in shared files preserve groomer presentation.
 
-- `CustomerTabView` owns Home / Requests / Bookings / Messages / Account, entrance activation, programmatic routes and the active tab's request wizard.
+- `CustomerTabView` owns Home / Grooming / Messages / Account, entrance activation, programmatic routes and one shared request-modal presenter for all four tabs.
 - `CustomerRequestWizardView` and `CustomerRequestWizardChrome` own six steps; `CustomerGroomerDiscoveryView` supplies step six and Invite more. `GroomerChoice` owns selection, capacity hints and pool controls; the server retains final authority.
-- `CustomerRequestCard`, `CustomerRequestSummaryCard`, `CustomerRequestReachCard` and request history belong to Requests. `BookingCard` is reused on Home and Bookings.
-- `CustomerFavoriteGroomersView` uses `GroomerFavoritesStore` and the first eligible active request in the request Store's order. `CustomerAccountView` owns its entry; no duplicate create-request action.
+- `GroomingCard`, `GroomingFeed`, `GroomingDetailView` and `GroomingHistoryView` own the unified journey. Home uses the same feed at glance size; notification, reminder and customer chat booking links resolve that detail.
+- `CustomerFavoriteGroomersView` uses `GroomerFavoritesStore`, starts without a selected request, then applies explicit batch selection in the chosen request context. `CustomerAccountView` owns its entry; no duplicate create-request action.
 - `CustomerPetFormView` lives in `Features/Customer/Pets/`; `CustomerProfileSettingsView` in `Features/Customer/Profile/`. They retain real Stores and edit reconciliation.
 - `DesignKit`, `DesignDialog`, `DesignSnackbar`, `BeckonMotion` and `FeedbackTimingPolicy` own shared presentation, not business actions. `FlowSandbox/Customer` hosts those real views with DEBUG-only local dependencies; `FlowSandbox/Prototype` remains the frozen design reference.
 
+### Handoff 2 customer module ownership (D-065)
+
+All files below are Tier M except the Tier L authentication landing. The existing Stores remain business owners. This adoption does not require connecting customer pages to current groomer pages; groomer UX is a separate future update.
+
+| Module | Source under `ios/Beckon/Beckon/` | Data owner |
+|---|---|---|
+| Grooming, card, detail, History, dialogs, review | `Features/Customer/Grooming/CustomerGroomingView.swift`, `GroomingCard.swift`, `GroomingDetailView.swift`, `GroomingDetailParts.swift`, `GroomingDetailActions.swift`, `GroomingHistory.swift`, `GroomingPageParts.swift`, `GroomingActionDialogs.swift`, `GroomingReview.swift` | `CustomerRequestsStore`, `BookingsStore`; `GroomingLifecycle` owns timing |
+| Six-step request form | `Features/Customer/Requests/CustomerRequestPetAndService.swift`, `CustomerRequestTimeAndPlace.swift`, `CustomerRequestDetails.swift`, existing Wizard/View/Chrome | `CustomerRequestWizardState`, `CustomerRequestsStore` |
+| Saved request strip | `Features/Customer/Favorites/CustomerFavoriteRequestStrip.swift` | existing favorites and request Stores |
+| Groomer profile and horizontal photo viewer | `Features/Customer/Discovery/GroomerProfileView.swift`, `CustomerGroomerProfilePage.swift` | `CustomerGroomerProfileStore`, discovery repository; customer-safe profile RPC and existing private image loader |
+| Landing | `Features/Auth/AuthenticationLanding.swift` | `AuthenticationStore`; presentation receives values/actions |
+
 ## Role Tab Summary
 
-- Customer tabs: Home, Requests, Bookings, Messages, Account.
+- Customer tabs: Home, Grooming, Messages, Account.
 - Groomer tabs: Home, Requests, Schedule, Messages, Account. No system More tab.
 - Requests owns the `Matches` / `Offers` workspace. Notifications open from Home. Offer creation and withdrawal remain owned by the existing request/offer features.
 - Visual adaptation must preserve Open Request -> Groomer Offer -> Customer Confirmation -> Booking.

@@ -49,3 +49,5 @@ Public buckets are not the default. Use signed URLs or authenticated object read
 - Keep deployment narratives in task closeout or frozen archives.
 
 Official reference: [Supabase Storage access control](https://supabase.com/docs/guides/storage/security/access-control).
+
+T-421 customer groomer profiles reuse the existing private `groomer-portfolio` read contract. The customer DTO validates groomer ownership, bucket and path before loading bytes; session cancellation and per-photo retry remain in the profile Store. No new public bucket or broader Storage policy is introduced.

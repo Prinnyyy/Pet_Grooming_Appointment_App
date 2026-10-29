@@ -886,10 +886,13 @@ struct BookingsStoreTests {
         ))
     }
 
-    @Test(arguments: [BookingRepositoryError.networkUnavailable, .unavailable, .reviewAlreadyExists])
+    @Test(arguments: [BookingRepositoryError.networkUnavailable, .unavailable, .reviewAlreadyExists],
+          [BookingStatus.completed, .confirmed])
     @MainActor
-    func uncertainReviewRecoversAuthoritativeResult(error: BookingRepositoryError) async throws {
-        let booking = Self.booking(status: .completed, completedAt: "2026-06-22T18:05:00Z")
+    func uncertainReviewRecoversAuthoritativeResult(error: BookingRepositoryError, status: BookingStatus) async throws {
+        let booking = Self.booking(status: status,
+            completedAt: status == .completed ? "2026-06-22T18:05:00Z" : nil,
+            serviceTimeZoneIdentifier: "America/Los_Angeles")
         let review = BookingReview(id: UUID(), bookingID: booking.id,
             customerID: booking.customerID, groomerID: booking.groomerID,
             rating: 3, content: "Previously committed", createdAt: "2026-06-22T19:00:00Z")

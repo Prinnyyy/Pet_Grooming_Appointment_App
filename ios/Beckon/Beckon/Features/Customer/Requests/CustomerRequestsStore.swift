@@ -178,11 +178,12 @@ final class CustomerRequestsStore {
     var serviceType: GroomingServiceType?
     var serviceNotes = ""
     var preferredStart: Date {
-        didSet { if preferredStart != oldValue { startOccurrenceChoice = nil } }
+        didSet { if preferredStart != oldValue { startOccurrenceChoice = nil; preferredTimeAdjustmentRequired = false } }
     }
     var preferredEnd: Date {
-        didSet { if preferredEnd != oldValue { endOccurrenceChoice = nil } }
+        didSet { if preferredEnd != oldValue { endOccurrenceChoice = nil; preferredTimeAdjustmentRequired = false } }
     }
+    var preferredTimeAdjustmentRequired = false
     private var startOccurrenceChoice: (date: Date, zone: String, operation: UUID)?
     private var endOccurrenceChoice: (date: Date, zone: String, operation: UUID)?
     var locationMode: GroomingLocationMode = .groomerComesToCustomer
@@ -814,6 +815,12 @@ final class CustomerRequestsStore {
 
     func request(withID id: UUID) -> CustomerGroomingRequest? {
         requests.first { $0.id == id }
+    }
+
+    func resolveBookingForGrooming(requestID: UUID) async throws -> Booking? {
+        let booking = try await existingRequestBooking(requestID: requestID)
+        if let booking { bookingsStore?.synchronizeExternalBooking(booking) }
+        return booking
     }
 
     func resolveNotificationRequest(id: UUID, offerID: UUID? = nil) async throws -> CustomerGroomingRequest {
@@ -1816,6 +1823,10 @@ final class CustomerRequestsStore {
             )
         }
 
+        guard !preferredTimeAdjustmentRequired else {
+            throw CustomerRequestFormError(message: "That time does not exist at this address. Choose another time.")
+        }
+
         guard !hasUnresolvedPreferredOccurrence else {
             throw CustomerRequestFormError(message: "Choose which occurrence of the repeated time you mean.")
         }
@@ -1945,6 +1956,10 @@ final class CustomerRequestsStore {
     private func validateTimeAndLocationStep(
         now: Date
     ) -> CustomerRequestWizardStepValidation {
+        guard !preferredTimeAdjustmentRequired else {
+            return CustomerRequestWizardStepValidation(fields: [.timeWindow],
+                message: "That time does not exist at this address. Choose another time.")
+        }
         var fields: Set<CustomerRequestWizardValidationField> = []
 
         if requestCalendar != nil, remainingPreferredRange(now: now) == nil {
@@ -2048,6 +2063,7 @@ final class CustomerRequestsStore {
     }
 
     private func resetForm(now: Date = Date()) {
+        preferredTimeAdjustmentRequired = false
         publishOperationID = UUID()
         supersedingRequestID = nil
         expectedRequestRevision = nil

@@ -125,14 +125,13 @@ struct AppEntryModelsTests {
 struct TabModelsTests {
     @Test
     func customerTabsHaveExactOrderTitlesAndSymbols() {
-        #expect(CustomerTab.allCases == [.home, .requests, .bookings, .messages, .account])
-        #expect(CustomerTab.allCases.map(\.title) == ["Home", "Requests", "Bookings", "Messages", "Account"])
-        #expect(CustomerTab.allCases.map(\.systemImage) == ["house", "list.bullet.clipboard", "calendar", "message", "person.crop.circle"])
+        #expect(CustomerTab.allCases == [.home, .requests, .messages, .account])
+        #expect(CustomerTab.allCases.map(\.title) == ["Home", "Grooming", "Messages", "Account"])
+        #expect(CustomerTab.allCases.map(\.systemImage) == ["house", "list.bullet.clipboard", "message", "person.crop.circle"])
         #expect(CustomerTab.allCases.allSatisfy { $0.id == $0 })
         #expect(CustomerTab.allCases.map(\.accessibilityIdentifier) == [
             "customer.tab.home",
             "customer.tab.requests",
-            "customer.tab.bookings",
             "customer.tab.messages",
             "customer.tab.account",
         ])

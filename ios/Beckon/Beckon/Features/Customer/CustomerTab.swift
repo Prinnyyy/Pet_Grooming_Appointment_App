@@ -1,16 +1,19 @@
 nonisolated enum CustomerTab: CaseIterable, Identifiable, Equatable {
     case home
     case requests
+    // Retained for the frozen prototype and legacy adapters; not a customer tab.
     case bookings
     case messages
     case account
+
+    static let allCases: [Self] = [.home, .requests, .messages, .account]
 
     var id: Self { self }
 
     var title: String {
         switch self {
         case .home: "Home"
-        case .requests: "Requests"
+        case .requests: "Grooming"
         case .bookings: "Bookings"
         case .messages: "Messages"
         case .account: "Account"

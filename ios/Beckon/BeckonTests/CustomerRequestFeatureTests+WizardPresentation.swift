@@ -6,12 +6,6 @@ import Testing
 
 extension CustomerRequestsStoreTests {
     @Test @MainActor
-    func requestsRootUsesStableTitleWithoutSubtitle() {
-        #expect(CustomerRequestsHeader.title == "Requests")
-        #expect(CustomerRequestsHeader.createActionTitle == "New Request")
-    }
-
-    @Test @MainActor
     func homeRequestHeroStaysEnabledWhileRequestsReloadWhenPetsExist() {
         let loadingWithPet = CustomerHomeRequestHeroPresentation(
             hasPets: true,
@@ -88,28 +82,28 @@ extension CustomerRequestsStoreTests {
 
     @Test @MainActor
     func requestsDashboardStateKeepsUsableContentAheadOfRefreshFailures() {
-        let loading = CustomerRequestsDashboardPresentation(
+        let loading = GroomingCollectionPresentation(
             activeCardCount: 0,
             closedRequestCount: 0,
             photoRetryCount: 0,
             isLoading: true,
             loadErrorMessage: nil
         )
-        let error = CustomerRequestsDashboardPresentation(
+        let error = GroomingCollectionPresentation(
             activeCardCount: 0,
             closedRequestCount: 0,
             photoRetryCount: 0,
             isLoading: false,
             loadErrorMessage: "Check your connection and try again."
         )
-        let empty = CustomerRequestsDashboardPresentation(
+        let empty = GroomingCollectionPresentation(
             activeCardCount: 0,
             closedRequestCount: 0,
             photoRetryCount: 0,
             isLoading: false,
             loadErrorMessage: nil
         )
-        let staleContent = CustomerRequestsDashboardPresentation(
+        let staleContent = GroomingCollectionPresentation(
             activeCardCount: 1,
             closedRequestCount: 0,
             photoRetryCount: 0,
@@ -121,27 +115,6 @@ extension CustomerRequestsStoreTests {
         #expect(error.state == .error("Check your connection and try again."))
         #expect(empty.state == .empty)
         #expect(staleContent.state == .loaded)
-    }
-
-    @Test @MainActor
-    func requestCarouselPositionUsesVisibleRequestAndStableFallback() {
-        let firstID = UUID()
-        let secondID = UUID()
-        let thirdID = UUID()
-        let visible = CustomerRequestCarouselPosition(
-            requestIDs: [firstID, secondID, thirdID],
-            visibleRequestID: secondID
-        )
-        let fallback = CustomerRequestCarouselPosition(
-            requestIDs: [firstID, secondID, thirdID],
-            visibleRequestID: UUID()
-        )
-
-        #expect(visible.current == 2)
-        #expect(visible.total == 3)
-        #expect(visible.label == "Request 2 of 3")
-        #expect(fallback.current == 1)
-        #expect(fallback.label == "Request 1 of 3")
     }
 
     @Test @MainActor
@@ -187,19 +160,10 @@ extension CustomerRequestsStoreTests {
 
         #expect(presentation.shouldShowLoadError == true)
         #expect(presentation.shouldShowEmptyText == false)
-        #expect(presentation.globalErrorPrompt?.title == "Bookings didn't load")
+        #expect(presentation.globalErrorPrompt?.title == "Grooming didn't load")
         #expect(
             presentation.globalErrorPrompt?.message ==
                 "We could not load bookings. Please try again."
-        )
-    }
-
-    @Test @MainActor
-    func requestEmptyCopyIsSharedByHomeAndRequests() {
-        #expect(CustomerRequestEmptyCopy.title == "No active request")
-        #expect(
-            CustomerRequestEmptyCopy.message ==
-                "Open requests and newly confirmed bookings will appear here."
         )
     }
 
@@ -240,18 +204,13 @@ extension CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
-    func requestWizardSeparatesServiceLocationFromAddressDetails() {
-        #expect(CustomerRequestLocationSection.allCases.map(\.title) == [
-            "Service location",
-            "Address Details",
-        ])
-        #expect(CustomerRequestLocationSection.groomingSetup.supportingText == nil)
-        #expect(CustomerRequestLocationMode.groomerComesToCustomer.rawValue == "groomer_comes_to_customer")
-        #expect(CustomerRequestLocationMode.customerComesToGroomer.rawValue == "customer_comes_to_groomer")
-        let customerPresentations = CustomerRequestLocationMode.allCases.map {
+    func locationChoicesPreserveCustomerAndGroomerPerspectives() {
+        #expect(GroomingLocationMode.groomerComesToCustomer.rawValue == "groomer_comes_to_customer")
+        #expect(GroomingLocationMode.customerComesToGroomer.rawValue == "customer_comes_to_groomer")
+        let customerPresentations = GroomingLocationMode.allCases.map {
             BeckonGroomingLocationModePresentation(mode: $0, perspective: .customer)
         }
-        let groomerPresentations = CustomerRequestLocationMode.allCases.map {
+        let groomerPresentations = GroomingLocationMode.allCases.map {
             BeckonGroomingLocationModePresentation(mode: $0, perspective: .groomer)
         }
 
@@ -698,7 +657,7 @@ extension CustomerRequestsStoreTests {
             "Preferred time",
             "Location",
             "Notes",
-            "Request photos",
+            "Photos",
         ])
         #expect(summary.rows.map(\.value) == [
             "Mochi · Toy Poodle",
@@ -706,23 +665,14 @@ extension CustomerRequestsStoreTests {
             "Fri 19 · Afternoon",
             "Mobile · Seattle, WA 98101",
             "Mochi needs a teddy-style trim.",
-            "2 Selected",
+            "2 photos",
         ])
     }
 
     @Test @MainActor
-    func requestPhotoSelectionCopyKeepsRequestPhotosDistinctFromPetAvatar() {
-        #expect(CustomerRequestPhotoSelectionCopy.title == "Request photos")
-        #expect(
-            CustomerRequestPhotoSelectionCopy.supportingText ==
-                "Add photos specific to this grooming request. Your pet profile photo stays separate."
-        )
-    }
-
-    @Test @MainActor
     func requestPhotoRetryPresentationUsesActionableSingularAndPluralCopy() {
-        let singular = CustomerRequestPhotoUploadRetryPresentation(photoCount: 1)
-        let plural = CustomerRequestPhotoUploadRetryPresentation(photoCount: 3)
+        let singular = GroomingPhotoUploadRetryPresentation(photoCount: 1)
+        let plural = GroomingPhotoUploadRetryPresentation(photoCount: 3)
 
         #expect(singular.title == "1 request photo needs uploading")
         #expect(singular.message == "The request was published, but this photo was not uploaded.")
@@ -1099,26 +1049,11 @@ extension CustomerRequestsStoreTests {
             customerID: customerID,
             status: .confirmed
         )
-        let presentation = CustomerRequestCardPresentation(
-            request: bookedRequest,
-            handoff: CustomerRequestBookingHandoff(
-                request: bookedRequest,
-                booking: booking
-            )
-        )
-
-        #expect(presentation.headline == "Booking\nconfirmed")
-        #expect(presentation.subtitle == "Full groom for Mochi")
-        #expect(presentation.infoLines == [
-            CustomerRequestCardPresentation.InfoLine(
-                systemImage: "calendar",
-                text: booking.scheduledTimePresentation.summary
-            ),
-            CustomerRequestCardPresentation.InfoLine(
-                systemImage: "mappin.and.ellipse",
-                text: "Seattle, WA 98101"
-            ),
-        ])
+        let presentation = GroomingCardContent.entry(.booking(booking, handoff: .init(request: bookedRequest, booking: booking), avatar: nil))
+        #expect(presentation.status == "Booking confirmed")
+        #expect(presentation.title.contains("Mochi"))
+        #expect(presentation.time == booking.scheduledTimePresentation.summary)
+        #expect(presentation.current == 2)
     }
 
     @Test @MainActor
@@ -1129,18 +1064,10 @@ extension CustomerRequestsStoreTests {
             petID: UUID(),
             status: .open
         )
-        let presentation = CustomerRequestCardPresentation(
-            request: request,
-            handoff: nil
-        )
-
-        #expect(presentation.headline == "Open\nrequest")
-        #expect(presentation.infoLines.first == CustomerRequestCardPresentation.InfoLine(
-            systemImage: "calendar",
-            text: "Time unavailable\nTime zone not confirmed"
-        ))
-        #expect(presentation.infoLines.first?.text.contains("2026") == false)
-        #expect(presentation.infoLines.first?.text.contains(request.preferredStart) == false)
+        let presentation = GroomingCardContent.request(.init(request: request, handoff: nil), reach: nil)
+        #expect(presentation.time == "Time unavailable · Time zone not confirmed")
+        #expect(presentation.when == nil)
+        #expect(!presentation.time.contains(request.preferredStart))
     }
 
     @Test @MainActor

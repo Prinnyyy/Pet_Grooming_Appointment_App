@@ -1,5 +1,6 @@
 import SwiftUI
 
+
 struct GroomerCandidateActionsView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let id: UUID
@@ -9,18 +10,24 @@ struct GroomerCandidateActionsView: View {
     let onFavorite: () -> Void
     let onSend: () -> Void
     var publicationConfirmation: String? = nil
+    /// False on the profile page, where the heart is part of the page itself.
+    var showsFavorite = true
 
     var body: some View {
         actionLayout {
-            Button(action: onFavorite) {
-                Image(systemName: isFavorite ? "heart.fill" : "heart")
-                    .font(DesignTokens.Typography.Expressive.glyph)
-                    .foregroundStyle(DesignTokens.Colors.customerDeep)
-                    .frame(width: DesignTokens.Metrics.ledgeRoundControl, height: DesignTokens.Metrics.ledgeRoundControl)
+            if showsFavorite {
+                Button(action: onFavorite) {
+                    Image(systemName: isFavorite ? "heart.fill" : "heart")
+                        .contentTransition(.symbolEffect(.replace))
+                        .font(DesignTokens.Typography.Expressive.glyph)
+                        .foregroundStyle(DesignTokens.Colors.customerDeep)
+                        .frame(width: DesignTokens.Metrics.ledgeRoundControl, height: DesignTokens.Metrics.ledgeRoundControl)
+                }
+                .buttonStyle(BeckonLedgeButtonStyle(.round))
+                .beckonAnimation(DesignTokens.Motion.bounce, value: isFavorite)
+                .accessibilityLabel(isFavorite ? "Remove favorite" : "Add favorite")
+                .accessibilityIdentifier("discovery.favorite.\(id.uuidString)")
             }
-            .buttonStyle(BeckonLedgeButtonStyle(.round))
-            .accessibilityLabel(isFavorite ? "Remove favorite" : "Add favorite")
-            .accessibilityIdentifier("discovery.favorite.\(id.uuidString)")
             if invitation == .notSent {
                 CustomerRequestSendButton(title: "Send request", confirmation: publicationConfirmation, action: onSend)
                     .accessibilityIdentifier("discovery.send.\(id.uuidString)")
@@ -40,6 +47,7 @@ struct GroomerCandidateActionsView: View {
     }
 }
 
+
 struct CustomerRequestSendButton: View {
     let title: String
     let confirmation: String?
@@ -57,7 +65,7 @@ struct CustomerRequestSendButton: View {
             DesignActionLabel(title: title, systemImage: "paperplane.fill")
         }
         .buttonStyle(BeckonLedgeButtonStyle(.pill))
-        .sendRequestDialog(isPresented: $isConfirming, summary: confirmedSummary, send: action)
+        .sendRequestDialog(isPresented: $isConfirming, summary: confirmedSummary, send: { action() })
     }
 }
 

@@ -1,17 +1,5 @@
 import SwiftUI
 
-private struct ShowRequestsKey: EnvironmentKey {
-    static let defaultValue: (@MainActor (UUID?) -> Void)? = nil
-}
-
-extension EnvironmentValues {
-    /// Result routing belongs to the tab shell, including requests published inside a sheet.
-    var showRequests: (@MainActor (UUID?) -> Void)? {
-        get { self[ShowRequestsKey.self] }
-        set { self[ShowRequestsKey.self] = newValue }
-    }
-}
-
 struct CustomerTabView: View {
     @Environment(\.appDebugEventRecorder) private var debugRecorder
     let customerID: UUID?
@@ -27,6 +15,7 @@ struct CustomerTabView: View {
     @State private var selection: CustomerTab = .home
     @State private var focusedRequestID: UUID?
     @State private var requestsNavigationRevision = 0
+    @State private var groomingPath: [GroomingRoute] = []
     @State private var focusedConversationBookingID: UUID?
     @State private var notificationStore: CustomerNotificationsStore?
     @State private var chatStore: ChatStore?
@@ -119,16 +108,13 @@ struct CustomerTabView: View {
     var body: some View {
         TabView(selection: $selection) {
             ForEach(CustomerTab.allCases) { tab in
-                NavigationStack {
-                    destination(for: tab)
-                        .background(DesignTokens.Colors.appBackground)
-                }
+                navigationRoot(for: tab)
                 .id(tab == .requests ? requestsNavigationRevision : 0)
                 .beckonEntranceActive(selection == tab)
                 .foregroundRefreshable(
                     isEnabled: tab == .requests && selection == .requests
                         && requestStore?.isShowingWizard == false && requestStore?.discoveryFlow == nil,
-                    nextDeadline: tab == .requests ? requestStore?.nextDistributionDeadline : nil,
+                    nextDeadline: tab == .requests ? GroomingFeed.nextTransition(bookings: bookingsStore?.bookings ?? [], requestDeadline: requestStore?.nextDistributionDeadline) : nil,
                     fallbackAction: {
                         guard let requestStore else { return }
                         if requestStore.marketplace != nil {
@@ -139,9 +125,10 @@ struct CustomerTabView: View {
                     }
                 ) {
                     await requestStore?.load()
+                    await bookingsStore?.load()
                 }
                 .tabItem {
-                    Label(tab.title, systemImage: tab.systemImage)
+                    Label { Text(tab.title) } icon: { BeckonTabIcons.image(tab.icon, isSelected: selection == tab) }
                         .accessibilityIdentifier(tab.accessibilityIdentifier)
                 }
                 .background(BeckonTabBadgeAppearance(accent: .customer))
@@ -154,6 +141,7 @@ struct CustomerTabView: View {
                 .tag(tab)
             }
         }
+        .modifier(CustomerRequestFlowPresenter(store: requestStore, profileRepository: customerProfileRepository))
         .tint(DesignTokens.Colors.customerDeep)
         .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .toolbarBackground(DesignTokens.Colors.surface, for: .tabBar)
@@ -161,9 +149,8 @@ struct CustomerTabView: View {
         .environment(\.beckonFeedbackCenter, feedbackCenter)
         .environment(\.beckonCustomerDesign, true)
         .environment(\.openBookingChat, openBookingChat)
-        .environment(\.showRequests, { requestID in
-            showRequest(requestID)
-        })
+        .environment(\.bookingConfirmed, confirmBooking)
+        .environment(\.customerGroomingRequestStore, requestStore)
         .environment(\.customerMarketplaceSession, marketplace)
         .overlay(alignment: .bottom) {
             BeckonGlobalFeedbackOverlay(center: feedbackCenter)
@@ -248,45 +235,17 @@ struct CustomerTabView: View {
                 notificationStore: notificationStore,
                 requestStore: requestStore,
                 chatStore: chatStore,
+                bookingsStore: bookingsStore,
                 onActiveRequestSelected: { requestID in
                     showRequest(requestID)
                 },
                 onBookingChatSelected: openBookingChat,
                 sessionIsCurrent: acceptanceSessionIsCurrent
             )
-        } else if tab == .requests,
-                  let customerID,
-                  let petRepository,
-                  let requestRepository,
-                  let bookingRepository {
-            CustomerRequestsView(
-                customerID: customerID,
-                petRepository: petRepository,
-                requestRepository: requestRepository,
-                bookingRepository: bookingRepository,
-                customerProfileRepository: customerProfileRepository,
-                isActiveTab: selection == .requests,
-                managesRefresh: false,
-                debugRecorder: debugRecorder,
-                focusedRequestID: $focusedRequestID,
-                onBookingChatSelected: openBookingChat,
-                store: requestStore
-            )
-        } else if tab == .bookings,
-                  let customerID,
-                  let bookingRepository {
-            BookingsView(
-                participantID: customerID,
-                role: .customer,
-                repository: bookingRepository,
-                petRepository: petRepository,
-                requestRepository: requestRepository,
-                customerProfileRepository: customerProfileRepository,
-                debugRecorder: debugRecorder,
-                store: bookingsStore,
-                isActiveTab: selection == .bookings,
-                onOpenChat: openBookingChat
-            )
+        } else if tab == .requests, let requestStore, let bookingsStore {
+            CustomerGroomingView(requestStore: requestStore, bookingsStore: bookingsStore,
+                customerProfileRepository: customerProfileRepository, isActiveTab: selection == .requests,
+                focusedRequestID: $focusedRequestID, onOpenChat: openBookingChat)
         } else if tab == .messages,
                   let customerID,
                   let chatRepository,
@@ -319,12 +278,48 @@ struct CustomerTabView: View {
 
     /// Destination-based links can leave Requests inside history/detail. A publication or Home
     /// shortcut explicitly targets its root card; keep the Store and reset only that navigation tree.
+    @ViewBuilder
+    private func navigationRoot(for tab: CustomerTab) -> some View {
+        if tab == .requests {
+            NavigationStack(path: $groomingPath) {
+                destination(for: tab)
+                    .background(DesignTokens.Colors.appBackground)
+                    .navigationDestination(for: GroomingRoute.self) { route in
+                        if let requestStore, let bookingsStore {
+                            switch route {
+                            case .request(let id):
+                                GroomingDetailView(target: .request(id), requestStore: requestStore,
+                                    bookingsStore: bookingsStore, onOpenChat: openBookingChat)
+                            case .booking(let id), .newBooking(let id):
+                                GroomingDetailView(target: .booking(id), requestStore: requestStore,
+                                    bookingsStore: bookingsStore, onOpenChat: openBookingChat,
+                                    celebratesNewBooking: route == .newBooking(id))
+                            }
+                        }
+                    }
+            }
+        } else {
+            NavigationStack { destination(for: tab).background(DesignTokens.Colors.appBackground) }
+        }
+    }
+
+    private func confirmBooking(_ handoff: CustomerRequestBookingHandoff) {
+        guard acceptanceSessionIsCurrent() else { return }
+        focusedRequestID = nil
+        requestsNavigationRevision &+= 1
+        groomingPath = [.newBooking(handoff.booking.id)]
+        select(.requests)
+    }
+
     private func showRequest(_ requestID: UUID?) {
         var transaction = Transaction(animation: nil)
         transaction.disablesAnimations = true
         withTransaction(transaction) {
             requestsNavigationRevision &+= 1
-            focusedRequestID = requestID
+            focusedRequestID = nil
+            groomingPath = requestID.map { id in
+                [bookingsStore?.booking(withID: id) != nil ? GroomingRoute.booking(id) : GroomingRoute.request(id)]
+            } ?? []
             select(.requests)
         }
     }
@@ -404,6 +399,15 @@ struct CustomerTabView: View {
 }
 
 private extension CustomerTab {
+    var icon: BeckonTabIcon {
+        switch self {
+        case .home: .home
+        case .requests, .bookings: .grooming
+        case .messages: .messages
+        case .account: .account
+        }
+    }
+
     var debugKey: String {
         switch self {
         case .home:

@@ -25,7 +25,7 @@ final class AppLaunchSmokeTests: XCTestCase {
         screenshot.name = "password-recovery-request"
         screenshot.lifetime = .keepAlways
         add(screenshot)
-        app.buttons["Close"].tap()
+        app.buttons["auth.recovery.close"].tap()
         XCTAssertTrue(app.buttons["auth.forgot-password"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.descendants(matching: .any)["customer.tabs"].exists)
         XCTAssertFalse(app.descendants(matching: .any)["groomer.tabs"].exists)

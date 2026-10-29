@@ -65,7 +65,7 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
 
     func services(groomerID: UUID) async throws -> [GroomerService] {
         do {
-            let rows: [GroomerServiceRow] = try await client
+            let rows: [GroomerServiceWireRow] = try await client
                 .from("groomer_services")
                 .select(Self.serviceColumns)
                 .eq("groomer_id", value: groomerID.uuidString.lowercased())
@@ -258,7 +258,7 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         draft: GroomerServiceDraft
     ) async throws -> GroomerService {
         do {
-            let rows: [GroomerServiceRow] = try await client
+            let rows: [GroomerServiceWireRow] = try await client
                 .from("groomer_services")
                 .insert(GroomerServiceInsertRow(groomerID: groomerID, draft: draft))
                 .select(Self.serviceColumns)
@@ -282,7 +282,7 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         draft: GroomerServiceDraft
     ) async throws -> GroomerService {
         do {
-            let rows: [GroomerServiceRow] = try await client
+            let rows: [GroomerServiceWireRow] = try await client
                 .from("groomer_services")
                 .update(GroomerServiceUpdateRow(draft: draft))
                 .eq("id", value: service.id.uuidString.lowercased())
@@ -899,7 +899,7 @@ private struct GroomerAccountProfileRow: Decodable {
     }
 }
 
-private struct GroomerServiceRow: Decodable {
+struct GroomerServiceWireRow: Decodable {
     let id: UUID
     let groomerID: UUID
     let serviceType: GroomingServiceType
@@ -940,7 +940,7 @@ private struct GroomerServiceRow: Decodable {
     }
 }
 
-private struct GroomerPortfolioPhotoRow: Decodable {
+struct GroomerPortfolioPhotoRow: Decodable {
     let id: UUID
     let groomerID: UUID
     let storageBucket: String
@@ -969,7 +969,7 @@ private struct GroomerPortfolioPhotoRow: Decodable {
     }
 }
 
-private struct GroomerPortfolioFitTagRow: Decodable {
+struct GroomerPortfolioFitTagRow: Decodable {
     let id: UUID
     let portfolioPhotoID: UUID
     let groomerID: UUID
@@ -1000,7 +1000,7 @@ private struct GroomerPortfolioFitTagRow: Decodable {
     }
 }
 
-private struct GroomerAvailabilityWindowRow: Decodable {
+struct GroomerAvailabilityWindowRow: Decodable {
     let id: UUID
     let groomerID: UUID
     let weekday: Int
@@ -1120,7 +1120,7 @@ private struct GroomerBookingPreferencesRow: Decodable {
     }
 }
 
-private struct GroomerTimeOffWindowRow: Decodable {
+struct GroomerTimeOffWindowRow: Decodable {
     let id: UUID
     let groomerID: UUID
     let title: String
@@ -1146,7 +1146,7 @@ private struct GroomerTimeOffWindowRow: Decodable {
     }
 }
 
-private struct GroomerFitClaimRow: Decodable {
+struct GroomerFitClaimRow: Decodable {
     let id: UUID
     let groomerID: UUID
     let traitType: String

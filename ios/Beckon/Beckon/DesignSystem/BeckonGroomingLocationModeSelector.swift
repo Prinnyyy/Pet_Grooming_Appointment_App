@@ -1,9 +1,11 @@
 import SwiftUI
 
+
 enum BeckonGroomingLocationPerspective {
     case customer
     case groomer
 }
+
 
 struct BeckonGroomingLocationModePresentation: Equatable {
     static let detailSectionTitle = "Preferred time and service location"
@@ -37,6 +39,7 @@ struct BeckonGroomingLocationModePresentation: Equatable {
     }
 }
 
+
 enum BeckonGroomingLocationSelectionPolicy {
     case single
     case multiple
@@ -58,14 +61,71 @@ enum BeckonGroomingLocationSelectionPolicy {
     }
 }
 
+
+/// Two tiles side by side (stacked at accessibility sizes) and the sentence of the chosen one underneath: where the service
+/// happens is a choice between two places, not two paragraphs. The selected tile is the mint ledge with a check.
 struct BeckonGroomingLocationModeSelector: View {
     let selection: Set<GroomingLocationMode>
     let selectionPolicy: BeckonGroomingLocationSelectionPolicy
     let perspective: BeckonGroomingLocationPerspective
     let accent: BeckonRoleAccent
+    /// The sentence of the chosen tile under the tiles. Off in the request wizard: the two tiles already say it (S-066).
+    var showsSentence = true
     let onSelectionChange: (Set<GroomingLocationMode>) -> Void
+    @Environment(\.dynamicTypeSize) private var typeSize
 
-    var body: some View {
+    @ViewBuilder var body: some View {
+        if perspective == .customer { customerBody } else { groomerBody }
+    }
+
+    private var customerBody: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            let layout = typeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(spacing: DesignTokens.Spacing.sm))
+                : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.sm))
+            layout {
+                ForEach(GroomingLocationMode.allCases) { mode in tile(mode) }
+            }
+            if showsSentence {
+                ForEach(GroomingLocationMode.allCases.filter { selection.contains($0) }) { mode in
+                    Text(BeckonGroomingLocationModePresentation(mode: mode, perspective: perspective).supportingText)
+                        .designSupportingText()
+                }
+            }
+        }
+    }
+
+    private func tile(_ mode: GroomingLocationMode) -> some View {
+        let isSelected = selection.contains(mode)
+        let presentation = BeckonGroomingLocationModePresentation(mode: mode, perspective: perspective)
+        return Button {
+            onSelectionChange(selectionPolicy.updatedSelection(selection, toggling: mode))
+        } label: {
+            VStack(spacing: DesignTokens.Spacing.xs) {
+                Image(systemName: mode == .groomerComesToCustomer ? "house.fill" : "storefront.fill")
+                    .font(DesignTokens.Typography.Expressive.glyphLarge)
+                    .accessibilityHidden(true)
+                Text(presentation.title)
+                    .font(DesignTokens.Typography.Expressive.emphasis)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .foregroundStyle(isSelected ? DesignTokens.Colors.customerInk : DesignTokens.Colors.textPrimary)
+            .padding(.horizontal, DesignTokens.Spacing.sm)
+            .padding(.vertical, DesignTokens.Spacing.md)
+            .frame(maxWidth: .infinity, minHeight: 88)
+            .overlay(alignment: .topTrailing) {
+                // Always there, empty until chosen: the disc grows and the tick is drawn, instead of a badge fading in.
+                BeckonTickCircle(isOn: isSelected, size: 18, off: .clear, on: accent.deep)
+                    .padding(DesignTokens.Spacing.sm)
+            }
+        }
+        .buttonStyle(BeckonLedgeButtonStyle(isSelected ? .pill : .card))
+        .accessibilityValue(isSelected ? "Selected" : "Not selected")
+        .accessibilityHint(presentation.supportingText)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+    private var groomerBody: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
             ForEach(GroomingLocationMode.allCases) { mode in
                 let isSelected = selection.contains(mode)

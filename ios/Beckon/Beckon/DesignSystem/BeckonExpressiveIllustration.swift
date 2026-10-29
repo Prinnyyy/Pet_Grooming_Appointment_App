@@ -1,5 +1,6 @@
 import SwiftUI
 
+
 // Expressive illustration layer (Tier L only). Like `BeckonBrandBubble` it is decorative material:
 // hidden from accessibility, never intercepts touches, and stands still under Reduce Motion or an inactive scene.
 // The pup is the only place Groomer coral appears inside Customer UI. Spec: docs/01_product/LIVELY_UI_SPEC.md.
@@ -54,6 +55,7 @@ struct BeckonLedgeHero<Content: View>: View {
     }
 }
 
+
 /// A sweep of light across the primary button every few seconds.
 struct BeckonShine: View {
     let radius: CGFloat
@@ -79,6 +81,7 @@ struct BeckonShine: View {
         }
     }
 }
+
 
 /// Slow shampoo bubbles drifting up behind the hero copy.
 struct BeckonBubbles: View {
@@ -120,6 +123,7 @@ struct BeckonBubbles: View {
         .accessibilityHidden(true)
     }
 }
+
 
 /// The Beckon pup: peeks over the hero edge, blinks, and flings its ears when the button is pressed.
 struct BeckonPup: View {
@@ -204,6 +208,7 @@ struct BeckonPup: View {
     }
 }
 
+
 /// Four-point sparkle. Decorative; amber is allowed here because it never encodes state.
 struct BeckonSparkle: View {
     let size: CGFloat
@@ -220,27 +225,33 @@ struct BeckonSparkle: View {
     }
 }
 
+
 private struct BeckonHopValues {
     var lift = 0.0
     var squash = 1.0
 }
 
-/// Pet portrait tile: mint tint, a halo, the species glyph hopping on its own beat. A photo replaces the artwork.
+
+/// Pet portrait: a mint field (a shade apart from one pet to the next), a white halo, the species glyph hopping on its own beat,
+/// a bubble and sparkles. A photo replaces the artwork. The Home pet card runs it edge to edge as the card's head and lets the
+/// card clip it (`clipsToShape` false); elsewhere it is a rounded tile.
 struct BeckonPortrait: View {
     let data: Data?
     let symbol: String
     let index: Int
+    var clipsToShape = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var halo: Color {
+    private var field: Color {
         index.isMultiple(of: 2) ? DesignTokens.Colors.customerFill : DesignTokens.Colors.customerHeroEnd
     }
 
     var body: some View {
         BeckonModuleImage(data: data) {
             ZStack {
-                DesignTokens.Colors.customerTint
-                Circle().fill(halo).frame(width: 74, height: 74).offset(y: 4)
+                field
+                Circle().fill(DesignTokens.Colors.customerHeroBubble).frame(width: 22, height: 22).offset(x: 58, y: 38)
+                Circle().fill(DesignTokens.Colors.surface).frame(width: 74, height: 74).offset(y: 4)
                 glyph
                 sparkle(size: 13, x: -52, y: -30)
                 sparkle(size: 9, x: 54, y: -20)
@@ -249,7 +260,7 @@ struct BeckonPortrait: View {
         }
         .frame(height: 112)
         .frame(maxWidth: .infinity)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.inset, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: clipsToShape ? DesignTokens.CornerRadius.inset : 0, style: .continuous))
         .accessibilityHidden(true)
     }
 

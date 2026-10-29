@@ -5,15 +5,13 @@ import test from "node:test";
 const root = new URL("../../ios/Beckon/Beckon/", import.meta.url);
 const read = path => readFileSync(new URL(path, root), "utf8");
 
-test("Home request summaries use one action with explicit progress and review semantics", () => {
-  const source = read("Features/Customer/Requests/CustomerRequestsDashboardView.swift");
-  const summary = source.split("struct CustomerRequestSummaryCard: View {")[1]
-    .split("struct CustomerRequestCard:")[0];
-  assert.match(summary, /BeckonJourney\(stage: step, offerCount: card\.loadedOfferCount\)/);
-  assert.match(summary, /presentation\.accessibilityLabel/);
-  assert.match(summary, /Text\("Review"\)/);
-  assert.doesNotMatch(summary, /\bButton\s*[{(]/);
-  assert.match(summary, /BeckonStatusChip\(presentation\.status\)/);
+test("Home Grooming glance cards have a single action and explicit journey semantics", () => {
+  const source = read("Features/Customer/Grooming/GroomingCard.swift");
+  assert.match(source, /accessibilityLabel\(accessibilityLabel\)/);
+  assert.match(source, /Opens this grooming in the Grooming tab/);
+  assert.match(source, /style == \.full/);
+  assert.match(source, /BeckonJourney/);
+  assert.match(source, /Finished, leave a review/);
 });
 
 test("Home offer counts reuse loaded Store data without fetching", () => {

@@ -2,6 +2,7 @@
 // bottom bar. Replaces the swipe deck, the per-card Send buttons and the separate "all groomers" page.
 import SwiftUI
 
+
 /// Groomers ticked on "Choose groomers", keyed by id. Names ride along so the send confirmation can list them.
 struct GroomerSelection: Equatable {
     /// A request can have five invitations out at once (waiting for an answer, or with an offer still open).
@@ -37,6 +38,8 @@ struct GroomerSelection: Equatable {
     }
 }
 
+
+/// Heart toggle that keeps a groomer in the customer's saved list.
 /// A snapshot hint, never permission to send. SQL rechecks the five-slot limit
 /// atomically. An offered-but-unselectable quote does not consume a slot.
 struct GroomerInvitationCapacity: Equatable {
@@ -77,22 +80,26 @@ struct GroomerInvitationCapacity: Equatable {
 /// Heart toggle that keeps a groomer in the customer's saved list.
 struct GroomerFavoriteButton: View {
     let isFavorite: Bool
+    /// The circle's diameter. The list of saved groomers asks for a smaller one: there the heart is only the way to let go of a card.
+    var size = DesignTokens.Metrics.ledgePrimaryButtonHeight - 8
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Image(systemName: isFavorite ? "heart.fill" : "heart")
+                .contentTransition(.symbolEffect(.replace))
                 .font(DesignTokens.Typography.Expressive.glyph)
                 .foregroundStyle(DesignTokens.Colors.customerDeep)
-                .frame(width: DesignTokens.Metrics.ledgePrimaryButtonHeight - 8,
-                    height: DesignTokens.Metrics.ledgePrimaryButtonHeight - 8)
+                .frame(width: size, height: size)
                 .background(DesignTokens.Colors.customerTint, in: Circle())
                 .contentShape(Circle())
         }
         .buttonStyle(BeckonGuardedPlainButtonStyle())
+        .animation(DesignTokens.Motion.bounce, value: isFavorite)
         .accessibilityLabel(isFavorite ? "Remove favorite" : "Add favorite")
     }
 }
+
 
 /// The one action on a groomer card: a white "Select" pill that turns mint when ticked. Once the groomer has been
 /// invited it becomes the invitation's status instead, with the reply deadline and a way to take the invitation back.
@@ -106,8 +113,8 @@ struct GroomerSelectionControl: View {
     var canSelect = true
     var replyBy: Date?
     var onWithdraw: (() -> Void)?
-    let action: () -> Void
     var groomerID: UUID?
+    let action: () -> Void
 
     var body: some View {
         if invitation != .notSent {
@@ -115,10 +122,15 @@ struct GroomerSelectionControl: View {
         } else {
             Button(action: action) {
                 HStack(spacing: DesignTokens.Spacing.sm) {
-                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .font(DesignTokens.Typography.Expressive.glyph)
-                    Text(isSelected ? "Selected" : "Select")
-                        .font(DesignTokens.Typography.Expressive.headline)
+                    BeckonTickCircle(isOn: isSelected, size: 22, off: DesignTokens.Colors.textPrimary)
+                    // "Select" never changes; "ed" grows out of it, so the word is not replaced (and the button's width follows).
+                    HStack(spacing: 0) {
+                        Text("Select")
+                        if isSelected {
+                            Text("ed").transition(.opacity.combined(with: .scale(scale: 0.5, anchor: .leading)))
+                        }
+                    }
+                    .font(DesignTokens.Typography.Expressive.headline)
                 }
                 .foregroundStyle(isSelected ? DesignTokens.Colors.customerInk : DesignTokens.Colors.textPrimary)
                 .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.ledgePrimaryButtonHeight - 8)
@@ -182,12 +194,13 @@ struct GroomerSelectionControl: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(BeckonGuardedPlainButtonStyle())
+            .accessibilityIdentifier(groomerID.map { "discovery.withdraw.\($0.uuidString)" } ?? "discovery.withdraw")
             .accessibilityLabel("Withdraw invitation to \(name)")
-                .accessibilityIdentifier(groomerID.map { "discovery.withdraw.\($0.uuidString)" } ?? "discovery.withdraw")
             .accessibilityHint("Frees a spot. You can't invite this groomer again for this request.")
         }
     }
 }
+
 
 /// Answers a tap on "Select" when every invitation spot is used: why there is a limit, and the ways to reach more groomers. A modal,
 /// not an alert: nothing is being decided, the person is told something and may take a way out.
@@ -205,7 +218,7 @@ private struct GroomerLimitDialog: ViewModifier {
         if poolIsOpen {
             return "Every invitation sends the groomer a notification, so we keep it to \(GroomerSelection.invitationLimit) at a time. Your request is already open to all matching groomers, so they can still send offers without an invitation."
         }
-        return "Every invitation sends the groomer a notification, so we keep it to \(GroomerSelection.invitationLimit) at a time. To reach more groomers, open your request to everyone who matches, or invite more once some have replied."
+        return "Every invitation sends the groomer a notification, so we keep it to \(GroomerSelection.invitationLimit) at a time. To reach more groomers, open your request to all matching groomers, or invite more once some have replied."
     }
 
     private var actions: [DesignDialogAction] {
@@ -241,6 +254,7 @@ extension View {
     }
 }
 
+
 /// Heart and select pill, side by side (stacked at accessibility text sizes). Shared by list rows and the profile card.
 struct GroomerSelectionActions: View {
     let id: UUID
@@ -252,6 +266,8 @@ struct GroomerSelectionActions: View {
     var replyBy: Date?
     var onWithdraw: (() -> Void)?
     let disabled: Bool
+    /// False on the profile page, where the heart is part of the page itself.
+    var showsFavorite = true
     let onFavorite: () -> Void
     let onToggle: () -> Void
     @Environment(\.dynamicTypeSize) private var typeSize
@@ -260,14 +276,17 @@ struct GroomerSelectionActions: View {
         (typeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.sm))
             : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.md))) {
-            GroomerFavoriteButton(isFavorite: isFavorite, action: onFavorite)
-                .accessibilityIdentifier("discovery.favorite.\(id.uuidString)")
+            if showsFavorite {
+                GroomerFavoriteButton(isFavorite: isFavorite, action: onFavorite)
+                    .accessibilityIdentifier("discovery.favorite.\(id.uuidString)")
+            }
             GroomerSelectionControl(name: name, isSelected: isSelected, invitation: invitation, canSelect: canSelect,
-                replyBy: replyBy, onWithdraw: onWithdraw, action: onToggle, groomerID: id)
+                replyBy: replyBy, onWithdraw: onWithdraw, groomerID: id, action: onToggle)
         }
         .disabled(disabled)
     }
 }
+
 
 /// One groomer in the list: tap the top for the profile, tap "Select" to add them to the request.
 struct GroomerChoiceRow: View {
@@ -320,34 +339,47 @@ struct GroomerChoiceRow: View {
     }
 }
 
-/// Also show the request to every eligible groomer (the request pool): the choice on a new request, and the switch on a sent
+/// Also show the request to every matching groomer (the request pool): the choice on a new request, and the switch on a sent
 /// one. It sits at the top of the list because it answers the same question as the list, "who gets this request", and it
 /// keeps the bottom bar down to Back and Send.
+///
+/// One vocabulary with the rest of the app (S-066): "matching groomers" is the pool, "invited groomers" are the chosen ones, "send
+/// offers" is what either may do. The sentence under the title has the same shape in both states with one phrase changed ("Any
+/// matching" / "Only invited"), short enough for one line, so flipping the switch does not change the shape of the card.
 struct GroomerPoolCard: View {
     @Binding var isOn: Bool
     var isLocked = false
     var identifier = "discovery.pool-consent"
 
     var body: some View {
-        Toggle(isOn: $isOn) {
-            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                DesignIconDisc(systemImage: "person.3.fill", size: .touch, font: DesignTokens.Typography.Expressive.glyph)
-                VStack(alignment: .leading, spacing: 2) {
+        // The switch and its title are one row; the sentence under it has the card's whole width, so it is one or two lines and
+        // never a third column squeezed beside the switch.
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            Toggle(isOn: $isOn) {
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    DesignIconDisc(systemImage: "person.3.fill", size: .touch, font: DesignTokens.Typography.Expressive.glyph)
                     Text("Open to all matching groomers")
                         .font(DesignTokens.Typography.Expressive.emphasis)
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(isOn ? "Every eligible groomer can see this request and send offers."
-                        : "Off: only the groomers you pick will see this request.")
-                        .font(DesignTokens.Typography.Expressive.chip)
-                        .foregroundStyle(DesignTokens.Colors.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            .tint(DesignTokens.Colors.customerDeep)
+            .disabled(isLocked)
+            .accessibilityHint(sentence)
+            .accessibilityIdentifier(identifier)
+
+            Text(sentence)
+                .designSupportingText()
+                .accessibilityHidden(true)
         }
-        .tint(DesignTokens.Colors.customerDeep)
-        .disabled(isLocked)
         .designCardBody()
-        .accessibilityIdentifier(identifier)
+    }
+
+    private var sentence: String {
+        isOn ? "Any matching groomer can send offers." : "Only invited groomers can send offers."
     }
 }
+
+/// The marks that change with a choice, in one page to tap in Canvas (S-066): the Select pill (the ring becomes a tick, "Select" grows
+/// into "Selected", the face turns from white to mint), a chip, and the two place tiles (their corner mark is drawn in).

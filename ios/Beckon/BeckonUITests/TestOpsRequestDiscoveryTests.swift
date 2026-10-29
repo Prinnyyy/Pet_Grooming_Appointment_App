@@ -64,8 +64,8 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
             tap(element("customer.requests.publish"))
             XCTAssertTrue(wait(timeout: 30) { !self.element("customer.requests.wizard").exists })
             tap(element("customer.tab.requests"))
-            tap(element("customer.requests.history"))
-            tap(element("customer.requests.history.row.\(try XCTUnwrap(fixture.requestID).prefix(8).uppercased())"))
+            tap(element("customer.grooming.history"))
+            tap(app.groomingEntry(reference: try XCTUnwrap(fixture.requestID).prefix(8).uppercased(), past: true))
             XCTAssertTrue(element("customer.requests.republish").waitForExistence(timeout: 15))
             evidence("Unversioned legacy publication recovered its cancelled original without republishing")
         case "browseEdgeCases":
@@ -149,12 +149,10 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
                 evidence("Committed request recovered after dropped receipt and process restart")
                 return
             }
-            XCTAssertTrue(element("discovery.done").waitForExistence(timeout: 20))
-            XCTAssertEqual(element("discovery.pool").value as? String, fixture.action == "publishDirected" ? "0" : "1")
-            XCTAssertFalse(element("discovery.pool-consent").exists)
-            tap(element("discovery.done"))
-            XCTAssertTrue(element("customer.requests.list").waitForExistence(timeout: 15))
-            evidence("Published \(fixture.action!) through client and Done opened Requests")
+            XCTAssertTrue(element("customer.requests.wizard").waitForNonExistence(timeout: 20))
+            XCTAssertTrue(element("customer.home").exists)
+            XCTAssertTrue(element("customer.tab.home").isSelected)
+            evidence("Published \(fixture.action!) and stayed on Home")
         case "verifyMixed":
             openCustomerRequest(try XCTUnwrap(fixture.requestID))
             openInvitations()
@@ -232,8 +230,8 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
             XCTAssertTrue(wait(timeout: 20) { !cancel.exists || !cancel.isEnabled })
             evidence("Customer cancellation completed with discovery disabled")
             }
-            tap(element("customer.requests.history"))
-            tap(element("customer.requests.history.row.\(reference)"))
+            tap(element("customer.grooming.history"))
+            tap(app.groomingEntry(reference: reference, past: true))
             XCTAssertTrue(element("customer.requests.republish").waitForExistence(timeout: 15))
             XCTAssertFalse(element("customer.requests.invite").exists)
             evidence("Feature-disabled cancelled request remained navigable in history")
@@ -269,10 +267,8 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
         case "accept":
             let reference = String(try XCTUnwrap(fixture.requestID).prefix(8)).uppercased()
             tap(element("customer.tab.requests"))
-            tap(app.buttons.matching(NSPredicate(format: "identifier == 'customer.requests.offers' AND value == %@", reference)).firstMatch)
+            tap(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'customer.grooming.primary.' AND value == %@", reference)).firstMatch)
             tap(element("customer.offers.row.\(fixture.runID)"))
-            tap(element("customer.offers.accept"))
-            XCTAssertTrue(element("customer.offers.confirmation").waitForExistence(timeout: 15))
             tap(app.buttons.matching(NSPredicate(format:
                 "identifier == 'customer.offers.confirm' OR label == 'Confirm & Book'")).firstMatch)
             XCTAssertTrue(element("bookings.detail").waitForExistence(timeout: 25))
@@ -281,13 +277,13 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
             app.launchArguments.removeAll { $0 == "--beckon-testops-clear-session" }
             app.launch()
             XCTAssertTrue(element("customer.tabs").waitForExistence(timeout: 20))
-            tap(element("customer.tab.bookings"))
-            tap(element("bookings.row.request.\(reference)"))
+            tap(element("customer.tab.requests"))
+            tap(app.groomingEntry(reference: reference))
             XCTAssertTrue(element("bookings.detail").waitForExistence(timeout: 20))
             evidence("Customer restarted into the same accepted booking")
         case "verifyBooking":
             let reference = String(try XCTUnwrap(fixture.requestID).prefix(8)).uppercased()
-            tap(element(role == .customer ? "customer.tab.bookings" : "groomer.tab.bookings"))
+            tap(element(role == .customer ? "customer.tab.requests" : "groomer.tab.bookings"))
             if role == .groomer {
                 let day = try Date.ISO8601FormatStyle().parse(try XCTUnwrap(fixture.bookingStart))
                 let picker = app.buttons["Date Picker"].firstMatch
@@ -300,7 +296,8 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
                 tap(app.buttons.matching(NSPredicate(format: "label == %@ OR label == %@", label, "Today, \(label)")).firstMatch)
                 tap(app.staticTexts["Appointment date"].firstMatch)
             }
-            tap(element("\(role == .customer ? "bookings" : "groomer.booking").row.request.\(reference)"))
+            tap(role == .customer ? app.groomingEntry(reference: reference)
+                : element("groomer.booking.row.request.\(reference)"))
             XCTAssertTrue(element("bookings.detail").waitForExistence(timeout: 20))
             evidence("\(role.rawValue) restarted into the same booking")
         default: XCTFail("Unsupported lifecycle action")
@@ -317,21 +314,23 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
         XCTAssertTrue(element("customer.requests.invite").waitForExistence(timeout: 15))
         XCTAssertTrue(wait(timeout: 150) { !self.element("customer.requests.invite").exists })
         tap(app.buttons["BackButton"].firstMatch)
-        tap(element("customer.requests.history"))
-        tap(element("customer.requests.history.row.\(requestID.prefix(8).uppercased())"))
+        tap(element("customer.grooming.history"))
+        tap(app.groomingEntry(reference: requestID.prefix(8).uppercased(), past: true))
         tap(element("customer.requests.republish"))
         completeTimeAndReview(fixture)
         XCTAssertEqual(element("discovery.pool-consent").value as? String, "0")
         tap(element("discovery.pool-consent"))
         tap(element("discovery.publish-pool"))
         tap(element("discovery.confirm-send"))
-        XCTAssertTrue(element("discovery.done").waitForExistence(timeout: 20))
+        XCTAssertTrue(element("customer.requests.wizard").waitForNonExistence(timeout: 20))
         evidence("Natural expiry, history template and explicit pool-only republication")
-        tap(element("discovery.done"))
+        tap(app.navigationBars.buttons.firstMatch) // Return from the originating closed request.
+        tap(app.navigationBars.buttons.firstMatch) // Return from History.
+
         tap(element("customer.tab.requests"))
-        tap(element("customer.requests.history"))
+        tap(element("customer.grooming.history"))
         let older = try XCTUnwrap(fixture.olderHistoryRequestID)
-        tap(element("customer.requests.history.row.\(older.prefix(8).uppercased())"))
+        tap(app.groomingEntry(reference: older.prefix(8).uppercased(), past: true))
         tap(element("customer.requests.republish"))
         XCTAssertTrue(element("customer.requests.wizard").waitForExistence(timeout: 10))
         evidence("Older closed request beyond the first three opened its reusable template")
@@ -361,9 +360,9 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
 
     private func openCustomerRequest(_ requestID: String) {
         tap(element("customer.tab.requests"))
-        XCTAssertTrue(element("customer.requests.list").waitForExistence(timeout: 20))
+        XCTAssertTrue(element("customer.grooming.list").waitForExistence(timeout: 20))
         let reference = String(requestID.prefix(8)).uppercased()
-        let detail = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'customer.requests.detail' AND value == %@", reference)).firstMatch
+        let detail = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'customer.grooming.details.' AND value == %@", reference)).firstMatch
         XCTAssertTrue(detail.waitForExistence(timeout: 20))
         tap(detail)
         XCTAssertTrue(element("customer.requests.detail").waitForExistence(timeout: 15))

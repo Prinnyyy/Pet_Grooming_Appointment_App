@@ -1,8 +1,8 @@
 import SwiftUI
 
-// Shared customer UI building blocks, adopted from the approved sandbox design.
+// Shared customer UI building blocks adopted from the approved design.
 
-/// Customer page shell: mint wash, scrolling content, standard insets.
+/// Page shell for the variants: mint wash, scrolling content, standard insets.
 struct DesignPage<Content: View>: View {
     /// How the page arrives: a detail page by default; list pages say `.list`.
     var rhythm = BeckonEntranceRhythm.detail
@@ -40,11 +40,14 @@ struct DesignPage<Content: View>: View {
 struct DesignIconDisc: View {
     /// Mint for the customer's own things; caution (pink, red ink) for what warns or cannot be taken back.
     enum Tone {
-        case customer, caution
+        /// `solid` is the mint fill with ink on it, for a disc that is the picture of a page (a sheet's moment) and has to stand out
+        /// on the mint wash, where the tint would melt into it.
+        case customer, solid, caution
 
         var ink: Color {
             switch self {
             case .customer: DesignTokens.Colors.customerDeep
+            case .solid: DesignTokens.Colors.customerInk
             case .caution: DesignTokens.Colors.statusErrorText
             }
         }
@@ -52,6 +55,7 @@ struct DesignIconDisc: View {
         var fill: Color {
             switch self {
             case .customer: DesignTokens.Colors.customerTint
+            case .solid: DesignTokens.Colors.customerFill
             case .caution: DesignTokens.Colors.statusErrorFill
             }
         }
@@ -78,6 +82,7 @@ struct DesignIconDisc: View {
     var body: some View {
         Image(systemName: systemImage)
             .font(font)
+            .contentTransition(.symbolEffect(.replace))
             .designIconDisc(size, tone: tone)
             .accessibilityHidden(isDecorative)
     }
@@ -325,13 +330,18 @@ struct DesignPupPeek<Content: View>: View {
 struct DesignActionLabel: View {
     let title: String
     let systemImage: String
+    /// The act is under way (signing in, sending): a spinner takes the place of the symbol, and the pill keeps its size.
+    var isBusy = false
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             // At accessibility sizes the words need the whole pill: a long title must never break inside a word.
-            if !typeSize.isAccessibilitySize {
+            if isBusy {
+                ProgressView().tint(DesignTokens.Colors.customerInk)
+            } else if !typeSize.isAccessibilitySize {
                 Image(systemName: systemImage).font(DesignTokens.Typography.Expressive.glyph)
+                    .contentTransition(.symbolEffect(.replace))
             }
             Text(title)
                 .font(DesignTokens.Typography.Expressive.headline)
@@ -378,26 +388,94 @@ struct DesignBlockHeader: View {
     }
 }
 
-/// Dots under a carousel: the current page is a longer mint capsule. Says "Offer 2 of 5" to VoiceOver.
+/// The top of a sheet that is a page of its own, in the app's own pieces instead of the system's: our grabber, the title, and a
+/// round ledge close button where the navigation bar's "Done" or "Close" would be (a groomer's page, password recovery). Under it
+/// the page scrolls; over it the mint wash of the wizard's header. Put `.designSheetStyle()` on the sheet's content.
+struct DesignSheetBar: View {
+    let title: String
+    /// Off in a full-screen view, which has nothing to drag down.
+    var showsGrabber = true
+    var closeIdentifier = "sheet.close"
+    /// A sheet that is busy (saving, sending) cannot be closed from its button.
+    var isCloseDisabled = false
+    let onClose: () -> Void
+
+    var body: some View {
+        VStack(spacing: DesignTokens.Spacing.sm) {
+            if showsGrabber {
+                Capsule()
+                    .fill(DesignTokens.Colors.border)
+                    .frame(width: 40, height: 5)
+                    .accessibilityHidden(true)
+            }
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Text(title)
+                    .font(DesignTokens.Typography.Expressive.headline)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .accessibilityAddTraits(.isHeader)
+                Spacer(minLength: 0)
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                        .font(DesignTokens.Typography.Expressive.emphasis)
+                        .foregroundStyle(isCloseDisabled ? DesignTokens.Colors.textTertiary : DesignTokens.Colors.customerDeep)
+                        .frame(width: DesignTokens.Metrics.minimumTouchTarget, height: DesignTokens.Metrics.minimumTouchTarget)
+                }
+                .buttonStyle(BeckonLedgeButtonStyle(.round))
+                .disabled(isCloseDisabled)
+                .accessibilityLabel("Close")
+                .accessibilityIdentifier(closeIdentifier)
+            }
+        }
+        .padding(.horizontal, DesignTokens.Layout.pageHorizontalInset)
+        .padding(.top, DesignTokens.Spacing.sm)
+        .padding(.bottom, DesignTokens.Spacing.sm)
+        .background(LinearGradient(colors: [DesignTokens.Colors.customerTint, DesignTokens.Colors.appBackground],
+            startPoint: .top, endPoint: .bottom))
+    }
+}
+
+extension View {
+    /// A sheet dressed like the app: the warm page behind it, no system grabber (`DesignSheetBar` draws ours).
+    func designSheetStyle() -> some View {
+        presentationDragIndicator(.hidden)
+            .presentationBackground(DesignTokens.Colors.appBackground)
+    }
+}
+
+
+/// Dots under a carousel: the page you are on is a longer, darker capsule. With `progress` (the swipe's position in pages, 0 to
+/// count - 1) the capsule stretches and fades from one dot to the next as the finger moves, instead of jumping when the page
+/// lands; without it the dots follow `current`. Says "Offer 2 of 5" to VoiceOver.
 struct DesignPageDots: View {
     let count: Int
     /// Zero-based.
     let current: Int
     let label: String
+    var progress: CGFloat?
+
+    private static let dot = DesignTokens.Spacing.sm
+    private static let stretch = DesignTokens.Spacing.lg
 
     var body: some View {
-        HStack(spacing: DesignTokens.Spacing.xs) {
+        HStack(spacing: Self.dot) {
             ForEach(0..<count, id: \.self) { index in
+                let weight = weight(of: index)
                 Capsule()
-                    .fill(index == current ? DesignTokens.Colors.customerFill : DesignTokens.Colors.border)
-                    .frame(width: index == current ? DesignTokens.Spacing.xl : DesignTokens.Spacing.sm,
-                        height: DesignTokens.Spacing.sm)
+                    .fill(DesignTokens.Colors.customerHeroDecoration.mix(with: DesignTokens.Colors.customerDeep, by: weight))
+                    .frame(width: Self.dot + Self.stretch * weight, height: Self.dot)
             }
         }
         .frame(maxWidth: .infinity)
-        .beckonAnimation(DesignTokens.Motion.swap, value: current)
+        // Following a finger needs no animation of its own; a jump from `current` does.
+        .beckonAnimation(DesignTokens.Motion.swap, value: progress == nil ? current : -1)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label)
+    }
+
+    /// 1 on the page you are on, falling to 0 a page away.
+    private func weight(of index: Int) -> CGFloat {
+        if let progress { return max(0, 1 - abs(progress - CGFloat(index))) }
+        return index == current ? 1 : 0
     }
 }
 

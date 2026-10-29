@@ -1031,6 +1031,7 @@ private extension Booking {
 }
 
 struct BookingDetailView: View {
+    @Environment(\.customerGroomingRequestStore) private var customerRequestStore
     let bookingID: UUID
     let role: UserRole
     let store: BookingsStore
@@ -1055,19 +1056,16 @@ struct BookingDetailView: View {
     }
 
     var body: some View {
-        detailContent.task(id: bookingID) { await store.resolveBooking(id: bookingID) }
+        detailContent.task(id: bookingID) { if role != .customer { await store.resolveBooking(id: bookingID) } }
     }
 
     @ViewBuilder
     private var detailContent: some View {
-        if role == .customer, let booking = store.booking(withID: bookingID) {
-            CustomerBookingDetailContent(booking: booking, store: store, onOpenChat: onOpenChat ?? shellOpenChat,
-                onCreateNewRequest: onCreateNewRequestFromCancelledBooking, focusedReviewTarget: $focusedReviewTarget)
+        if role == .customer {
+            GroomingDetailView(target: .booking(bookingID), requestStore: customerRequestStore, bookingsStore: store,
+                onOpenChat: onOpenChat ?? shellOpenChat,
+                onCreateNewRequestFromBooking: onCreateNewRequestFromCancelledBooking)
                 .environment(\.beckonCustomerDesign, true)
-                .navigationTitle("Booking")
-                .navigationBarTitleDisplayMode(.inline)
-                .accessibilityElement(children: .contain)
-                .accessibilityIdentifier("bookings.detail")
         } else if let booking = store.booking(withID: bookingID) {
             ScrollViewReader { scrollProxy in
                 ZStack {
@@ -1682,7 +1680,7 @@ private struct BookingReviewFitOutcomePicker: View {
     }
 }
 
-private struct BookingsStatusView: View {
+struct BookingsStatusView: View {
     let store: BookingsStore
     let role: UserRole
     let presentation: BookingsFeedbackPresentation

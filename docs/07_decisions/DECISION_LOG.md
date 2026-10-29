@@ -18,6 +18,16 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-065
+Date: 2026-10-29
+Task: T-421
+Decision: Adopt handoff 2 as the customer flow authority, including necessary backend adaptation. D1: verified completion or the later of service-zone next midnight and scheduled end makes grooming Finished; unresolved reported outcomes remain actionable. Elapsed reviews use an empty unverified evidence context and never complete the booking or fabricate professional evidence; 14 days is active-card retention only. D2: customer-safe groomer profile RPC reads existing services, portfolio, active claims and public schedule summaries; private time-off titles and precise addresses remain excluded. D3: Confirm booking replaces the selection stack with one booking detail. D4: keep internal requests and customer.tab.requests titled Grooming; legacy bookings is absent from visible customer tabs. D5/D6: adopt the refined wording and information density, retaining precise operational errors.
+Context: The user explicitly authorized frontend/backend work and clarified that the refined UX changed the actual flow. Customer pages need not connect to existing groomer UI; that UI will be updated later.
+Consequences: Four customer tabs, one grooming feed/card/detail, combined History, Home Next up. First address timezone preserves wall-clock choices; editable Review returns directly. Clean Send closes the wizard immediately on its originating tab, superseding D-064's prior completion routing. Favorites starts unselected, uses batch Select mode, and opens the same real profile as discovery. Authentication adopts the drawn pup and pinned forms. Existing ownership, session, quota, recovery, RLS and private image safeguards remain. This updates D-064's scope without redesigning groomer pages.
+Linked files: docs/superpowers/plans/2026-10-29-customer-ui-flow-adoption.md, docs/01_product/SCREEN_INVENTORY.md, docs/01_product/LIVELY_UI_SPEC.md.
+```
+
+```text
 Decision ID: D-064
 Date: 2026-10-25
 Task: T-420

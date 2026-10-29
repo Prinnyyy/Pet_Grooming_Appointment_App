@@ -4,7 +4,7 @@
 
 Source of truth in code: `ios/Beckon/Beckon/DesignSystem/DesignTokens.swift` (`Ledge`, `Motion`, `CornerRadius`, `Metrics`, `Typography.Expressive`) and `BeckonLedge.swift`, `BeckonMotion.swift`, `BeckonExpressiveComponents.swift`, `BeckonJourney.swift`, `BeckonExpressiveIllustration.swift`, plus `SharedFeatures/Notifications/BeckonExpressiveNotificationBell.swift`. Numbers live in code; this document owns the rules. If they disagree, fix one of them in the same change.
 
-Initial adopter: Customer Home (`Features/Customer/Home/CustomerHomeView.swift`) and its request summary card (`Features/Customer/Requests/CustomerRequestsDashboardView.swift`). Preview: `CustomerHomeFlowSandbox.swift`, three Canvas previews (posted, offers waiting, booked).
+Initial adopter: Customer Home (`Features/Customer/Home/CustomerHomeView.swift`) and its request summary card (`Features/Customer/Grooming/GroomingCard.swift`). Preview: `CustomerHomeFlowSandbox.swift`, three Canvas previews (posted, offers waiting, booked).
 
 ## 1. Feeling
 
@@ -146,3 +146,9 @@ UI-R3, role color meaning, status rules, touch targets and the Groomer contract 
 - Reading time is `1.5 + 0.35 × wordCount` seconds. Notice floors/caps at 4/8; error adds 1 and clamps to 5/9; snackbar adds 2 and clamps to 6/10. Production error copy and actionable persistent recovery remain intact.
 - The customer sandbox now hosts real views with existing local mock repositories. Prototype files are a frozen reference; no release route or real service is introduced by the host.
 - T-420's plan records integrated runtime, Dynamic Type, VoiceOver semantics, Reduce Motion and keyboard evidence. Simulator is the adopted target; hardware haptics and dark mode are outside it. Strings remain English only.
+
+## Handoff 2 motion and module update (D-065)
+
+`BeckonPeekCarousel` shows whole cards plus a 44pt peek and fractional dots; neighboring cards stay straight. `BeckonJourney` supports four stops and its live bubble. `BeckonWhen` formats in a known service zone and does not substitute the device zone. `BeckonTabIcons` owns the four template icons. `BeckonTickCircle` draws selection and `BeckonLedge` morphs the selected surface. `DesignSheetBar` and `BeckonPinnedBar` own sheet chrome and pinned actions.
+
+Customer lists and detail pages retain their entrance family; wizard steps share directional travel. Selection mode shifts the same cards, without inserting extra content inside each card. Portfolio covers fade/scale, with horizontal-only drag and explicit Previous/Next accessibility actions. Idle loops stop when inactive or Reduce Motion is on; delayed landing effects are owned by view tasks. Decorative portfolio-placeholder and selection glyph sizes are tokenized; they carry no text meaning and their labels live on the enclosing control.

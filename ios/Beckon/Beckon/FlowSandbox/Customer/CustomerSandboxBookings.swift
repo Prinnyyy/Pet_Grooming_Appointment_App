@@ -16,6 +16,9 @@ final class CustomerSandboxBookings: BookingRepository {
         self.boundary = boundary; self.marketplace = marketplace
         let booking = CustomerSandboxFixtures.booking(state: state)
         items = state == .empty ? [] : [booking]
+        if state != .empty, !marketplace.items.contains(where: { $0.id == booking.requestID }) {
+            marketplace.items.append(CustomerSandboxFixtures.request(state: .booked, id: booking.requestID))
+        }
         if [.reschedulePending, .rescheduleAccepted, .rescheduleExpired].contains(state), let agreement = booking.agreementSnapshot {
             let status: BookingRescheduleStatus = state == .rescheduleAccepted ? .accepted : state == .rescheduleExpired ? .expired : .pending
             let start = Date().addingTimeInterval(172800).ISO8601Format()

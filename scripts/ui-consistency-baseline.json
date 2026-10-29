@@ -2,7 +2,7 @@
   "version": 1,
   "scope": "ios/Beckon/Beckon/Features",
   "lastChange": {
-    "reason": "T-420"
+    "reason": "T-421 adopts handoff 2 and retires resolved wizard geometry debt"
   },
   "findings": [
     {
@@ -255,27 +255,6 @@
       "path": "ios/Beckon/Beckon/Features/Customer/Pets/CustomerPetFormView.swift",
       "fingerprint": "dd7cc02e40c87f4e748ed0edd756f91820cdde4bc032ce4ff5521dd59b260d88",
       "expressionHash": "0598f59613736a904b14411cc63c23357d8b52f8072eec54037494361288ed86",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Customer/Requests/CustomerRequestWizardView.swift",
-      "fingerprint": "1442f7715e3bd6feeb09b4c29d9806c064b6ddc05f1554b7eeae954893ad6c70",
-      "expressionHash": "8c04ee735a6653a213f1cde0c031e43fb58641f3f6208c83c9a8e731be05ea4b",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Customer/Requests/CustomerRequestWizardView.swift",
-      "fingerprint": "cf969dbdd75d4e5982f3639361cefded74a769a241dcc1027592bc6ace54ff32",
-      "expressionHash": "10e8984c5ea0d7e16f69654eb826a3b7189dd03098972de4ff658aeb5ce3538d",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Customer/Requests/CustomerRequestWizardView.swift",
-      "fingerprint": "6f6e76fa790c2c45d7c1d3bb97c3de224c366f756bb441e2c8cbcfed81a10eb2",
-      "expressionHash": "ffa32d752a6229acef647e8af2b6d24e4edf6dc81d0ff68f4bee9bc0a90ff4c4",
       "occurrence": 1
     },
     {

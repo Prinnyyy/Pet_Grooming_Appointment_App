@@ -2,6 +2,7 @@
 // one list with sort and saved chips, a tick per groomer, and a single send bar. No deck, no per-card send, no separate list page.
 import SwiftUI
 
+
 struct CustomerGroomerDiscoveryView: View {
     @Bindable var flow: CustomerRequestDiscoveryFlow
     let requests: CustomerRequestsStore
@@ -11,17 +12,25 @@ struct CustomerGroomerDiscoveryView: View {
     /// What Back does before the request is sent; by default the page just dismisses.
     var onBack: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.showRequests) private var showRequests
     @State private var detail: DiscoveredGroomer?
     @State private var selection = GroomerSelection()
     @State private var savedOnly = false
     @State private var showLimit = false
     @State private var withdrawing: DiscoveredGroomer?
+    /// From the press of a send until it is known how it went: Back is shut for all of it (a tap in that span would walk the person
+    /// out of a send half way). A clean send leaves at once; a failed one opens Back again.
+    @State private var isSending = false
+    /// The request went out cleanly from the wizard and the sheet is closing: the page keeps the face it had, so nothing changes
+    /// under the sheet while it slides away.
+    @State private var handedOver = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private static let topAnchor = "discovery.top"
 
     private var isSent: Bool { flow.requestID != nil }
+    /// The page in its "request is out, invite more" face. Not while a send from the wizard is still running or the sheet is closing
+    /// (the request exists a moment before the send is over): it keeps the face of the step until it is known how it went.
+    private var looksSent: Bool { isSent && !handedOver && !(embeddedInWizard && isSending) }
     /// Opened from a request that already exists (its card or its detail): not a step of creating one, so it has no step path.
     private var isManaging: Bool { isSent && !embeddedInWizard }
 
@@ -39,7 +48,7 @@ struct CustomerGroomerDiscoveryView: View {
                         BeckonCascade(start: CustomerRequestStepMotion.contentStart, spacing: DesignTokens.Layout.sectionSpacing) {
                             notice
                             spotsNote
-                            if isSent {
+                            if looksSent {
                                 requestPoolCard
                             } else {
                                 GroomerPoolCard(isOn: $flow.poolEnabled, isLocked: marketplace.publication.pending != nil)
@@ -56,6 +65,7 @@ struct CustomerGroomerDiscoveryView: View {
                 .onChange(of: isSent) { _, _ in animate { proxy.scrollTo(Self.topAnchor, anchor: .top) } }
             }
         }
+        .accessibilityIdentifier("customer.discovery")
         .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .safeAreaInset(edge: .bottom, spacing: 0) { actionBar }
         .standsAloneInStepFamily(!embeddedInWizard)
@@ -76,12 +86,15 @@ struct CustomerGroomerDiscoveryView: View {
         // This page lives in a sheet. Scrolling must never turn into dragging the sheet away: the content scrolls first, and a
         // creation in progress (ticked groomers, a send running) cannot be swiped away by accident; Back and Done are in the bar.
         .presentationContentInteraction(.scrolls)
-        .interactiveDismissDisabled(isBusy || (!isSent && !selection.isEmpty))
+        .interactiveDismissDisabled(isBusy || isSending || handedOver || (!isSent && !selection.isEmpty))
+        // A request out is a small win: the buzz comes as the page starts to leave.
+        .sensoryFeedback(.success, trigger: handedOver) { _, now in now }
         .sheet(item: $detail) { candidate in
             NavigationStack {
                 CustomerGroomerDetailView(candidate: candidate, flow: flow, requests: requests,
                     marketplace: marketplace, selection: $selection)
             }
+            .designSheetStyle()
         }
         .onChange(of: flow.requestID) { _, _ in selection.removeAll() }
         .task {
@@ -93,8 +106,6 @@ struct CustomerGroomerDiscoveryView: View {
             }
             if flow.store.page == nil { await load() }
         }
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("customer.discovery")
     }
 
     // MARK: Header
@@ -103,13 +114,12 @@ struct CustomerGroomerDiscoveryView: View {
         Group {
             if isManaging {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                    CustomerRequestWizardTitleBlock(headline: "Invite more groomers",
-                        subtitle: "Groomers you pick hear about this request right away.")
+                    CustomerRequestWizardTitleBlock(headline: "Invite more groomers")
                     requestChips
                 }
-            } else if isSent {
+            } else if looksSent {
                 CustomerRequestWizardTitleBlock(headline: "Invite more groomers",
-                    subtitle: "Your request is out. Add groomers while you wait for offers. You can come back to this any time from the request card.")
+                    subtitle: "Your request is out.")
             } else {
                 CustomerRequestWizardTitleBlock(step: .groomers)
             }
@@ -189,6 +199,7 @@ struct CustomerGroomerDiscoveryView: View {
         } else {
             parts.append("Available spots checked when you send")
         }
+
         return parts.joined(separator: " · ")
     }
 
@@ -386,11 +397,31 @@ struct CustomerGroomerDiscoveryView: View {
     /// Ticking is frozen while a send is running or waiting to be retried.
     private var isSelectionLocked: Bool { isBusy || marketplace.publication.pending != nil }
 
-    /// Back before the request is sent (to the wizard's review, or whatever opened this page); Done once it is out.
+    /// Runs a send. From the wizard, a send that went out cleanly closes the wizard AT ONCE (no pause, nothing to tap);
+    /// one that failed, or went out only half way, stays with its banner and opens Back again.
+    private func perform(_ work: @escaping @MainActor () async -> Void) {
+        guard !isSending, !handedOver else { return }
+        isSending = true
+        Task {
+            await work()
+            if embeddedInWizard, sentCleanly {
+                handedOver = true
+                leave()
+            } else {
+                isSending = false
+            }
+        }
+    }
+
+    private var sentCleanly: Bool {
+        isSent && requests.errorMessage == nil && marketplace.distribution.error == nil && marketplace.publication.pending == nil
+    }
+
+    /// Back before the request is sent (to the wizard's review, or whatever opened this page). Once it is out, from the wizard it
+    /// closes it, on the page it was opened from (a clean send does that by itself, `perform`; this is the way out when something
+    /// went wrong after publishing); from a request's own "Invite more groomers" sheet it is Done.
     private func leave() {
         if isSent {
-            // The request is out: as the last step of the wizard, Done closes it and lands on Requests, on the new request's card.
-            if embeddedInWizard { showRequests?(flow.requestID) }
             requests.cancelWizard()
             dismiss()
         }
@@ -404,15 +435,17 @@ struct CustomerGroomerDiscoveryView: View {
         if let pending = marketplace.publication.pending {
             if pending.acknowledgement != nil {
                 bar("Finish sending", image: "arrow.clockwise", enabled: !requests.isSubmitting, busy: requests.isSubmitting,
-                    id: "discovery.finish-publication") { Task { await requests.publish() } }
+                    id: "discovery.finish-publication") { perform { await requests.publish() } }
             } else {
                 bar("Try sending again", image: "arrow.clockwise", enabled: !marketplace.distribution.isPublishing,
                     busy: marketplace.distribution.isPublishing, id: "discovery.retry-publication") {
-                    Task { await requests.sendDiscovery(flow, groomerIDs: pending.groomerIDs) }
+                    perform { await requests.sendDiscovery(flow, groomerIDs: pending.groomerIDs) }
                 }
             }
         } else if !isSent {
             newRequestBar
+        } else if handedOver {
+            bar("Request sent", image: "checkmark", enabled: false, busy: false, id: "discovery.sent") {}
         } else {
             bar(selection.isEmpty ? "Pick groomers" : "Invite \(selection.count) groomer\(selection.count == 1 ? "" : "s")",
                 image: "paperplane.fill", enabled: !selection.isEmpty && !isBusy, busy: isBusy, id: "discovery.send") {
@@ -436,20 +469,18 @@ struct CustomerGroomerDiscoveryView: View {
 
     private func bar(_ title: String, image: String, enabled: Bool, busy: Bool, confirmation: String? = nil, id: String,
                      action: @escaping () -> Void) -> some View {
-        DesignActionBar(leadingTitle: isSent ? "Done" : "Back", leadingImage: isSent ? "checkmark" : "chevron.left",
-            primaryTitle: title, primaryImage: image, isPrimaryEnabled: enabled, isBusy: busy, confirmation: confirmation,
-            leadingIdentifier: isSent ? "discovery.done" : "discovery.back", primaryIdentifier: id,
+        DesignActionBar(leadingTitle: isManaging ? "Done" : "Back", leadingImage: isManaging ? "checkmark" : "chevron.left",
+            primaryTitle: title, primaryImage: image, isPrimaryEnabled: enabled && !isSending && !handedOver, isLeadingEnabled: !isSending && !handedOver, isBusy: busy,
+            confirmation: confirmation, leadingIdentifier: isManaging ? "discovery.done" : "discovery.back", primaryIdentifier: id,
             bumpTrigger: CustomerRequestStep.groomers.rawValue, leading: leave, primary: action)
     }
 
     private func send(_ ids: [UUID]) {
         guard ids.count <= invitationCapacity.selectionLimit else { showLimit = true; return }
-        Task {
+        perform {
             await requests.sendDiscovery(flow, groomerIDs: ids)
             // Invited groomers turn into status chips, so a clean send empties the selection (a failed one keeps it for the retry).
-            if requests.errorMessage == nil, marketplace.distribution.error == nil, marketplace.publication.pending == nil {
-                selection.removeAll()
-            }
+            if sentCleanly { selection.removeAll() }
         }
     }
 
@@ -493,6 +524,7 @@ struct CustomerGroomerDiscoveryView: View {
     }
 }
 
+
 /// One groomer's summary and actions, used by the profile sheet and the sandbox's candidate screen. Without `selection`
 /// it keeps the original per-groomer "Send request" button; with it, the card ticks the groomer into the list's selection.
 struct CustomerGroomerCandidateView: View {
@@ -503,12 +535,15 @@ struct CustomerGroomerCandidateView: View {
     let compact: Bool
     let onDetails: () -> Void
     var selection: Binding<GroomerSelection>? = nil
+    /// The profile page shows the groomer itself, so it asks for the actions alone, without the heart (the page has its own).
+    var showsSummary = true
+    var showsFavorite = true
     @State private var showLimit = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-            summary
+            if showsSummary { summary }
             actions.fixedSize(horizontal: false, vertical: true)
         }
         .task(id: candidate.profile.avatarPath) { await marketplace.loadAvatar(candidate.profile) }
@@ -549,7 +584,7 @@ struct CustomerGroomerCandidateView: View {
         if let selection {
             GroomerSelectionActions(id: candidate.id, name: candidate.profile.displayName, isFavorite: isFavorite,
                 invitation: invitation, isSelected: selection.wrappedValue.contains(candidate.id),
-                canSelect: selection.wrappedValue.canTick(candidate.id), disabled: isDisabled,
+                canSelect: selection.wrappedValue.canTick(candidate.id), disabled: isDisabled, showsFavorite: showsFavorite,
                 onFavorite: toggleFavorite,
                 onToggle: {
                     guard selection.wrappedValue.canTick(candidate.id) else { showLimit = true; return }
@@ -561,10 +596,12 @@ struct CustomerGroomerCandidateView: View {
             GroomerCandidateActionsView(id: candidate.id, isFavorite: isFavorite, invitation: invitation,
                 disabled: isDisabled, onFavorite: toggleFavorite,
                 onSend: { Task { await requests.sendDiscovery(flow, groomerIDs: [candidate.id]) } },
-                publicationConfirmation: flow.publicationConfirmation(names: [candidate.profile.displayName]))
+                publicationConfirmation: flow.publicationConfirmation(names: [candidate.profile.displayName]),
+                showsFavorite: showsFavorite)
         }
     }
 }
+
 
 private extension View {
     /// The step family when the picker stands alone (a sheet from a request, the sandbox). As the sixth step of the wizard it takes
