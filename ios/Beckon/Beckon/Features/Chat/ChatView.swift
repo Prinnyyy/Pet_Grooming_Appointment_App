@@ -510,8 +510,11 @@ struct ChatThreadView: View {
     let role: UserRole
     let conversation: ChatConversation
     let store: ChatStore
+    /// The route may have already prepared the subscription and first snapshot behind its reveal.
+    var initialMessagesPrepared = false
     @State private var draft = ""
     @State private var isVisible = false
+    @State private var didActivate = false
     @FocusState private var isComposing: Bool
 
     var body: some View {
@@ -555,13 +558,21 @@ struct ChatThreadView: View {
                 }
             )
         }
-        .onAppear { isVisible = true }
+        .onAppear {
+            isVisible = true
+            store.acknowledgeVisibleMessages(for: conversation.id)
+        }
         .task(id: isVisible && scenePhase == .active) {
-            guard isVisible, scenePhase == .active else {
+            guard isVisible else { return }
+            guard scenePhase == .active else {
+                didActivate = true
                 store.stopMessageSubscription(for: conversation.id)
                 return
             }
-            await refreshThread()
+            let needsRefresh = didActivate || !initialMessagesPrepared
+                || !store.hasActiveMessageSubscription(for: conversation.id)
+            didActivate = true
+            if needsRefresh { await refreshThread() }
         }
         .onDisappear {
             isVisible = false
@@ -590,7 +601,7 @@ struct ChatThreadView: View {
                     }
 
                     if store.isLoadingMessages(for: conversation.id),
-                       store.messages(for: conversation.id).isEmpty {
+                       !store.hasLoadedMessages(for: conversation.id) {
                         BeckonLoadingView(
                             title: "Loading messages...",
                             message: "Opening this booking conversation.",
@@ -670,10 +681,7 @@ struct ChatThreadView: View {
     }
 
     private func refreshThread() async {
-        // Subscribe first, then merge the snapshot so messages cannot fall into the opening gap.
-        await store.startMessageSubscription(for: conversation)
-        guard !Task.isCancelled, isVisible, scenePhase == .active else { return }
-        await store.loadMessages(for: conversation)
+        await store.prepareMessages(for: conversation)
     }
 
     private func recoveryBanner(title: String, message: String) -> some View {
@@ -687,6 +695,38 @@ struct ChatThreadView: View {
             .disabled(store.isLoadingMessages(for: conversation.id))
             .accessibilityIdentifier("chat.messages.retry")
         }
+    }
+}
+
+/// Same header and composer geometry as the destination, with no active input until verified.
+struct ChatThreadLoadingView: View {
+    let title: String
+    let avatarPhotoData: Data?
+    @Environment(\.dismiss) private var dismiss
+    @FocusState private var isComposing: Bool
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ChatThreadHeader(title: title, subtitle: "Opening chat…", role: .customer,
+                avatarPhotoData: avatarPhotoData, isComposing: false, dismiss: dismiss)
+            Divider().overlay(DesignTokens.Colors.borderSoft)
+            ScrollView {
+                ChatMessagesSkeleton()
+                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                    .padding(.top, DesignTokens.Spacing.lg)
+            }
+        }
+        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
+        .safeAreaInset(edge: .bottom) {
+            ChatComposerBar(draft: .constant(""), isFocused: $isComposing,
+                isSending: false, isReadOnly: false, readOnlyMessage: "", accent: .customer,
+                placeholder: "Message…", send: {})
+                .disabled(true)
+                .accessibilityHidden(true)
+        }
+        .accessibilityIdentifier("chat.thread.loading")
     }
 }
 

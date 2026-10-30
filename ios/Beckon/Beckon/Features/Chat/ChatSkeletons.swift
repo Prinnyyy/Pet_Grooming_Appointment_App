@@ -44,3 +44,29 @@ struct ChatConversationsSkeleton: View {
         }
     }
 }
+
+/// Chat-shaped placeholders; conversation rows belong only to the Messages list.
+struct ChatMessagesSkeleton: View {
+    var body: some View {
+        VStack(spacing: DesignTokens.Spacing.lg) {
+            bubble(outgoing: false, width: 0.72)
+            bubble(outgoing: true, width: 0.58)
+            bubble(outgoing: false, width: 0.64)
+        }
+        .designSkeleton(label: "Loading messages")
+    }
+
+    private func bubble(outgoing: Bool, width: CGFloat) -> some View {
+        HStack {
+            if outgoing { Spacer(minLength: DesignTokens.Spacing.xl) }
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                DesignSkeletonLine(width: width)
+                DesignSkeletonLine(width: width * 0.7)
+            }
+            .padding(DesignTokens.Spacing.md)
+            .background(DesignTokens.Colors.iconTileFill,
+                in: RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input))
+            if !outgoing { Spacer(minLength: DesignTokens.Spacing.xl) }
+        }
+    }
+}

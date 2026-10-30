@@ -134,33 +134,60 @@ struct CustomerConversationDestination: View {
     let route: CustomerDestination
     let participantID: UUID
     let store: ChatStore
+    var booking: Booking? = nil
+    @Environment(\.scenePhase) private var scenePhase
     @State private var conversation: ChatConversation?
     @State private var isLoading = true
+    @State private var initialMessagesPrepared = false
     @State private var retry = 0
+
+    private var previewConversation: ChatConversation? {
+        if let conversation { return conversation }
+        if let booking { return store.conversation(for: booking) }
+        if case .conversation(let id) = route { return store.conversations.first { $0.id == id } }
+        return nil
+    }
 
     var body: some View {
         DesignReveal(isLoading: isLoading) {
             if let conversation {
-                ChatThreadView(participantID: participantID, role: .customer, conversation: conversation, store: store)
+                ChatThreadView(participantID: participantID, role: .customer, conversation: conversation,
+                    store: store, initialMessagesPrepared: initialMessagesPrepared)
             } else {
                 DesignPage(cascades: false) {
                     BeckonErrorBanner(title: "Conversation unavailable", message: store.errorMessage ?? "Try opening this conversation again.") {
-                        Button("Retry") { retry += 1 }
+                        Button("Retry") { isLoading = true; retry += 1 }
                     }
                 }
             }
         } placeholder: {
-            DesignPage(cascades: false) { ChatConversationsSkeleton() }
+            ChatThreadLoadingView(
+                title: previewConversation?.listTitle(for: .customer) ?? booking?.partnerDisplayTitle(for: .customer) ?? "Messages",
+                avatarPhotoData: previewConversation?.counterpartAvatarPhotoData)
         }
-        .task(id: retry) {
-            isLoading = true
+        .task(id: scenePhase == .active ? retry : -1) {
+            guard scenePhase == .active, isLoading else { return }
+            let resolved: ChatConversation?
             switch route {
-            case .conversation(let id): conversation = await store.resolveConversation(conversationID: id)
-            case .bookingConversation(let id): conversation = await store.resolveConversation(bookingID: id)
-            default: break
+            case .conversation(let id): resolved = await store.resolveConversation(conversationID: id)
+            case .bookingConversation(let id): resolved = await store.resolveConversation(bookingID: id)
+            default: resolved = nil
             }
             guard !Task.isCancelled else { return }
+            conversation = resolved
+            if let resolved, !store.hasLoadedMessages(for: resolved.id) {
+                store.deferReadAcknowledgement(for: resolved.id)
+                await store.prepareMessages(for: resolved)
+                guard !Task.isCancelled else { return }
+                initialMessagesPrepared = true
+            }
             isLoading = false
+        }
+        .onDisappear {
+            if let conversation { store.stopMessageSubscription(for: conversation.id) }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active, let conversation { store.stopMessageSubscription(for: conversation.id) }
         }
     }
 }
@@ -212,7 +239,8 @@ struct CustomerRouteDestination: View {
             }
         case .conversation, .bookingConversation:
             if let customerID, let chatStore {
-                return AnyView(CustomerConversationDestination(route: route, participantID: customerID, store: chatStore))
+                let booking: Booking? = if case .bookingConversation(let id) = route { bookingsStore?.booking(withID: id) } else { nil }
+                return AnyView(CustomerConversationDestination(route: route, participantID: customerID, store: chatStore, booking: booking))
             }
         }
         return AnyView(EmptyView())

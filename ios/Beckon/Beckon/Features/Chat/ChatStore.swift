@@ -28,6 +28,7 @@ final class ChatStore {
     private var readConversationTimestamps: [UUID: String] = [:]
     private var messageSubscriptionTasks: [UUID: Task<Void, Never>] = [:]
     private var messageSubscriptionIDs: [UUID: UUID] = [:]
+    private var deferredReadConversationIDs: Set<UUID> = []
     #if DEBUG
     var sandboxBookingStore: BookingsStore?
     #endif
@@ -84,6 +85,31 @@ final class ChatStore {
     func isLoadingMessages(for conversationID: UUID) -> Bool {
         loadingConversationIDs.contains(conversationID)
             || (messageSubscriptionIDs[conversationID] != nil && messageSubscriptionTasks[conversationID] == nil)
+    }
+
+    /// A successful empty snapshot is content too; refreshing it must not restore a loader.
+    func hasLoadedMessages(for conversationID: UUID) -> Bool {
+        messagesByConversationID[conversationID] != nil
+    }
+
+    func hasActiveMessageSubscription(for conversationID: UUID) -> Bool {
+        messageSubscriptionTasks[conversationID] != nil
+    }
+
+    func deferReadAcknowledgement(for conversationID: UUID) {
+        deferredReadConversationIDs.insert(conversationID)
+    }
+
+    func acknowledgeVisibleMessages(for conversationID: UUID) {
+        deferredReadConversationIDs.remove(conversationID)
+        markConversationRead(conversationID)
+    }
+
+    /// Subscribe before the snapshot so opening a thread cannot miss messages in between.
+    func prepareMessages(for conversation: ChatConversation) async {
+        await startMessageSubscription(for: conversation)
+        guard !Task.isCancelled else { return }
+        await loadMessages(for: conversation)
     }
 
     func isSendingMessage(for conversationID: UUID) -> Bool {
@@ -581,6 +607,7 @@ final class ChatStore {
     }
 
     func stopMessageSubscription(for conversationID: UUID) {
+        deferredReadConversationIDs.remove(conversationID)
         messageSubscriptionIDs.removeValue(forKey: conversationID)
         messageSubscriptionTasks.removeValue(forKey: conversationID)?.cancel()
         recordStoreInfo(
@@ -591,6 +618,7 @@ final class ChatStore {
     }
 
     func stopAllMessageSubscriptions() {
+        deferredReadConversationIDs.removeAll()
         let count = messageSubscriptionIDs.count
         for task in messageSubscriptionTasks.values {
             task.cancel()
@@ -699,6 +727,7 @@ final class ChatStore {
     }
 
     private func markConversationRead(_ conversationID: UUID) {
+        guard !deferredReadConversationIDs.contains(conversationID) else { return }
         // A summary can be newer than delivered history; it is not proof that its message was seen.
         guard let readAt = messagesByConversationID[conversationID]?.last?.createdAt else { return }
         if let previous = readConversationTimestamps[conversationID],

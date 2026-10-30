@@ -5,6 +5,68 @@ import Testing
 @MainActor
 struct ChatReliabilityTests {
     @Test
+    func preparedHistoryStaysUnreadUntilTheThreadIsVisible() async {
+        let fixture = Fixture(latest: "2026-10-04T12:01:00Z")
+        await fixture.store.loadConversations()
+        fixture.repository.messagesResult = .success([fixture.message("Unseen", at: "2026-10-04T12:01:00Z")])
+        fixture.store.deferReadAcknowledgement(for: fixture.conversation.id)
+        await fixture.store.prepareMessages(for: fixture.conversation)
+        #expect(fixture.store.unreadConversationCount == 1)
+        #expect(fixture.cache.timestamps(participantID: fixture.conversation.customerID, role: .customer).isEmpty)
+        fixture.store.acknowledgeVisibleMessages(for: fixture.conversation.id)
+        #expect(fixture.store.unreadConversationCount == 0)
+        fixture.store.stopAllMessageSubscriptions()
+    }
+
+    @Test
+    func preparingAnEmptyThreadSettlesItsFirstLoadAndKeepsOneSubscription() async {
+        let fixture = Fixture()
+        fixture.repository.beforeMessageRead = {
+            #expect(fixture.store.hasActiveMessageSubscription(for: fixture.conversation.id))
+        }
+        #expect(!fixture.store.hasLoadedMessages(for: fixture.conversation.id))
+        await fixture.store.prepareMessages(for: fixture.conversation)
+        #expect(fixture.store.hasLoadedMessages(for: fixture.conversation.id))
+        #expect(fixture.store.messages(for: fixture.conversation.id).isEmpty)
+        #expect(fixture.repository.messagesCallCount == 1)
+        await fixture.store.startMessageSubscription(for: fixture.conversation)
+        #expect(fixture.repository.messageEventsCallCount == 1)
+        fixture.store.stopAllMessageSubscriptions()
+    }
+
+    @Test
+    func cancelledPreparationDoesNotFetchOrSettleMessages() async throws {
+        let fixture = Fixture()
+        let gate = Gate()
+        fixture.repository.beforeMessageEvents = { await gate.suspend() }
+        let opening = Task { await fixture.store.prepareMessages(for: fixture.conversation) }
+        try await gate.waitUntilEntered()
+        opening.cancel()
+        fixture.store.stopAllMessageSubscriptions()
+        gate.release()
+        await opening.value
+        #expect(fixture.repository.messagesCallCount == 0)
+        #expect(!fixture.store.hasLoadedMessages(for: fixture.conversation.id))
+        #expect(!fixture.store.hasActiveMessageSubscription(for: fixture.conversation.id))
+    }
+
+    @Test
+    func messageFailureRemainsRetryableWithoutDiscardingAnEmptySnapshot() async {
+        let fixture = Fixture()
+        fixture.repository.messagesResult = .failure(.networkUnavailable)
+        await fixture.store.prepareMessages(for: fixture.conversation)
+        #expect(!fixture.store.hasLoadedMessages(for: fixture.conversation.id))
+        #expect(fixture.store.messageLoadErrors[fixture.conversation.id] != nil)
+        fixture.repository.messagesResult = .success([])
+        await fixture.store.prepareMessages(for: fixture.conversation)
+        fixture.repository.messagesResult = .failure(.networkUnavailable)
+        await fixture.store.prepareMessages(for: fixture.conversation)
+        #expect(fixture.store.hasLoadedMessages(for: fixture.conversation.id))
+        #expect(fixture.store.messageLoadErrors[fixture.conversation.id] != nil)
+        fixture.store.stopAllMessageSubscriptions()
+    }
+
+    @Test
     func groomerCanDistinguishDifferentCustomersWithoutOpeningEachChat() {
         let first = Fixture().conversation
         let second = Fixture().conversation
