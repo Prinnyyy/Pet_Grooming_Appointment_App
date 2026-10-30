@@ -330,6 +330,7 @@ enum DesignTokens {
         static let skeletonShowDelay = 0.15
         static let skeletonMinimum = 0.45
         static let brandArrival = Animation.spring(response: 0.55, dampingFraction: 0.72)
+        static let brandWords = Animation.spring(response: 0.42, dampingFraction: 0.86)
         static let launchMinimum: Double = 0.7
         static let pullRefreshMinimum = 1.0
     }

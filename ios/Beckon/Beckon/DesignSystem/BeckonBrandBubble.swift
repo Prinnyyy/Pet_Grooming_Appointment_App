@@ -9,7 +9,7 @@ import SwiftUI
 struct BeckonLockup: View {
     var hasEntered = true
     var isExcited = false
-    /// Standalone landing words use the page entrance; the launch scene controls its own reveal mask.
+    /// Standalone landing words use the page entrance; the launch scene controls their gentle lift.
     var dealsInWords = false
     var showsWords = true
     var playsArrivalReaction = true
@@ -24,7 +24,9 @@ struct BeckonLockup: View {
                 playsArrivalReaction: playsArrivalReaction)
 
             words.modifier(LockupEntrance(deals: dealsInWords))
-                .mask { Rectangle().scaleEffect(x: 1, y: showsWords ? 1 : 0, anchor: .bottom) }
+                .opacity(showsWords ? 1 : 0)
+                .offset(y: showsWords || reduceMotion ? 0 : 8)
+                .scaleEffect(showsWords || reduceMotion ? 1 : 0.98)
         }
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)

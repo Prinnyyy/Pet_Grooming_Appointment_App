@@ -15,8 +15,13 @@ struct AuthenticationLanding: View {
     /// Launch reserves the exact same action layout, including Dynamic Type, without exposing the controls.
     var showsActions = true
     var showsWords = true
+    var showsBackdrop = true
+    var brandIsExcited = false
+    var playsArrivalReaction = true
+    var brandOffset: CGFloat = 0
     /// The pup perks up while the primary button is held, as the Home hero's does.
     @State private var isGetStartedPressed = false
+    @State private var scrollOffset: CGFloat = 0
 
     var body: some View {
         GeometryReader { proxy in
@@ -35,28 +40,38 @@ struct AuthenticationLanding: View {
                 .padding(.bottom, DesignTokens.Spacing.xl)
                 .frame(minHeight: proxy.size.height)
             }
-            .accessibilityIdentifier("auth.landing")
+            .accessibilityIdentifier(showsActions ? "auth.landing" : "launch.brand.layout")
+            .onScrollGeometryChange(for: CGFloat.self) { $0.contentOffset.y + $0.contentInsets.top } action: { _, offset in
+                if isInsideLaunchGate && showsActions { scrollOffset = offset }
+            }
             // The page's mint wash is taller here than on the other pages, so the bubble sits on it and not on the cream below.
             .background(alignment: .top) {
                 LinearGradient(colors: [DesignTokens.Colors.customerTint, DesignTokens.Colors.appBackground],
                     startPoint: .top, endPoint: .bottom)
                     .frame(height: proxy.size.height * 0.8)
                     .ignoresSafeArea()
+                    .opacity(showsBackdrop ? 1 : 0)
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            actions
-                .opacity(showsActions ? 1 : 0)
-                .allowsHitTesting(showsActions)
-                .accessibilityHidden(!showsActions)
+            if showsActions { actions }
+            else { actions.hidden().allowsHitTesting(false).accessibilityHidden(true) }
         }
         .beckonEntranceClock()
+        .preference(key: AuthenticationLandingBrandKey.self,
+            value: isInsideLaunchGate && showsActions
+                ? AuthenticationLandingBrand(isExcited: isGetStartedPressed, scrollOffset: scrollOffset) : nil)
     }
 
     private var hero: some View {
-        BeckonLockup(hasEntered: isInsideLaunchGate || hasEntered, isExcited: isGetStartedPressed,
+        BeckonLockup(hasEntered: isInsideLaunchGate || hasEntered, isExcited: isGetStartedPressed || brandIsExcited,
             dealsInWords: showsActions && !isInsideLaunchGate, showsWords: showsWords,
-            playsArrivalReaction: !isInsideLaunchGate)
+            playsArrivalReaction: playsArrivalReaction && !isInsideLaunchGate)
+            .offset(y: brandOffset)
+            // Reserve identical geometry; the launch gate keeps the one visible animated lockup.
+            .opacity(isInsideLaunchGate ? 0 : 1)
+            .accessibilityHidden(false)
+            .beckonEntranceActive(!isInsideLaunchGate)
     }
 
     private var actions: some View {
@@ -88,5 +103,18 @@ struct AuthenticationLanding: View {
         .frame(maxWidth: .infinity)
         .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .beckonEntrance(1)
+    }
+}
+
+struct AuthenticationLandingBrand: Equatable {
+    let isExcited: Bool
+    let scrollOffset: CGFloat
+}
+
+/// The real welcome page owns taps and scrolling; the shared decoration follows its state.
+struct AuthenticationLandingBrandKey: PreferenceKey {
+    static let defaultValue: AuthenticationLandingBrand? = nil
+    static func reduce(value: inout AuthenticationLandingBrand?, nextValue: () -> AuthenticationLandingBrand?) {
+        if let next = nextValue() { value = next }
     }
 }

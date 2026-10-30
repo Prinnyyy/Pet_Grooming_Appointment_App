@@ -55,7 +55,7 @@ struct AuthenticatedEntryView: View {
         Group {
             switch store.state {
             case .loading:
-                loadingView
+                AccountEntryLoadingView()
 
             case .onboarding:
                 RoleOnboardingView(
@@ -155,18 +155,6 @@ struct AuthenticatedEntryView: View {
         #endif
     }
 
-    private var loadingView: some View {
-        DesignPage(cascades: false) {
-            DesignSkeletonLine(width: 0.5, font: DesignTokens.Typography.Expressive.title)
-            BeckonAccountIdentitySkeleton(roleTitle: "Account", roleSystemImage: "person", roleAccent: .customer)
-            DesignShortcutRow { DesignShortcutTileSkeleton(); DesignShortcutTileSkeleton() }
-            BeckonSettingsSectionSkeleton(summaries: [true, true])
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Loading your account")
-        .accessibilityIdentifier("profile.loading")
-    }
-
     private func loadFailureView(message: String) -> some View {
         NavigationStack {
             ZStack {
@@ -263,4 +251,38 @@ struct AuthenticatedEntryView: View {
             )
         }
     }
+}
+
+/// The role is not known yet. Keep the shared background, without implying an Account page
+/// or a particular role. The destination owns its only skeleton-to-content reveal.
+struct AccountEntryLoadingView: View {
+    @Environment(\.beckonEntranceActive) private var pageIsActive
+    @State private var showsProgress = false
+
+    var body: some View {
+        ZStack {
+            BeckonExpressiveBackdrop()
+            ProgressView("Getting things ready…")
+                .font(DesignTokens.Typography.Expressive.supporting)
+                .tint(DesignTokens.Colors.textSecondary)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                .padding(DesignTokens.Spacing.xl)
+                .opacity(showsProgress ? 1 : 0)
+                .animation(DesignTokens.Motion.reduced, value: showsProgress)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Loading your account")
+        .accessibilityIdentifier("profile.loading")
+        .task(id: pageIsActive) {
+            showsProgress = false
+            guard pageIsActive else { return }
+            try? await Task.sleep(for: .seconds(DesignTokens.Motion.skeletonShowDelay))
+            guard !Task.isCancelled else { return }
+            showsProgress = true
+        }
+    }
+}
+
+#Preview("Account entry transition") {
+    AccountEntryLoadingView()
 }

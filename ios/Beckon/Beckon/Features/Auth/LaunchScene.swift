@@ -5,6 +5,9 @@ import SwiftUI
 
 struct LaunchScene: View {
     var playsIntro = false
+    var isLanding = false
+    var isExcited = false
+    var scrollOffset: CGFloat = 0
     var onIntroFinished: () -> Void = {}
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var orbEntered = false
@@ -13,11 +16,15 @@ struct LaunchScene: View {
 
     var body: some View {
         AuthenticationLanding(hasEntered: !playsIntro || orbEntered, isBusy: true,
-            onGetStarted: {}, onSignIn: {}, showsActions: false, showsWords: !playsIntro || wordsEntered)
-        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
+            onGetStarted: {}, onSignIn: {}, showsActions: false, showsWords: !playsIntro || wordsEntered,
+            showsBackdrop: !isLanding, brandIsExcited: isExcited, playsArrivalReaction: playsIntro || started,
+            brandOffset: -scrollOffset)
+        .background {
+            if !isLanding { DesignTokens.Colors.appBackground.ignoresSafeArea() }
+        }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Beckon, loading")
-        .accessibilityIdentifier("launch.scene")
+        .accessibilityLabel(isLanding ? "Beckon. Pet groomers at your beck and call." : "Beckon, loading")
+        .accessibilityIdentifier(isLanding ? "auth.landing.brand" : "launch.scene")
         .onAppear {
             guard playsIntro, !started else { return }
             started = true
@@ -29,7 +36,7 @@ struct LaunchScene: View {
                 withAnimation(DesignTokens.Motion.brandArrival, completionCriteria: .logicallyComplete) {
                     orbEntered = true
                 } completion: {
-                    withAnimation(DesignTokens.Motion.reveal, completionCriteria: .logicallyComplete) {
+                    withAnimation(DesignTokens.Motion.brandWords, completionCriteria: .logicallyComplete) {
                         wordsEntered = true
                     } completion: { onIntroFinished() }
                 }
@@ -45,6 +52,7 @@ struct LaunchGate<Content: View>: View {
     let isReady: Bool
     @ViewBuilder let content: Content
     @State private var presentation = LaunchPresentationState()
+    @State private var landingBrand: AuthenticationLandingBrand?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var isOver: Bool { presentation.hasDismissed }
@@ -56,13 +64,26 @@ struct LaunchGate<Content: View>: View {
                 .environment(\.beckonEntranceActive, isOver)
                 .accessibilityHidden(!isOver)
                 .allowsHitTesting(isOver)
-            if !isOver {
-                LaunchScene(playsIntro: true) {
+            if !isOver || landingBrand != nil {
+                // Keep this exact instance through the welcome handoff so the pup's reaction
+                // and idle timeline finish continuously. Only its background leaves.
+                LaunchScene(playsIntro: !isOver, isLanding: isOver,
+                    isExcited: landingBrand?.isExcited == true, scrollOffset: landingBrand?.scrollOffset ?? 0) {
                     presentation.introFinished = true
                 }
+                    // Fade the finished scene as one layer. Fading its wash and artwork
+                    // separately lets the pale wash show through the pup during handoff.
+                    .compositingGroup()
                     .transition(.opacity)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(isOver)
                     .zIndex(1)
             }
+        }
+        .onPreferenceChange(AuthenticationLandingBrandKey.self) { value in
+            if (landingBrand == nil) != (value == nil) {
+                withAnimation(DesignTokens.Motion.reduced) { landingBrand = value }
+            } else { landingBrand = value }
         }
         .animation(reduceMotion ? DesignTokens.Motion.reduced : DesignTokens.Motion.reveal, value: isOver)
         .task {

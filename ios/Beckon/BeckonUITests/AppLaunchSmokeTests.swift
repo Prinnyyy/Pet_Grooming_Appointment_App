@@ -2,6 +2,23 @@ import XCTest
 
 final class AppLaunchSmokeTests: XCTestCase {
     @MainActor
+    func testWelcomeActionsRemainUsableAfterReturningFromSignUp() {
+        let app = XCUIApplication()
+        app.launchArguments.append("--beckon-ui-test-signed-out-auth")
+        app.launch()
+        let getStarted = app.buttons["auth.get-started"]
+        XCTAssertTrue(getStarted.waitForExistence(timeout: 5))
+        getStarted.tap()
+        XCTAssertTrue(app.secureTextFields["auth.password-confirmation"].waitForExistence(timeout: 5))
+        app.buttons["auth.back-to-landing"].tap()
+        let signIn = app.buttons["auth.already-have-account"]
+        XCTAssertTrue(signIn.waitForExistence(timeout: 5))
+        XCTAssertTrue(getStarted.isHittable)
+        signIn.tap()
+        XCTAssertTrue(app.buttons["auth.forgot-password"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     func testPasswordRecoveryEntryAndReturnToSignIn() {
         let app = XCUIApplication()
         app.launchArguments.append("--beckon-ui-test-signed-out-auth")

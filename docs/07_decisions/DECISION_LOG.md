@@ -24,6 +24,7 @@ Task: T-423
 Decision: Customer cross-feature navigation belongs to the destination tab. Home glance selects Grooming's card; successful publication selects the new card after dismissal. Wizard Add pet suspends/resumes its existing draft through Home; ordinary no-pet creation still stays on Home after save. Recovery is a root surface preserving its isolated authentication context. Launch runs once, and loading/entrance clocks only run when visible.
 Context: The user adopted the 57-route register's eight problem areas and requested smooth, reusable navigation/startup behavior. T-422 hid startup-time animations and allowed repeated launch gating; programmatic navigation rebuilt the Grooming root and left foreign pages in Home.
 Consequences: Existing stores, publication recovery and authorization remain; stable path changes replace root recreation, independent reads overlap, and log I/O leaves the main actor. Existing UI spec owns the reusable standard. No new dependency or backend contract.
+T-425 refinement: Keep one visible, noninteractive lockup across launch/welcome; remove it from accessibility after handoff. Use the brandWords spring for a subtle whole-word lift/fade instead of clipping letters. Account resolution uses a delayed role-neutral indicator, leaving Home to own its only skeleton reveal. Authentication, role checks and recovery remain unchanged.
 Linked files: docs/superpowers/plans/2026-10-29-navigation-launch-reliability.md.
 ```
 
