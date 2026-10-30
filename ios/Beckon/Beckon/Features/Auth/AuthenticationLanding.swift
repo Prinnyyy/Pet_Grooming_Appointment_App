@@ -55,7 +55,8 @@ struct AuthenticationLanding: View {
 
     private var hero: some View {
         BeckonLockup(hasEntered: isInsideLaunchGate || hasEntered, isExcited: isGetStartedPressed,
-            dealsInWords: showsActions && !isInsideLaunchGate, showsWords: showsWords)
+            dealsInWords: showsActions && !isInsideLaunchGate, showsWords: showsWords,
+            playsArrivalReaction: !isInsideLaunchGate)
     }
 
     private var actions: some View {

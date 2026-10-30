@@ -12,6 +12,7 @@ struct BeckonLockup: View {
     /// Standalone landing words use the page entrance; the launch scene controls its own reveal mask.
     var dealsInWords = false
     var showsWords = true
+    var playsArrivalReaction = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.beckonEntranceActive) private var pageIsActive
@@ -19,7 +20,8 @@ struct BeckonLockup: View {
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
             BeckonBrandBubble(isMotionEnabled: pageIsActive && !reduceMotion && scenePhase == .active,
-                hasEntered: hasEntered || reduceMotion, isExcited: isExcited)
+                hasEntered: hasEntered || reduceMotion, isExcited: isExcited,
+                playsArrivalReaction: playsArrivalReaction)
 
             words.modifier(LockupEntrance(deals: dealsInWords))
                 .mask { Rectangle().scaleEffect(x: 1, y: showsWords ? 1 : 0, anchor: .bottom) }
@@ -64,7 +66,9 @@ struct BeckonBrandBubble: View {
     var hasEntered = true
     /// The pup flings its ears: while the call to action is pressed, and for a beat when the orb lands.
     var isExcited = false
+    var playsArrivalReaction = true
     @State private var hasLanded = false
+    @State private var didReactToArrival = false
 
     private let diameter: CGFloat = 176
     private let lip: CGFloat = 8
@@ -89,9 +93,11 @@ struct BeckonBrandBubble: View {
         }
         .accessibilityHidden(true)
         .allowsHitTesting(false)
-        .task(id: hasEntered && isMotionEnabled) {
+        .task(id: hasEntered && isMotionEnabled && playsArrivalReaction) {
             hasLanded = false
-            guard hasEntered, isMotionEnabled else { return }
+            guard hasEntered, isMotionEnabled, playsArrivalReaction, !didReactToArrival else { return }
+            // Visibility/scene changes resume floating; they do not represent another landing.
+            didReactToArrival = true
             do {
                 try await Task.sleep(for: .milliseconds(420))
                 hasLanded = true
