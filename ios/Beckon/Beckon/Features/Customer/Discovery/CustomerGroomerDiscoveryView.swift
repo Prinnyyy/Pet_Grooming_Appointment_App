@@ -422,7 +422,7 @@ struct CustomerGroomerDiscoveryView: View {
     /// went wrong after publishing); from a request's own "Invite more groomers" sheet it is Done.
     private func leave() {
         if isSent {
-            requests.cancelWizard()
+            if embeddedInWizard, let id = flow.requestID { requests.finishWizard(requestID: id) }
             dismiss()
         }
         else if let onBack { onBack() }

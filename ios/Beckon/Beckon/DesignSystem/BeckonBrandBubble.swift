@@ -9,17 +9,20 @@ import SwiftUI
 struct BeckonLockup: View {
     var hasEntered = true
     var isExcited = false
-    /// The words arrive as the first block of the page (the landing); the launch scene has them from its first frame.
+    /// Standalone landing words use the page entrance; the launch scene controls its own reveal mask.
     var dealsInWords = false
+    var showsWords = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.beckonEntranceActive) private var pageIsActive
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
-            BeckonBrandBubble(isMotionEnabled: !reduceMotion && scenePhase == .active,
+            BeckonBrandBubble(isMotionEnabled: pageIsActive && !reduceMotion && scenePhase == .active,
                 hasEntered: hasEntered || reduceMotion, isExcited: isExcited)
 
             words.modifier(LockupEntrance(deals: dealsInWords))
+                .mask { Rectangle().scaleEffect(x: 1, y: showsWords ? 1 : 0, anchor: .bottom) }
         }
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)

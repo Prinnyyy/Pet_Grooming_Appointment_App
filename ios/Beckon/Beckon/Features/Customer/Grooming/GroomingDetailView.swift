@@ -276,7 +276,7 @@ struct GroomingDetailView: View {
                 CustomerOfferCarousel(reviews: shown, now: now, highlights: CustomerOfferHighlights(pending, isComplete: store.loadedCurrentOfferCount(for: request) != nil)) { review in
                     CustomerOfferDetailView(request: request, offerID: review.id, store: store)
                 }
-                NavigationLink {
+                CustomerNavigationLink(route: .offers(request.id)) {
                     CustomerRequestOffersView(requestID: request.id, store: store)
                 } label: {
                     DesignLinkCardLabel(

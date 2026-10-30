@@ -356,7 +356,7 @@ extension View {
 
     /// Marks whether this page is the one on screen. Only the tab view sets it, once per tab: the blocks of an inactive tab wait
     /// hidden and are dealt in again, in order, each time the tab is selected.
-    func beckonEntranceActive(_ isActive: Bool) -> some View { environment(\.beckonEntranceActive, isActive) }
+    func beckonEntranceActive(_ isActive: Bool) -> some View { modifier(BeckonActivePageModifier(isActive: isActive)) }
 
     /// Sets how this page arrives: the family's tempo and, when given, which way its blocks come from (otherwise the page keeps
     /// the direction it inherited, so a step embedded in a flow follows the flow).
@@ -419,4 +419,12 @@ struct BeckonMotionGate {
     let reduceMotion: Bool
     let scenePhase: ScenePhase
     var isPaused: Bool { reduceMotion || scenePhase != .active }
+}
+
+private struct BeckonActivePageModifier: ViewModifier {
+    @Environment(\.beckonEntranceActive) private var ancestorIsActive
+    let isActive: Bool
+    func body(content: Content) -> some View {
+        content.environment(\.beckonEntranceActive, ancestorIsActive && isActive)
+    }
 }

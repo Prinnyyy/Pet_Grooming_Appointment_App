@@ -39,13 +39,24 @@ extension EnvironmentValues {
 struct CustomerRequestFlowPresenter: ViewModifier {
     let store: CustomerRequestsStore?
     let profileRepository: (any CustomerProfileRepository)?
+    var onAddPet: () -> Void = {}
+    var onPublished: (UUID) -> Void = { _ in }
 
     func body(content: Content) -> some View {
         content
             .environment(\.customerRequestFlowHosted, true)
             .sheet(isPresented: Binding(get: { store?.isShowingWizard ?? false },
-                set: { store?.setWizardPresentation($0) })) {
-                if let store { CustomerRequestWizardView(store: store, customerProfileRepository: profileRepository) }
+                set: { store?.setWizardPresentation($0) }), onDismiss: {
+                    if store?.isWizardSuspendedForPet == true { onAddPet() }
+                    else if let id = store?.completedWizardRequestID {
+                        store?.completedWizardRequestID = nil
+                        onPublished(id)
+                    }
+                }) {
+                if let store {
+                    CustomerRequestWizardView(store: store, customerProfileRepository: profileRepository,
+                        onAddPet: { store.suspendWizardForPet() })
+                }
             }
             .sheet(item: Binding(get: { store?.isShowingWizard == true ? nil : store?.discoveryFlow },
                 set: { store?.discoveryFlow = $0 })) { flow in

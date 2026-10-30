@@ -18,6 +18,17 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-067
+Date: 2026-10-29
+Task: T-423
+Decision: Customer cross-feature navigation belongs to the destination tab. Home glance selects Grooming's card; successful publication selects the new card after dismissal. Wizard Add pet suspends/resumes its existing draft through Home; ordinary no-pet creation still stays on Home after save. Recovery is a root surface preserving its isolated authentication context. Launch runs once, and loading/entrance clocks only run when visible.
+Context: The user adopted the 57-route register's eight problem areas and requested smooth, reusable navigation/startup behavior. T-422 hid startup-time animations and allowed repeated launch gating; programmatic navigation rebuilt the Grooming root and left foreign pages in Home.
+Consequences: Existing stores, publication recovery and authorization remain; stable path changes replace root recreation, independent reads overlap, and log I/O leaves the main actor. Existing UI spec owns the reusable standard. No new dependency or backend contract.
+Linked files: docs/superpowers/plans/2026-10-29-navigation-launch-reliability.md.
+```
+
+
+```text
 Decision ID: D-066
 Date: 2026-10-29
 Task: T-422

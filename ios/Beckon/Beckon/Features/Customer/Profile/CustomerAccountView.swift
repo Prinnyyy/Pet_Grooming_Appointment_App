@@ -1,11 +1,14 @@
 import SwiftUI
 
 struct CustomerAccountView: View {
+    @Environment(\.customerNavigation) private var navigation
     @Environment(\.customerMarketplaceSession) private var marketplace
     let session: AuthSessionSnapshot
     let profile: MarketplaceProfile
     @Bindable var authenticationStore: AuthenticationStore
     @State private var store: CustomerProfileStore
+    @State private var showsProfileSettings = false
+    @State private var showsDebugConsole = false
     /// The first load is over (answered, or a saved profile can be shown): until then everything under the title is bars, not
     /// "Pet Owner" and links that look ready to press (design).
     private var profileSettled: Bool { store.hasLoadedOnce || store.profile != nil || store.cachedProfileSnapshot != nil }
@@ -76,7 +79,7 @@ struct CustomerAccountView: View {
                             DesignShortcutTile(
                                 title: "Profile settings",
                                 summary: "Photo, nickname, contact, and address",
-                                systemImage: "person.crop.circle"
+                                systemImage: "person.crop.circle", action: { showsProfileSettings = true }
                             ) {
                                 CustomerProfileSettingsView(store: store)
                             }
@@ -85,7 +88,8 @@ struct CustomerAccountView: View {
                                 DesignShortcutTile(
                                     title: "Saved groomers",
                                     summary: "Groomers you have hearted",
-                                    systemImage: "heart"
+                                    systemImage: "heart",
+                                    action: navigation.map { owner in { owner.open(.savedGroomers) } }
                                 ) {
                                     CustomerFavoriteGroomersView(marketplace: marketplace)
                                 }
@@ -123,7 +127,7 @@ struct CustomerAccountView: View {
                                     title: "Debug console",
                                     summary: "Runtime events and diagnostics",
                                     systemImage: "ladybug",
-                                    accent: .customer
+                                    accent: .customer, action: { showsDebugConsole = true }
                                 ) {
                                     DebugPanelView(
                                         diagnostics: DebugDiagnostics.current(
@@ -159,8 +163,16 @@ struct CustomerAccountView: View {
             }
                 .beckonTracksScroll()
         }
-        .task {
-            await store.load()
+        .task { await store.load() }
+        .navigationDestination(isPresented: $showsProfileSettings) { CustomerProfileSettingsView(store: store) }
+        #if DEBUG
+        .navigationDestination(isPresented: $showsDebugConsole) {
+            DebugPanelView(diagnostics: DebugDiagnostics.current(session: session, profile: profile))
+        }
+        #endif
+        .onChange(of: navigation?.handoffGeneration) { _, _ in
+            showsProfileSettings = false
+            showsDebugConsole = false
         }
         .background {
             CustomerProfileStatusView(store: store)

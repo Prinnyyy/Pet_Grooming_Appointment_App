@@ -5,6 +5,58 @@ import XCTest
 
 @MainActor
 final class CustomerUIAdoptionAcceptanceTests: XCTestCase {
+    func testCustomerRouteHandoffsKeepTheMainActorResponsive() async throws {
+        // Measure route work after the application has booted, separately from cold launch.
+        try await Task.sleep(for: .seconds(2))
+        let session = CustomerSandboxSession(state: .loaded)
+        defer { session.invalidate() }
+        try await session.prepare()
+        let navigation = CustomerNavigation()
+        let (window, previous) = try testWindow()
+        defer { window.rootViewController = previous; window.makeKeyAndVisible() }
+        window.rootViewController = UIHostingController(rootView: CustomerTabView(sandbox: session, navigation: navigation)
+            .environment(\.scenePhase, .active))
+        window.makeKeyAndVisible()
+        try await Task.sleep(for: .seconds(1))
+        let phase = RoutePhase()
+        let pulse = Task { @MainActor in
+            var gaps: [Double] = []
+            while !Task.isCancelled {
+                let start = ProcessInfo.processInfo.systemUptime
+                let label = phase.label
+                try? await Task.sleep(for: .milliseconds(16))
+                let gap = ProcessInfo.processInfo.systemUptime - start
+                gaps.append(gap)
+                if gap > 0.1 { print("T423 route phase \(label): \(gap)s scheduling gap") }
+            }
+            return gaps
+        }
+        defer { pulse.cancel() }
+        let requestID = CustomerSandboxFixtures.requestID
+        let bookingID = CustomerSandboxFixtures.bookingID
+        for route: CustomerDestination in [.notifications, .grooming(.request(requestID)),
+            .bookingConversation(bookingID), .grooming(.booking(bookingID)), .savedGroomers] {
+            phase.label = String(describing: route)
+            navigation.open(route)
+            try await Task.sleep(for: .milliseconds(750))
+            XCTAssertEqual(navigation.selection, route.tab)
+            XCTAssertEqual(navigation[route.tab], [route], "The native stack must preserve the requested destination")
+        }
+        phase.label = "focus request"
+        navigation.showGrooming(requestID)
+        try await Task.sleep(for: .milliseconds(750))
+        pulse.cancel()
+        let gaps = await pulse.value.sorted()
+        let maximum = gaps.last ?? 0
+        let p95 = gaps.isEmpty ? 0 : gaps[min(gaps.count - 1, Int(Double(gaps.count) * 0.95))]
+        print("T423 native route scheduling gaps: p95=\(p95)s, max=\(maximum)s; Debug Simulator, not rendered-frame timing.")
+        XCTAssertLessThan(maximum, 0.5, "A route blocked main-actor scheduling for half a second")
+        XCTAssertEqual(navigation.selection, .requests)
+        XCTAssertTrue(navigation.home.isEmpty && navigation.messages.isEmpty && navigation.account.isEmpty && navigation.grooming.isEmpty)
+    }
+
+    private final class RoutePhase { var label = "initial" }
+
     func testLaunchArtworkRendersFromSharedBrand() throws {
         let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let lockup = ImageRenderer(content: BeckonLockup().padding(.vertical, 64).frame(width: 345)

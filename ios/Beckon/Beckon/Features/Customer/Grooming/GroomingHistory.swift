@@ -46,29 +46,37 @@ extension GroomingFeed {
 
 
 private struct GroomingDestinations: ViewModifier {
+    @Environment(\.customerNavigation) private var navigation
     @Binding var destination: GroomingDestination?
     let requestStore: CustomerRequestsStore
     let bookingsStore: BookingsStore
     let onOpenChat: (Booking) -> Void
 
     func body(content: Content) -> some View {
-        content.navigationDestination(item: $destination) { destination in
-            switch destination {
-            case .request(let id), .closedRequest(let id):
-                GroomingDetailView(target: .request(id), requestStore: requestStore, bookingsStore: bookingsStore,
-                    onOpenChat: onOpenChat)
-            case .offers(let id):
-                CustomerRequestOffersView(requestID: id, store: requestStore)
-            case .booking(let id):
-                GroomingDetailView(target: .booking(id), requestStore: requestStore, bookingsStore: bookingsStore,
-                    onOpenChat: onOpenChat)
-            case .handoff(let handoff):
-                GroomingDetailView(target: .booking(handoff.booking.id), requestStore: requestStore,
-                    bookingsStore: requestStore.bookingDetailStore(for: handoff.booking), onOpenChat: onOpenChat,
-                    celebratesNewBooking: true)
-            }
+        content.onChange(of: destination) { _, target in
+            guard let target, let navigation else { return }
+            navigation.open(shellRoute(target))
+            destination = nil
+        }.navigationDestination(item: Binding(get: { navigation == nil ? destination : nil }, set: { destination = $0 })) { destination in
+            CustomerRouteDestination(route: shellRoute(destination), customerID: nil, notificationStore: nil,
+                requestStore: requestStore, bookingsStore: destinationBookings(destination), chatStore: nil, marketplace: nil,
+                onOpenChat: onOpenChat)
         }
     }
+    private func shellRoute(_ target: GroomingDestination) -> CustomerDestination {
+        switch target {
+        case .request(let id), .closedRequest(let id): .grooming(.request(id))
+        case .offers(let id): .offers(id)
+        case .booking(let id): .grooming(.booking(id))
+        case .handoff(let handoff): .grooming(.newBooking(handoff.booking.id))
+        }
+    }
+
+    private func destinationBookings(_ target: GroomingDestination) -> BookingsStore {
+        if case .handoff(let handoff) = target { requestStore.bookingDetailStore(for: handoff.booking) }
+        else { bookingsStore }
+    }
+
 }
 
 

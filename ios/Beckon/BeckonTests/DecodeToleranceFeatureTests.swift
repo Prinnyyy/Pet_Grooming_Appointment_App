@@ -3,6 +3,23 @@ import Testing
 @testable import Beckon
 
 struct DecodeToleranceFeatureTests {
+    @Test func sharedServerDateCodecPreservesOffsetsFractionsAndConcurrentUse() async throws {
+        let whole = try #require(GroomingRequestDateFormatting.parsedDate(from: "2026-10-29T12:34:56Z"))
+        let offset = try #require(GroomingRequestDateFormatting.parsedDate(from: "2026-10-29T05:34:56-07:00"))
+        let fraction = try #require(GroomingRequestDateFormatting.parsedDate(from: "2026-10-29T12:34:56.125Z"))
+        #expect(whole == offset)
+        #expect(abs(fraction.timeIntervalSince(whole) - 0.125) < 0.001)
+        await withTaskGroup(of: Bool.self) { group in
+            for _ in 0..<100 {
+                group.addTask {
+                    GroomingRequestDateFormatting.serverString(from: whole) == "2026-10-29T12:34:56Z"
+                        && GroomingRequestDateFormatting.parsedDate(from: "2026-10-29T05:34:56-07:00") == whole
+                }
+            }
+            for await valid in group { #expect(valid) }
+        }
+    }
+
     @Test
     func unknownMarketplaceStatusesDecodeToSafeFallbacks() throws {
         let decoder = JSONDecoder()

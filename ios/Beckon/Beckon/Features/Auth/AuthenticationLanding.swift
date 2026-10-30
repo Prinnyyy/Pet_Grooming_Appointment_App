@@ -12,6 +12,9 @@ struct AuthenticationLanding: View {
     let isBusy: Bool
     let onGetStarted: () -> Void
     let onSignIn: () -> Void
+    /// Launch reserves the exact same action layout, including Dynamic Type, without exposing the controls.
+    var showsActions = true
+    var showsWords = true
     /// The pup perks up while the primary button is held, as the Home hero's does.
     @State private var isGetStartedPressed = false
 
@@ -41,12 +44,18 @@ struct AuthenticationLanding: View {
                     .ignoresSafeArea()
             }
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) { actions }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            actions
+                .opacity(showsActions ? 1 : 0)
+                .allowsHitTesting(showsActions)
+                .accessibilityHidden(!showsActions)
+        }
         .beckonEntranceClock()
     }
 
     private var hero: some View {
-        BeckonLockup(hasEntered: hasEntered, isExcited: isGetStartedPressed, dealsInWords: !isInsideLaunchGate)
+        BeckonLockup(hasEntered: isInsideLaunchGate || hasEntered, isExcited: isGetStartedPressed,
+            dealsInWords: showsActions && !isInsideLaunchGate, showsWords: showsWords)
     }
 
     private var actions: some View {

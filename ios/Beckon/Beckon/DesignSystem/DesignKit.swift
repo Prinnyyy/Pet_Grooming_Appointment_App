@@ -563,19 +563,26 @@ struct DesignShortcutTile<Destination: View>: View {
     let title: String
     let summary: String
     let systemImage: String
-    private let destination: Destination
+    private let destination: () -> Destination
+    private let action: (() -> Void)?
 
-    init(title: String, summary: String, systemImage: String, @ViewBuilder destination: () -> Destination) {
+    init(title: String, summary: String, systemImage: String, action: (() -> Void)? = nil, @ViewBuilder destination: @escaping () -> Destination) {
         self.title = title
         self.summary = summary
         self.systemImage = systemImage
-        self.destination = destination()
+        self.destination = destination
+        self.action = action
     }
 
     var body: some View {
-        NavigationLink {
-            destination
-        } label: {
+        Group {
+            if let action { Button(action: action) { tileLabel } }
+            else { NavigationLink(destination: destination) { tileLabel } }
+        }
+        .buttonStyle(BeckonLedgeButtonStyle(.card))
+    }
+
+    private var tileLabel: some View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 DesignIconDisc(systemImage: systemImage, size: .touch, font: DesignTokens.Typography.Expressive.headline)
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
@@ -592,8 +599,6 @@ struct DesignShortcutTile<Destination: View>: View {
             .padding(DesignTokens.Spacing.lg)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .accessibilityElement(children: .combine)
-        }
-        .buttonStyle(BeckonLedgeButtonStyle(.card))
     }
 }
 

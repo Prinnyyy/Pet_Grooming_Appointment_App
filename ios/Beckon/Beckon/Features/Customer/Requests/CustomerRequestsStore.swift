@@ -174,6 +174,10 @@ final class CustomerRequestsStore {
     var noticeMessage: String?
     var publishResult: GroomingRequestPublishResult?
     var isShowingWizard = false
+    private(set) var isWizardSuspendedForPet = false
+    private var petIDsBeforeWizardPause: Set<UUID> = []
+    var wizardResumeState: CustomerRequestWizardResumeState?
+    var completedWizardRequestID: UUID?
     var wizardInitialStep: CustomerRequestWizardStep = .pet
 
     var selectedPetID: UUID?
@@ -619,6 +623,9 @@ final class CustomerRequestsStore {
     func startCreate() {
         guard !isSubmitting else { return }
         if resumePendingPublication() { return }
+        completedWizardRequestID = nil
+        wizardResumeState = nil
+        isWizardSuspendedForPet = false
         resetForm()
         selectedPetID = pets.first?.id
         wizardInitialStep = .pet
@@ -736,9 +743,35 @@ final class CustomerRequestsStore {
     ) {
         if isPresented {
             isShowingWizard = true
-        } else {
+        } else if isShowingWizard, !isWizardSuspendedForPet {
             cancelWizard(now: now)
         }
+    }
+
+    func suspendWizardForPet() {
+        guard isShowingWizard, !isSubmitting, pendingPublication == nil,
+              marketplace?.distribution.isPublishing != true else { return }
+        petIDsBeforeWizardPause = Set(pets.map(\.id))
+        wizardInitialStep = .pet
+        isWizardSuspendedForPet = true
+        isShowingWizard = false
+    }
+
+    func resumeWizardAfterPet(_ currentPets: [CustomerPet]) {
+        guard isWizardSuspendedForPet, acceptanceSessionIsCurrent() else { return }
+        synchronizePets(currentPets)
+        if let added = pets.first(where: { !petIDsBeforeWizardPause.contains($0.id) }) { selectedPetID = added.id }
+        isWizardSuspendedForPet = false
+        petIDsBeforeWizardPause = []
+        isShowingWizard = true
+    }
+
+    func finishWizard(requestID: UUID) {
+        guard acceptanceSessionIsCurrent(), !isSubmitting, marketplace?.distribution.isPublishing != true else { return }
+        let result = publishResult
+        cancelWizard()
+        publishResult = result
+        completedWizardRequestID = requestID
     }
 
     func applyProfileAddressAutofill(_ autofill: CustomerProfileAddressAutofill) {
@@ -761,6 +794,9 @@ final class CustomerRequestsStore {
 
     func cancelWizard(now: Date = Date()) {
         guard !isSubmitting, marketplace?.distribution.isPublishing != true else { return }
+        isWizardSuspendedForPet = false
+        wizardResumeState = nil
+        completedWizardRequestID = nil
         discoveryFlow?.store.invalidateSession()
         discoveryFlow = nil
         isShowingWizard = false
@@ -1310,7 +1346,6 @@ final class CustomerRequestsStore {
             }
             let photosToUpload = accepted.photos
             publishResult = result
-            if accepted.protocolVersion == .legacyV4 { isShowingWizard = false }
             resetForm()
             selectedPetID = pets.first?.id
             wizardInitialStep = .pet
@@ -1423,6 +1458,10 @@ final class CustomerRequestsStore {
                     "refreshFailed": "\(refreshFailed)",
                 ]
             )
+            if accepted.protocolVersion == .legacyV4 {
+                completedWizardRequestID = result.requestID
+                isShowingWizard = false
+            }
             await refreshNotifications?()
         } catch CustomerRequestRepositoryError.cancelled {
             recordStoreCancelled("publish", startedAt: startedAt)
@@ -1463,8 +1502,8 @@ final class CustomerRequestsStore {
             if publicationCoordinator.pending != nil {
                 // Resume the immutable operation, even when its discovery preview has expired.
                 await publish()
-                if publishResult != nil && errorMessage == nil && acceptanceSessionIsCurrent() {
-                    isShowingWizard = false
+                if let result = publishResult, errorMessage == nil, pendingPublication == nil, acceptanceSessionIsCurrent() {
+                    finishWizard(requestID: result.requestID)
                 }
             } else {
                 let draft = try makeDraft()

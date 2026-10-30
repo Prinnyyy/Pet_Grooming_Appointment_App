@@ -106,81 +106,20 @@ protocol AppOperationalEventWriting: AnyObject {
 @MainActor
 final class AppOperationalEventFileWriter: AppOperationalEventWriting {
     let fileURL: URL
-    private let fileManager: FileManager
-    private let maximumLineCount: Int
-    private let retentionInterval: TimeInterval
+    private let file: SerialEventLogFile
 
-    init(
-        fileManager: FileManager = .default,
-        directoryURL: URL? = nil,
-        maximumLineCount: Int = 1_000,
-        retentionInterval: TimeInterval = 7 * 24 * 60 * 60
-    ) {
-        self.fileManager = fileManager
-        self.maximumLineCount = maximumLineCount
-        self.retentionInterval = retentionInterval
-
-        let supportURL = fileManager.urls(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask
-        ).first ?? fileManager.temporaryDirectory
+    init(fileManager: FileManager = .default, directoryURL: URL? = nil,
+         maximumLineCount: Int = 1_000, retentionInterval: TimeInterval = 7 * 24 * 60 * 60) {
+        let supportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first ?? fileManager.temporaryDirectory
         fileURL = (directoryURL ?? supportURL.appendingPathComponent("BeckonOperational", isDirectory: true))
             .appendingPathComponent("operational-events.jsonl")
-        try? trimExistingLog()
+        file = SerialEventLogFile(url: fileURL, maximumLines: maximumLineCount, retention: retentionInterval)
     }
 
-    func append(_ line: String) throws {
-        try ensureDirectory()
-        if fileManager.fileExists(atPath: fileURL.path) == false {
-            fileManager.createFile(atPath: fileURL.path, contents: nil)
-        }
-
-        let handle = try FileHandle(forWritingTo: fileURL)
-        try handle.seekToEnd()
-        try handle.write(contentsOf: Data((line + "\n").utf8))
-        try handle.close()
-
-        if ((try? readLines()) ?? []).count > maximumLineCount {
-            try trimExistingLog()
-        }
-    }
-
-    func replace(with lines: [String]) throws {
-        try ensureDirectory()
-        let joined = lines.joined(separator: "\n")
-        let payload = joined.isEmpty ? Data() : Data((joined + "\n").utf8)
-        try payload.write(to: fileURL, options: .atomic)
-    }
-
-    func clear() throws {
-        try replace(with: [])
-    }
-
-    func readLines() throws -> [String] {
-        guard fileManager.fileExists(atPath: fileURL.path) else { return [] }
-        let text = try String(contentsOf: fileURL, encoding: .utf8)
-        return text.split(separator: "\n").map(String.init)
-    }
-
-    private func trimExistingLog() throws {
-        let cutoff = Date().addingTimeInterval(-retentionInterval)
-        let retained = ((try? readLines()) ?? [])
-            .suffix(maximumLineCount)
-            .filter { line in
-                guard let event = try? AppOperationalEventJSONLCodec.decodeLine(line) else {
-                    return false
-                }
-                return event.timestamp >= cutoff
-            }
-        try replace(with: Array(retained))
-    }
-
-    private func ensureDirectory() throws {
-        try fileManager.createDirectory(
-            at: fileURL.deletingLastPathComponent(),
-            withIntermediateDirectories: true
-        )
-    }
+    func append(_ line: String) throws { file.append(line) }
+    func replace(with lines: [String]) throws { file.replace(with: lines) }
+    func clear() throws { file.replace(with: []) }
+    func readLines() throws -> [String] { try file.readLines() }
 }
 
 @MainActor

@@ -93,6 +93,7 @@ struct CustomerGroomingView: View {
             .accessibilityIdentifier("customer.grooming.list")
             .onAppear(perform: showFocused)
             .onChange(of: focusedRequestID) { _, _ in showFocused() }
+            .onChange(of: activeEntries.map(\.id)) { _, _ in showFocused() }
         }
         .toolbar(.hidden, for: .navigationBar)
         .background {
@@ -205,7 +206,7 @@ struct CustomerGroomingView: View {
 
     /// What is over is one tap away, as the Requests tab had it: closed requests and finished bookings on the History page.
     private var historyRow: some View {
-        NavigationLink {
+        CustomerNavigationLink(route: .history) {
             GroomingHistoryView(requestStore: requestStore, bookingsStore: bookingsStore, onOpenChat: onOpenChat)
         } label: {
             HStack(spacing: DesignTokens.Spacing.md) {

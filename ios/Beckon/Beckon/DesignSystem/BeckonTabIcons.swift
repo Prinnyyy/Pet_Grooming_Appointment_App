@@ -129,10 +129,35 @@ enum BeckonTabIcons {
     static func image(_ icon: BeckonTabIcon, isSelected: Bool) -> Image {
         let key = "\(icon)-\(isSelected)"
         if let cached = cache[key] { return Image(uiImage: cached) }
-        let renderer = ImageRenderer(content: BeckonTabIconArt(icon: icon, isSelected: isSelected))
-        renderer.scale = 3
-        renderer.isOpaque = false
-        guard let drawn = renderer.uiImage else { return Image(systemName: "circle") }
+        // Drawing a SwiftUI ImageRenderer during a TabView update re-enters its render graph.
+        // Reuse the identical paths in a small bitmap context, outside SwiftUI layout.
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 3
+        format.opaque = false
+        let drawn = UIGraphicsImageRenderer(size: CGSize(width: 25, height: 25), format: format).image { image in
+            let context = image.cgContext
+            context.scaleBy(x: 25.0 / 24, y: 25.0 / 24)
+            context.setStrokeColor(UIColor.black.cgColor)
+            context.setFillColor(UIColor.black.cgColor)
+            let art = icon.art
+            context.setLineWidth(art.lineWidth)
+            context.setLineCap(.round)
+            context.setLineJoin(.round)
+            if isSelected {
+                (art.shapes + art.details).forEach { context.addPath($0.cgPath) }
+                context.fillPath(using: .evenOdd)
+            }
+            for path in art.shapes {
+                context.addPath(path.cgPath)
+                context.strokePath()
+            }
+            if !isSelected {
+                for path in art.details {
+                    context.addPath(path.cgPath)
+                    context.fillPath()
+                }
+            }
+        }
         let template = drawn.withRenderingMode(.alwaysTemplate)
         cache[key] = template
         return Image(uiImage: template)

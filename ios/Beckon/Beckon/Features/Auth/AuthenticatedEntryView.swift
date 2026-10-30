@@ -105,7 +105,7 @@ struct AuthenticatedEntryView: View {
                 loadFailureView(message: message)
             }
         }
-        .preference(key: LaunchReadyKey.self, value: store.state != .loading)
+        .preference(key: LaunchReadyKey.self, value: true)
         .task(id: session.userID) {
             await store.load(userID: session.userID)
         }
@@ -120,7 +120,11 @@ struct AuthenticatedEntryView: View {
             default: break
             }
         }
-        .sheet(item: $reminderScheduler.tap) { target in
+        .sheet(item: Binding(get: {
+            guard let target = reminderScheduler.tap, target.accountID == session.userID,
+                  case .groomer = store.state, target.role == .groomer else { return nil }
+            return target
+        }, set: { reminderScheduler.tap = $0 })) { target in
             AppointmentReminderDestinationView(target: target, repository: bookingRepository)
         }
         .onDisappear {
@@ -152,7 +156,15 @@ struct AuthenticatedEntryView: View {
     }
 
     private var loadingView: some View {
-        LaunchWaitingView().accessibilityIdentifier("profile.loading")
+        DesignPage(cascades: false) {
+            DesignSkeletonLine(width: 0.5, font: DesignTokens.Typography.Expressive.title)
+            BeckonAccountIdentitySkeleton(roleTitle: "Account", roleSystemImage: "person", roleAccent: .customer)
+            DesignShortcutRow { DesignShortcutTileSkeleton(); DesignShortcutTileSkeleton() }
+            BeckonSettingsSectionSkeleton(summaries: [true, true])
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Loading your account")
+        .accessibilityIdentifier("profile.loading")
     }
 
     private func loadFailureView(message: String) -> some View {

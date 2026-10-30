@@ -241,7 +241,7 @@ struct ChatConversationsView: View {
     }
 
     @ViewBuilder private func customerConversationLink(_ conversation: ChatConversation) -> some View {
-        NavigationLink {
+        CustomerNavigationLink(route: .conversation(conversation.id)) {
             ChatThreadView(
                 participantID: participantID,
                 role: role,
@@ -908,7 +908,7 @@ private struct ChatMessageRow: View {
     @ViewBuilder private var customerBookingCardRow: some View {
         if let booking = message.booking,
            let bookingStore {
-            NavigationLink {
+            CustomerNavigationLink(route: .grooming(.booking(booking.id))) {
                 ChatBookingDetailDestination(
                     bookingID: booking.id,
                     role: role,

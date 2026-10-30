@@ -14,6 +14,8 @@ nonisolated enum AuthenticationFocusTarget: String, CaseIterable, Hashable {
 struct AuthenticationView: View {
     @Bindable var store: AuthenticationStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.isInsideLaunchGate) private var hostedByLaunch
+    @Environment(\.beckonEntranceActive) private var pageIsActive
 
     @State private var surface: AuthenticationSurface = .landing
     /// Which way the next surface's blocks come from: up when the app opens, from the right going into the form, from the left
@@ -23,12 +25,14 @@ struct AuthenticationView: View {
     @State private var isPasswordVisible = false
     @FocusState private var focusedField: AuthenticationFocusTarget?
 
-    #if DEBUG
-    init(store: AuthenticationStore) { self.store = store }
-
-    init(sandboxStore: AuthenticationStore, showsForm: Bool) {
-        store = sandboxStore
+    init(store: AuthenticationStore, showsForm: Bool = false) {
+        self.store = store
         _surface = State(initialValue: showsForm ? .form : .landing)
+    }
+
+    #if DEBUG
+    init(sandboxStore: AuthenticationStore, showsForm: Bool) {
+        self.init(store: sandboxStore, showsForm: showsForm)
     }
     #endif
 
@@ -52,8 +56,9 @@ struct AuthenticationView: View {
         .environment(\.beckonCustomerDesign, true)
         .beckonEntranceRhythm(.step, travel: travel)
         .beckonAnimation(DesignTokens.Motion.reduced, value: surface)
-        .onAppear {
-            guard !heroHasEntered else { return }
+        .onChange(of: pageIsActive, initial: true) { _, active in
+            guard active, !heroHasEntered else { return }
+            if hostedByLaunch { heroHasEntered = true; return }
             withAnimation(reduceMotion ? nil : .interpolatingSpring(stiffness: 92, damping: 14).delay(0.08)) {
                 heroHasEntered = true
             }

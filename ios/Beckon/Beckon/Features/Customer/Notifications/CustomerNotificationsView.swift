@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct CustomerNotificationsView: View {
+    @Environment(\.customerNavigation) private var navigation
     @State private var store: CustomerNotificationsStore
     private let requestStore: CustomerRequestsStore?
     private let bookingStore: BookingsStore?
@@ -15,6 +16,49 @@ struct CustomerNotificationsView: View {
         self.bookingStore = bookingStore
         self.chatStore = chatStore
     }
+
+    var body: some View {
+        CustomerNotificationListContent(store: store, onSelect: { selectedID = $0 })
+        .navigationTitle("Notifications")
+        .navigationBarTitleDisplayMode(.inline)
+        .foregroundRefreshable { await store.load() }
+        .task { await store.load() }
+        .accessibilityIdentifier("customer.notifications")
+        .overlay { if selectedID != nil { ProgressView().accessibilityLabel("Opening notification") } }
+        .task(id: selectedID) {
+            guard let id = selectedID, let notification = store.notifications.first(where: { $0.id == id }) else { return }
+            let target = await store.resolveDestination(notification, requests: requestStore, bookings: bookingStore, chat: chatStore)
+            guard !Task.isCancelled else { return }
+            if let target, let navigation {
+                navigation.open(route(for: target))
+            } else { destination = target }
+            selectedID = nil
+        }
+        .navigationDestination(item: $destination) { target in
+            CustomerRouteDestination(route: route(for: target), customerID: conversationCustomerID(target),
+                notificationStore: store, requestStore: requestStore, bookingsStore: bookingStore,
+                chatStore: chatStore, marketplace: nil, onOpenChat: { _ in })
+        }
+    }
+
+    private func route(for target: NotificationDestination) -> CustomerDestination {
+        switch target {
+        case .request(let id): .grooming(.request(id))
+        case .booking(let id): .grooming(.booking(id))
+        case .offer(let requestID, let offerID): .offer(requestID: requestID, offerID: offerID)
+        case .message(let conversation): .conversation(conversation.id)
+        }
+    }
+
+    private func conversationCustomerID(_ target: NotificationDestination) -> UUID? {
+        if case .message(let conversation) = target { conversation.customerID } else { nil }
+    }
+
+}
+
+private struct CustomerNotificationListContent: View {
+    let store: CustomerNotificationsStore
+    let onSelect: (UUID) -> Void
 
     private var unread: [CustomerNotification] { store.notifications.filter { !$0.isRead } }
     private var earlier: [CustomerNotification] { store.notifications.filter(\.isRead) }
@@ -44,33 +88,6 @@ struct CustomerNotificationsView: View {
                     .disabled(store.isLoadingMore)
                     .accessibilityIdentifier("customer.notifications.load-more")
                 }
-            }
-        }
-        .navigationTitle("Notifications")
-        .navigationBarTitleDisplayMode(.inline)
-        .foregroundRefreshable { await store.load() }
-        .task { await store.load() }
-        .accessibilityIdentifier("customer.notifications")
-        .overlay { if selectedID != nil { ProgressView().accessibilityLabel("Opening notification") } }
-        .task(id: selectedID) {
-            guard let id = selectedID, let notification = store.notifications.first(where: { $0.id == id }) else { return }
-            let target = await store.resolveDestination(notification, requests: requestStore, bookings: bookingStore, chat: chatStore)
-            guard !Task.isCancelled else { return }
-            destination = target
-            selectedID = nil
-        }
-        .navigationDestination(item: $destination) { target in
-            switch target {
-            case let .request(id):
-                if let requestStore { GroomingDetailView(target: .request(id), requestStore: requestStore, bookingsStore: bookingStore) }
-            case let .offer(requestID, offerID):
-                if let requestStore, let request = requestStore.request(withID: requestID) {
-                    CustomerOfferDetailView(request: request, offerID: offerID, store: requestStore)
-                }
-            case let .booking(id):
-                if let bookingStore { GroomingDetailView(target: .booking(id), requestStore: requestStore, bookingsStore: bookingStore) }
-            case let .message(conversation):
-                if let chatStore { ChatThreadView(participantID: conversation.customerID, role: .customer, conversation: conversation, store: chatStore) }
             }
         }
     }
@@ -124,7 +141,7 @@ struct CustomerNotificationsView: View {
         VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
             BeckonLedgeHeading(title: title, systemImage: systemImage, count: items.count)
             ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                CustomerNotificationCard(notification: item) { selectedID = item.id }
+                CustomerNotificationCard(notification: item) { onSelect(item.id) }
                     .beckonEntrance(order + min(index, 3))
             }
         }

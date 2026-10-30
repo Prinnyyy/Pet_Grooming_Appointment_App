@@ -13,15 +13,35 @@ struct AuthenticationGateView: View {
     let groomerRequestRepository: any GroomerRequestRepository
     let groomerNotificationRepository: any GroomerNotificationRepository
     let operationalEventRecorder: AppOperationalEventRecorder?
+    @State private var showsFormAfterRecovery = false
 
     var body: some View {
+        Group {
+            if store.recoveryState != nil {
+                PasswordRecoveryView(store: store)
+                    .preference(key: LaunchReadyKey.self, value: true)
+            } else {
+                routedContent
+            }
+        }
+        .task { await store.start() }
+        .onChange(of: store.recoveryState != nil, initial: true) { _, recovering in
+            if recovering { showsFormAfterRecovery = true }
+        }
+        .onChange(of: store.rootState) { _, newState in
+            recordAuthState(newState)
+            if case .signedIn = newState { showsFormAfterRecovery = false }
+        }
+    }
+
+    private var routedContent: some View {
         Group {
             switch store.rootState {
             case .loading:
                 LaunchWaitingView().accessibilityIdentifier("auth.loading")
 
             case .signedOut:
-                AuthenticationView(store: store)
+                AuthenticationView(store: store, showsForm: showsFormAfterRecovery)
                     .preference(key: LaunchReadyKey.self, value: true)
 
             case let .signedIn(session):
@@ -42,21 +62,6 @@ struct AuthenticationGateView: View {
                 )
                 .id(session.userID)
             }
-        }
-        .fullScreenCover(isPresented: Binding(
-            get: { store.recoveryState != nil },
-            set: { presented in
-                if !presented { Task { await store.closePasswordRecovery() } }
-            }
-        )) {
-            PasswordRecoveryView(store: store)
-                .interactiveDismissDisabled()
-        }
-        .task {
-            await store.start()
-        }
-        .onChange(of: store.rootState) { _, newState in
-            recordAuthState(newState)
         }
     }
 

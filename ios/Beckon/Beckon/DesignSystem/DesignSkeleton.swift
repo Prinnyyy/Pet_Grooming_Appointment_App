@@ -180,6 +180,7 @@ struct DesignReveal<Content: View, Placeholder: View>: View {
     private let placeholder: Placeholder
 
     @State private var state: DesignRevealState
+    @Environment(\.beckonEntranceActive) private var pageIsActive
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(isLoading: Bool, onReveal: @escaping () -> Void = {}, @ViewBuilder content: () -> Content,
@@ -204,7 +205,7 @@ struct DesignReveal<Content: View, Placeholder: View>: View {
             }
         }
         .animation(reduceMotion ? DesignTokens.Motion.reduced : DesignTokens.Motion.reveal, value: state.phase)
-        .task(id: isLoading) { await settle() }
+        .task(id: [isLoading, pageIsActive]) { if pageIsActive { await settle() } }
     }
 
     private func settle() async {

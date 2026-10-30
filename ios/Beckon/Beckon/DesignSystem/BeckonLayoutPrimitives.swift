@@ -506,34 +506,40 @@ struct BeckonSettingsNavigationRow<Destination: View>: View {
     let summary: String?
     let systemImage: String
     let accent: BeckonRoleAccent
-    private let destination: Destination
+    private let destination: () -> Destination
+    private let action: (() -> Void)?
 
     init(
         title: String,
         summary: String? = nil,
         systemImage: String,
         accent: BeckonRoleAccent,
-        @ViewBuilder destination: () -> Destination
+        action: (() -> Void)? = nil,
+        @ViewBuilder destination: @escaping () -> Destination
     ) {
         self.title = title
         self.summary = summary
         self.systemImage = systemImage
         self.accent = accent
-        self.destination = destination()
+        self.destination = destination
+        self.action = action
     }
 
     var body: some View {
-        NavigationLink {
-            destination
-        } label: {
+        Group {
+            if let action { Button(action: action) { rowLabel } }
+            else { NavigationLink(destination: destination) { rowLabel } }
+        }
+        .buttonStyle(BeckonGuardedPlainButtonStyle())
+    }
+
+    private var rowLabel: some View {
             BeckonSettingsRowLabel(
                 title: title,
                 summary: summary,
                 systemImage: systemImage,
                 accent: accent
             )
-        }
-        .buttonStyle(BeckonGuardedPlainButtonStyle())
     }
 }
 

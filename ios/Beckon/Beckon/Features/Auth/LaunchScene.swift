@@ -1,29 +1,40 @@
-// The scene that holds the screen from the first frame of the app until the person's own page can be shown (design). Today the app
-// walks through four unrelated waiting screens (the brand page, "Restoring session", "Loading profile", then the page), each cut in
-// hard over the one before. Here there is one: the landing's lockup on the landing's mint wash, so a signed-out person sees the landing
-// arrive as these two buttons rise under it, and a signed-in one sees this scene fade into their page, which is already laid out
-// in bars. The system's own launch screen is this scene's first frame (the same wash and orb), so nothing flashes before it.
+// Startup reuses the landing layout, so its wordmark stays in place when the actions arrive.
+// The system storyboard shows the initial wash; this scene owns the orb and text entrance.
 import SwiftUI
 
 
 struct LaunchScene: View {
+    var playsIntro = false
+    var onIntroFinished: () -> Void = {}
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var orbEntered = false
+    @State private var wordsEntered = false
+    @State private var started = false
+
     var body: some View {
-        ZStack {
-            DesignTokens.Colors.appBackground.ignoresSafeArea()
-            GeometryReader { proxy in
-                LinearGradient(colors: [DesignTokens.Colors.customerTint, DesignTokens.Colors.appBackground],
-                    startPoint: .top, endPoint: .bottom)
-                    .frame(height: proxy.size.height * 0.8)
-                    .ignoresSafeArea()
-            }
-            // The room the landing keeps for its two buttons, so the lockup stands where the landing puts it.
-            BeckonLockup()
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                .padding(.bottom, DesignTokens.Metrics.launchBottomReserve)
-        }
+        AuthenticationLanding(hasEntered: !playsIntro || orbEntered, isBusy: true,
+            onGetStarted: {}, onSignIn: {}, showsActions: false, showsWords: !playsIntro || wordsEntered)
+        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Beckon, loading")
         .accessibilityIdentifier("launch.scene")
+        .onAppear {
+            guard playsIntro, !started else { return }
+            started = true
+            if reduceMotion {
+                orbEntered = true
+                wordsEntered = true
+                onIntroFinished()
+            } else {
+                withAnimation(DesignTokens.Motion.brandArrival, completionCriteria: .logicallyComplete) {
+                    orbEntered = true
+                } completion: {
+                    withAnimation(DesignTokens.Motion.reveal, completionCriteria: .logicallyComplete) {
+                        wordsEntered = true
+                    } completion: { onIntroFinished() }
+                }
+            }
+        }
     }
 }
 
@@ -33,10 +44,10 @@ struct LaunchScene: View {
 struct LaunchGate<Content: View>: View {
     let isReady: Bool
     @ViewBuilder let content: Content
-    @State private var hasBeenUpAMoment = false
+    @State private var presentation = LaunchPresentationState()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var isOver: Bool { isReady && hasBeenUpAMoment }
+    private var isOver: Bool { presentation.hasDismissed }
 
     var body: some View {
         ZStack {
@@ -46,7 +57,9 @@ struct LaunchGate<Content: View>: View {
                 .accessibilityHidden(!isOver)
                 .allowsHitTesting(isOver)
             if !isOver {
-                LaunchScene()
+                LaunchScene(playsIntro: true) {
+                    presentation.introFinished = true
+                }
                     .transition(.opacity)
                     .zIndex(1)
             }
@@ -55,12 +68,25 @@ struct LaunchGate<Content: View>: View {
         .task {
             try? await Task.sleep(for: .seconds(DesignTokens.Motion.launchMinimum))
             guard !Task.isCancelled else { return }
-            hasBeenUpAMoment = true
+            presentation.minimumElapsed = true
+        }
+        .onChange(of: isReady && presentation.introFinished && presentation.minimumElapsed, initial: true) { _, ready in
+            presentation.update(isReady: ready)
         }
     }
 }
 
 
+
+/// A launch is one event. Signing in, recovery or a profile refresh cannot resurrect it.
+struct LaunchPresentationState {
+    var introFinished = false
+    var minimumElapsed = false
+    private(set) var hasDismissed = false
+    mutating func update(isReady: Bool) {
+        if isReady && introFinished && minimumElapsed { hasDismissed = true }
+    }
+}
 
 /// Only the active routing leaf declares readiness. Failure/recovery pages are ready too,
 /// so the launch scene cannot hide an actionable error.

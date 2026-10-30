@@ -12,11 +12,9 @@ struct CustomerTabView: View {
     let chatRepository: (any ChatRepository)?
     let accountContent: AnyView?
     let acceptanceSessionIsCurrent: @MainActor () -> Bool
-    @State private var selection: CustomerTab = .home
-    @State private var focusedRequestID: UUID?
-    @State private var requestsNavigationRevision = 0
-    @State private var groomingPath: [GroomingRoute] = []
-    @State private var focusedConversationBookingID: UUID?
+    @State private var navigation = CustomerNavigation()
+    @State private var reminderScheduler = AppointmentReminderScheduler.shared
+    private var selection: CustomerTab { navigation.selection }
     /// Grooming's New Request, with no pet, asked for the Pet form; Home owns it (design).
     @State private var addPetRequested = false
     @State private var notificationStore: CustomerNotificationsStore?
@@ -28,8 +26,10 @@ struct CustomerTabView: View {
     #if DEBUG
     private var sandbox: CustomerSandboxSession?
 
-    init(sandbox: CustomerSandboxSession, initialTab: CustomerTab = .home) {
-        _selection = State(initialValue: initialTab)
+    init(sandbox: CustomerSandboxSession, initialTab: CustomerTab = .home, navigation: CustomerNavigation? = nil) {
+        let navigation = navigation ?? CustomerNavigation()
+        navigation.selection = initialTab
+        _navigation = State(initialValue: navigation)
         self.sandbox = sandbox
         customerID = CustomerSandboxFixtures.customerID
         customerDisplayName = sandbox.accountRepository.details.nickname
@@ -109,42 +109,12 @@ struct CustomerTabView: View {
     }
 
     var body: some View {
-        TabView(selection: $selection) {
-            ForEach(CustomerTab.allCases) { tab in
-                navigationRoot(for: tab)
-                .id(tab == .requests ? requestsNavigationRevision : 0)
-                .beckonEntranceActive(selection == tab)
-                .foregroundRefreshable(
-                    isEnabled: tab == .requests && selection == .requests
-                        && requestStore?.isShowingWizard == false && requestStore?.discoveryFlow == nil,
-                    nextDeadline: tab == .requests ? GroomingFeed.nextTransition(bookings: bookingsStore?.bookings ?? [], requestDeadline: requestStore?.nextDistributionDeadline) : nil,
-                    fallbackAction: {
-                        guard let requestStore else { return }
-                        if requestStore.marketplace != nil {
-                            await requestStore.refreshDistributionProgress(requestIDs: requestStore.activeRequests.map(\.id))
-                        } else {
-                            await requestStore.load()
-                        }
-                    }
-                ) {
-                    await requestStore?.load()
-                    await bookingsStore?.load()
-                }
-                .tabItem {
-                    Label { Text(tab.title) } icon: { BeckonTabIcons.image(tab.icon, isSelected: selection == tab) }
-                        .accessibilityIdentifier(tab.accessibilityIdentifier)
-                }
-                .background(BeckonTabBadgeAppearance(accent: .customer))
-                .badge(
-                    BeckonBadgeLabel.text(for: tab.badgeCount(
-                        unreadNotificationCount: notificationUnreadCount,
-                        unreadMessageCount: messageUnreadCount
-                    ))
-                )
-                .tag(tab)
-            }
-        }
-        .modifier(CustomerRequestFlowPresenter(store: requestStore, profileRepository: customerProfileRepository))
+        tabs
+        .modifier(CustomerRequestFlowPresenter(store: requestStore, profileRepository: customerProfileRepository,
+            onAddPet: openPetForm, onPublished: {
+                navigation.showGrooming($0)
+                openReminderIfPossible()
+            }))
         .tint(DesignTokens.Colors.customerDeep)
         .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .toolbarBackground(DesignTokens.Colors.surface, for: .tabBar)
@@ -154,6 +124,7 @@ struct CustomerTabView: View {
         .environment(\.openBookingChat, openBookingChat)
         .environment(\.bookingConfirmed, confirmBooking)
         .environment(\.customerGroomingRequestStore, requestStore)
+        .environment(\.customerNavigation, navigation)
         .environment(\.customerMarketplaceSession, marketplace)
         .overlay(alignment: .bottom) {
             BeckonGlobalFeedbackOverlay(center: feedbackCenter)
@@ -165,7 +136,7 @@ struct CustomerTabView: View {
                 return requestStore?.errorMessage
             }
             marketplace?.createRequest = { [weak requestStore] in
-                select(.requests)
+                navigation.showGrooming(nil)
                 requestStore?.startCreate()
             }
             feedbackCenter.setDebugRecorder(debugRecorder)
@@ -197,7 +168,47 @@ struct CustomerTabView: View {
                 ]
             )
         }
+        .onChange(of: reminderScheduler.tap?.id, initial: true) { _, _ in openReminderIfPossible() }
+        .onChange(of: requestStore?.isShowingWizard) { _, _ in openReminderIfPossible() }
+        .onChange(of: requestStore?.discoveryFlow?.id) { _, _ in openReminderIfPossible() }
         .accessibilityIdentifier("customer.tabs")
+    }
+
+    private var tabs: some View {
+        TabView(selection: Binding(get: { navigation.selection }, set: { navigation.selection = $0 })) {
+            ForEach(CustomerTab.allCases) { tab in
+                navigationRoot(for: tab)
+                .beckonEntranceActive(selection == tab)
+                .foregroundRefreshable(
+                    isEnabled: tab == .requests && selection == .requests
+                        && requestStore?.isShowingWizard == false && requestStore?.discoveryFlow == nil,
+                    nextDeadline: tab == .requests ? GroomingFeed.nextTransition(bookings: bookingsStore?.bookings ?? [], requestDeadline: requestStore?.nextDistributionDeadline) : nil,
+                    fallbackAction: {
+                        guard let requestStore else { return }
+                        if requestStore.marketplace != nil {
+                            await requestStore.refreshDistributionProgress(requestIDs: requestStore.activeRequests.map(\.id))
+                        } else {
+                            await requestStore.load()
+                        }
+                    }
+                ) {
+                    await requestStore?.load()
+                    await bookingsStore?.load()
+                }
+                .tabItem {
+                    Label { Text(tab.title) } icon: { BeckonTabIcons.image(tab.icon, isSelected: selection == tab) }
+                        .accessibilityIdentifier(tab.accessibilityIdentifier)
+                }
+                .background(BeckonTabBadgeAppearance(accent: .customer))
+                .badge(
+                    BeckonBadgeLabel.text(for: tab.badgeCount(
+                        unreadNotificationCount: notificationUnreadCount,
+                        unreadMessageCount: messageUnreadCount
+                    ))
+                )
+                .tag(tab)
+            }
+        }
     }
 
     @ViewBuilder
@@ -252,7 +263,7 @@ struct CustomerTabView: View {
                 bookingsStore: bookingsStore,
                 customerProfileRepository: customerProfileRepository,
                 isActiveTab: selection == .requests,
-                focusedRequestID: $focusedRequestID,
+                focusedRequestID: Binding(get: { navigation.focusedGroomingID }, set: { navigation.focusedGroomingID = $0 }),
                 onOpenChat: openBookingChat,
                 onAddPet: openPetForm
             )
@@ -266,8 +277,7 @@ struct CustomerTabView: View {
                 repository: chatRepository,
                 bookingRepository: bookingRepository,
                 debugRecorder: debugRecorder,
-                store: chatStore,
-                focusedBookingID: $focusedConversationBookingID
+                store: chatStore
             )
         } else if tab == .account, let accountContent {
             accountContent
@@ -281,69 +291,43 @@ struct CustomerTabView: View {
         }
     }
 
-    /// The Pet form is Home's: go there, and ask for it.
+    /// Home keeps its editor and store identity while the shell removes the old page path.
     private func openPetForm() {
-        select(.home)
+        navigation.showHome()
         addPetRequested = true
     }
 
     private func openBookingChat(_ booking: Booking) {
-        focusedConversationBookingID = booking.id
-        select(.messages)
+        navigation.open(.bookingConversation(booking.id))
     }
 
-    /// Destination-based links can leave Requests inside history/detail. A publication or Home
-    /// shortcut explicitly targets its root card; keep the Store and reset only that navigation tree.
-    @ViewBuilder
     private func navigationRoot(for tab: CustomerTab) -> some View {
-        if tab == .requests {
-            NavigationStack(path: $groomingPath) {
-                destination(for: tab)
-                    .background(DesignTokens.Colors.appBackground)
-                    .navigationDestination(for: GroomingRoute.self) { route in
-                        if let requestStore, let bookingsStore {
-                            switch route {
-                            case .request(let id):
-                                GroomingDetailView(target: .request(id), requestStore: requestStore,
-                                    bookingsStore: bookingsStore, onOpenChat: openBookingChat)
-                            case .booking(let id), .newBooking(let id):
-                                GroomingDetailView(target: .booking(id), requestStore: requestStore,
-                                    bookingsStore: bookingsStore, onOpenChat: openBookingChat,
-                                    celebratesNewBooking: route == .newBooking(id))
-                            }
-                        }
-                    }
-            }
-        } else {
-            NavigationStack { destination(for: tab).background(DesignTokens.Colors.appBackground) }
+        CustomerNavigationStack(navigation: navigation, tab: tab) {
+            destination(for: tab)
+                .background(DesignTokens.Colors.appBackground)
+                .navigationDestination(for: CustomerDestination.self) { route in
+                    CustomerRouteDestination(route: route, customerID: customerID, notificationStore: notificationStore,
+                        requestStore: requestStore, bookingsStore: bookingsStore, chatStore: chatStore,
+                        marketplace: marketplace, onOpenChat: openBookingChat)
+                }
         }
     }
+
 
     private func confirmBooking(_ handoff: CustomerRequestBookingHandoff) {
         guard acceptanceSessionIsCurrent() else { return }
-        focusedRequestID = nil
-        requestsNavigationRevision &+= 1
-        groomingPath = [.newBooking(handoff.booking.id)]
-        select(.requests)
+        navigation.open(.grooming(.newBooking(handoff.booking.id)), replacing: true)
     }
 
-    private func showRequest(_ requestID: UUID?) {
-        var transaction = Transaction(animation: nil)
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            requestsNavigationRevision &+= 1
-            focusedRequestID = nil
-            groomingPath = requestID.map { id in
-                [bookingsStore?.booking(withID: id) != nil ? GroomingRoute.booking(id) : GroomingRoute.request(id)]
-            } ?? []
-            select(.requests)
-        }
-    }
+    private func showRequest(_ requestID: UUID?) { navigation.showGrooming(requestID) }
 
-    private func select(_ tab: CustomerTab) {
-        var cut = Transaction(animation: nil)
-        cut.disablesAnimations = true
-        withTransaction(cut) { selection = tab }
+    private func openReminderIfPossible() {
+        guard let target = reminderScheduler.tap, target.role == .customer, target.accountID == customerID,
+              acceptanceSessionIsCurrent(), requestStore?.isShowingWizard != true,
+              requestStore?.isWizardSuspendedForPet != true, requestStore?.completedWizardRequestID == nil,
+              requestStore?.discoveryFlow == nil else { return }
+        navigation.open(.grooming(.booking(target.bookingID)), replacing: true)
+        reminderScheduler.tap = nil
     }
 
     private var notificationUnreadCount: Int {

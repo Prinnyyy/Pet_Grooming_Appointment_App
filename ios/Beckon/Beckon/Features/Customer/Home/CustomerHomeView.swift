@@ -2,6 +2,7 @@ import SwiftUI
 
 
 struct CustomerHomeView: View {
+    @Environment(\.customerNavigation) private var navigation
     @Environment(\.customerRequestFlowHosted) private var requestFlowHosted
     private let displayName: String
     private let isActiveTab: Bool
@@ -107,7 +108,9 @@ struct CustomerHomeView: View {
                 nextBookingPresentation: nextBookingPresentation
             )
         }
-        .sheet(isPresented: $petStore.isShowingPetForm) {
+        .sheet(isPresented: $petStore.isShowingPetForm, onDismiss: {
+            requestStore.resumeWizardAfterPet(petStore.pets)
+        }) {
             CustomerPetFormView(store: petStore)
         }
         .onChange(of: petStore.pets) { _, currentPets in
@@ -123,15 +126,14 @@ struct CustomerHomeView: View {
             addPetRequested = false
             petStore.startCreate()
         }
-        .sheet(isPresented: requestWizardPresentationBinding) {
+        .sheet(isPresented: requestWizardPresentationBinding, onDismiss: {
+            if requestStore.isWizardSuspendedForPet { petStore.startCreate() }
+        }) {
             CustomerRequestWizardView(
                 store: requestStore,
                 customerProfileRepository: customerProfileRepository
             ) {
-                requestStore.cancelWizard()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                    petStore.startCreate()
-                }
+                requestStore.suspendWizardForPet()
             }
         }
         .navigationDestination(isPresented: $isShowingNotifications) {
@@ -156,7 +158,7 @@ struct CustomerHomeView: View {
                     depth: scrollDepth,
                     unreadNotificationCount: notificationStore.unreadCount,
                     notificationAction: {
-                        isShowingNotifications = true
+                        if let navigation { navigation.open(.notifications) } else { isShowingNotifications = true }
                     },
                     startAction: startGroomingRequest
                 )
@@ -275,10 +277,15 @@ struct CustomerHomeView: View {
 
     @MainActor
     private func loadHome() async {
+        async let pets: Void = loadPetsIfNeeded()
+        async let requests: Void = requestStore.load()
+        async let bookings: Void = bookingStore.load()
+        async let notifications: Void = notificationStore.load()
+        _ = await (pets, requests, bookings, notifications)
+    }
+
+    private func loadPetsIfNeeded() async {
         if !petStore.isShowingPetForm { await petStore.load() }
-        await requestStore.load()
-        await bookingStore.load()
-        await notificationStore.load()
     }
 
     private func startGroomingRequest() {

@@ -124,7 +124,7 @@ struct CustomerRequestOffersView: View {
         VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
             BeckonLedgeHeading(title: title, systemImage: systemImage, count: offers.count)
             ForEach(Array(offers.enumerated()), id: \.element.id) { index, review in
-                NavigationLink {
+                CustomerNavigationLink(route: .offer(requestID: request.id, offerID: review.id)) {
                     CustomerOfferDetailView(request: request, offerID: review.id, store: store)
                 } label: {
                     CustomerOfferCard(review: review, now: now, isHistorical: isHistorical,

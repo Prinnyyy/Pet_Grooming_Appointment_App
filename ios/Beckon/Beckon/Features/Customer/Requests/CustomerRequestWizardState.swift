@@ -97,6 +97,13 @@ enum CustomerRequestTimeWindowOption: String, CaseIterable, Identifiable {
     }
 }
 
+struct CustomerRequestWizardResumeState {
+    let date: Date
+    let timeWindow: CustomerRequestTimeWindowOption
+    let flexible: Bool
+    let returnsToReview: Bool
+}
+
 @MainActor
 @Observable
 final class CustomerRequestWizardState {
@@ -117,8 +124,9 @@ final class CustomerRequestWizardState {
         self.store = store
         self.profileRepository = profileRepository
         currentStep = store.wizardInitialStep
-        selectedDate = store.preferredStart
-        selectedTimeWindow = store.wizardInitialStep == .review ? .detailed : .afternoon
+        selectedDate = store.wizardResumeState?.date ?? store.preferredStart
+        selectedTimeWindow = store.wizardResumeState?.timeWindow ?? (store.wizardInitialStep == .review ? .detailed : .afternoon)
+        isFlexibleWithTime = store.wizardResumeState?.flexible ?? false
     }
 
     func cancelPendingLoads() {

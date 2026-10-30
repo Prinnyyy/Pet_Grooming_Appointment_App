@@ -329,6 +329,7 @@ enum DesignTokens {
         /// Data that arrives sooner than this never shows a placeholder; one that was shown stays at least `skeletonMinimum`.
         static let skeletonShowDelay = 0.15
         static let skeletonMinimum = 0.45
+        static let brandArrival = Animation.spring(response: 0.55, dampingFraction: 0.72)
         static let launchMinimum: Double = 0.7
         static let pullRefreshMinimum = 1.0
     }

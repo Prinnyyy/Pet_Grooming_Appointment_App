@@ -203,6 +203,7 @@ struct CustomerRequestWizardView: View {
     ) {
         self.store = store
         self.onAddPet = onAddPet
+        _returnsToReview = State(initialValue: store.wizardResumeState?.returnsToReview ?? false)
         _flow = State(initialValue: CustomerRequestWizardState(
             store: store, profileRepository: customerProfileRepository
         ))
@@ -621,6 +622,8 @@ struct CustomerRequestWizardView: View {
 
     private func addPet() {
         guard let onAddPet else { return }
+        store.wizardResumeState = .init(date: flow.selectedDate, timeWindow: flow.selectedTimeWindow,
+            flexible: flow.isFlexibleWithTime, returnsToReview: returnsToReview)
         onAddPet()
     }
 

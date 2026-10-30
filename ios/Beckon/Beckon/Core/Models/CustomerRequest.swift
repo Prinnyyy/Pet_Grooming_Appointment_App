@@ -345,8 +345,10 @@ struct CustomerOfferFitPresentation:
 }
 
 nonisolated enum GroomingRequestDateFormatting {
+    private static let codec = ServerDateCodec()
+
     static func serverString(from date: Date) -> String {
-        serverFormatter().string(from: date)
+        codec.string(from: date)
     }
 
     static func displayString(from value: String) -> String {
@@ -361,20 +363,28 @@ nonisolated enum GroomingRequestDateFormatting {
         BeckonDateTimeFormatter.instant(from: value, serviceTimeZoneIdentifier: serviceTimeZoneIdentifier).summary
     }
 
-    private static func serverFormatter() -> ISO8601DateFormatter {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter
-    }
-
-    private static func serverFormatterWithFractionalSeconds() -> ISO8601DateFormatter {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter
-    }
-
     private static func date(from value: String) -> Date? {
-        serverFormatter().date(from: value)
-            ?? serverFormatterWithFractionalSeconds().date(from: value)
+        codec.date(from: value)
+    }
+
+    /// Retain the existing wire format/parser behavior without constructing ICU formatters
+    /// for every card/body evaluation. Both formatters are private and used under the lock.
+    private final class ServerDateCodec: @unchecked Sendable {
+        private let lock = NSLock()
+        private let whole = ISO8601DateFormatter()
+        private let fractional = ISO8601DateFormatter()
+
+        init() {
+            whole.formatOptions = [.withInternetDateTime]
+            fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        }
+
+        func string(from date: Date) -> String {
+            lock.withLock { whole.string(from: date) }
+        }
+
+        func date(from value: String) -> Date? {
+            lock.withLock { whole.date(from: value) ?? fractional.date(from: value) }
+        }
     }
 }
