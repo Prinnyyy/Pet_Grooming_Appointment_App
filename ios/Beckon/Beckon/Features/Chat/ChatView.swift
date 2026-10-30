@@ -510,12 +510,20 @@ struct ChatThreadView: View {
     let role: UserRole
     let conversation: ChatConversation
     let store: ChatStore
-    /// The route may have already prepared the subscription and first snapshot behind its reveal.
+    /// The route may have already prepared the subscription and first snapshot while showing its header.
     var initialMessagesPrepared = false
     @State private var draft = ""
     @State private var isVisible = false
     @State private var didActivate = false
     @FocusState private var isComposing: Bool
+
+    private var statusText: String {
+        if store.isLoadingMessages(for: conversation.id) { return "Updating…" }
+        if store.messageLoadErrors[conversation.id] != nil { return "Couldn't update" }
+        if store.interruptedMessageSubscriptions.contains(conversation.id) { return "Live updates paused" }
+        if !store.hasLoadedMessages(for: conversation.id) { return "Updating…" }
+        return store.canSendMessages(in: conversation) ? "Active chat" : "Read-only"
+    }
 
     var body: some View {
         ZStack {
@@ -525,7 +533,7 @@ struct ChatThreadView: View {
             VStack(spacing: 0) {
                 ChatThreadHeader(
                     title: conversation.listTitle(for: role),
-                    subtitle: store.canSendMessages(in: conversation) ? "Active chat" : "Read-only",
+                    subtitle: statusText,
                     role: role,
                     avatarPhotoData: conversation.counterpartAvatarPhotoData,
                     isComposing: isComposing,
@@ -600,15 +608,8 @@ struct ChatThreadView: View {
                         recoveryBanner(title: "Live updates paused", message: "Refresh to reconnect and check for new messages.")
                     }
 
-                    if store.isLoadingMessages(for: conversation.id),
-                       !store.hasLoadedMessages(for: conversation.id) {
-                        BeckonLoadingView(
-                            title: "Loading messages...",
-                            message: "Opening this booking conversation.",
-                            accent: role.beckonLoadingAccent
-                        )
-                        .accessibilityIdentifier("chat.messages.loading")
-                    } else if store.messages(for: conversation.id).isEmpty,
+                    if store.hasLoadedMessages(for: conversation.id),
+                              store.messages(for: conversation.id).isEmpty,
                               store.messageLoadErrors[conversation.id] == nil {
                         BeckonEmptyState(
                             title: "No messages yet",
@@ -707,14 +708,10 @@ struct ChatThreadLoadingView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ChatThreadHeader(title: title, subtitle: "Opening chat…", role: .customer,
+            ChatThreadHeader(title: title, subtitle: "Updating…", role: .customer,
                 avatarPhotoData: avatarPhotoData, isComposing: false, dismiss: dismiss)
             Divider().overlay(DesignTokens.Colors.borderSoft)
-            ScrollView {
-                ChatMessagesSkeleton()
-                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                    .padding(.top, DesignTokens.Spacing.lg)
-            }
+            Spacer(minLength: 0)
         }
         .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .navigationBarBackButtonHidden(true)

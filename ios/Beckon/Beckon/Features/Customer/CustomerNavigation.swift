@@ -149,8 +149,12 @@ struct CustomerConversationDestination: View {
     }
 
     var body: some View {
-        DesignReveal(isLoading: isLoading) {
-            if let conversation {
+        Group {
+            if isLoading {
+                ChatThreadLoadingView(
+                    title: previewConversation?.listTitle(for: .customer) ?? booking?.partnerDisplayTitle(for: .customer) ?? "Messages",
+                    avatarPhotoData: previewConversation?.counterpartAvatarPhotoData)
+            } else if let conversation {
                 ChatThreadView(participantID: participantID, role: .customer, conversation: conversation,
                     store: store, initialMessagesPrepared: initialMessagesPrepared)
             } else {
@@ -160,10 +164,6 @@ struct CustomerConversationDestination: View {
                     }
                 }
             }
-        } placeholder: {
-            ChatThreadLoadingView(
-                title: previewConversation?.listTitle(for: .customer) ?? booking?.partnerDisplayTitle(for: .customer) ?? "Messages",
-                avatarPhotoData: previewConversation?.counterpartAvatarPhotoData)
         }
         .task(id: scenePhase == .active ? retry : -1) {
             guard scenePhase == .active, isLoading else { return }

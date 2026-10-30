@@ -26,6 +26,7 @@ Context: The user adopted the 57-route register's eight problem areas and reques
 Consequences: Existing stores, publication recovery and authorization remain; stable path changes replace root recreation, independent reads overlap, and log I/O leaves the main actor. Existing UI spec owns the reusable standard. No new dependency or backend contract.
 T-425 refinement: Keep one visible, noninteractive lockup across launch/welcome; remove it from accessibility after handoff. Use the brandWords spring for a subtle whole-word lift/fade instead of clipping letters. Account resolution uses a delayed role-neutral indicator, leaving Home to own its only skeleton reveal. Authentication, role checks and recovery remain unchanged.
 T-426 refinement: Booking Message opens one chat-shaped loading destination, prepares the first thread snapshot before reveal, and reuses the existing Store, header/composer and DesignReveal. Keep the owning Messages tab and participant checks; avoid the intermediate conversation-list skeleton and second first-load spinner.
+T-427 supersedes T-426's loading visuals: the user prefers status text beneath the recipient name. Show the chat frame immediately with “Updating…”, remove the thread skeleton/whole-page reveal and central loading panel, and retain T-426's preparation, cache and read-acknowledgement behavior. The Messages list is unchanged.
 Linked files: docs/superpowers/plans/2026-10-29-navigation-launch-reliability.md.
 ```
 
