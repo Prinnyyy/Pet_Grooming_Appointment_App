@@ -6,6 +6,7 @@ import SwiftUI
 
 
 struct AuthenticationLanding: View {
+    @Environment(\.isInsideLaunchGate) private var isInsideLaunchGate
     /// True once the bubble has dropped in; the owner keeps it, so coming back from the form does not drop it again.
     let hasEntered: Bool
     let isBusy: Bool
@@ -13,8 +14,6 @@ struct AuthenticationLanding: View {
     let onSignIn: () -> Void
     /// The pup perks up while the primary button is held, as the Home hero's does.
     @State private var isGetStartedPressed = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         GeometryReader { proxy in
@@ -47,32 +46,7 @@ struct AuthenticationLanding: View {
     }
 
     private var hero: some View {
-        VStack(spacing: DesignTokens.Spacing.lg) {
-            BeckonBrandBubble(isMotionEnabled: !reduceMotion && scenePhase == .active,
-                hasEntered: hasEntered || reduceMotion, isExcited: isGetStartedPressed)
-
-            // The bubble lands with its own spring (`hasEntered`); the words follow it as the first block.
-            VStack(spacing: DesignTokens.Spacing.sm) {
-                Text("Beckon")
-                    .font(DesignTokens.Typography.Expressive.display)
-                    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-                    .accessibilityAddTraits(.isHeader)
-
-                Text("Pet groomers at your beck and call.")
-                    .font(DesignTokens.Typography.Expressive.body)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(3)
-                    .frame(maxWidth: 310)
-            }
-            .beckonEntrance(0)
-        }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .combine)
+        BeckonLockup(hasEntered: hasEntered, isExcited: isGetStartedPressed, dealsInWords: !isInsideLaunchGate)
     }
 
     private var actions: some View {

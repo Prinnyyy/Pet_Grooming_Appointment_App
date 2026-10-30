@@ -134,23 +134,3 @@ struct BeckonBookingCountdownTests {
         #expect(utc.month == "OCT" && utc.day == "24")
     }
 }
-
-@MainActor
-struct CustomerHomeGreetingPresentationTests {
-    @Test
-    func theLineNamesTheNextStep() {
-        func line(_ step: Int?, offers: Int? = nil, pet: String? = "Mochi", when: String? = nil) -> String {
-            CustomerHomeGreetingPresentation(requestStep: step, offerCount: offers, petName: pet, bookingCountdown: when).line
-        }
-        #expect(line(1) == "Groomers are looking at your request")
-        #expect(line(2, offers: 3) == "3 offers are waiting for Mochi!")
-        #expect(line(2, offers: 1) == "1 offer is waiting for Mochi!")
-        #expect(line(2) == "Offers are waiting for Mochi!")
-        #expect(line(3, when: "Tomorrow") == "Mochi's groom is tomorrow")
-        #expect(line(3) == "Mochi's groom is booked!")
-        #expect(line(nil, when: "In 3 days") == "Mochi's groom is in 3 days")
-        #expect(line(nil) == "Ready for a fresh trim?")
-        #expect(line(nil, pet: nil, when: "Today") == "Your pet's groom is today")
-        #expect(line(2, offers: 2, pet: nil) == "2 offers are waiting for your pet!")
-    }
-}

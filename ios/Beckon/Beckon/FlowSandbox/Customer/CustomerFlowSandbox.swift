@@ -29,14 +29,18 @@ struct CustomerScreenIndexSandbox: View {
 
 struct CustomerSandboxScreenHost: View {
     let screen: CustomerSandboxScreen
+    var replaysLoading = false
+    var startsOnGrooming = false
     @State private var state: CustomerSandboxState
     @State private var session: CustomerSandboxSession
     @State private var ready = false
     @State private var preparationError: String?
     @Environment(\.dismiss) private var dismiss
 
-    init(screen: CustomerSandboxScreen, state: CustomerSandboxState? = nil) {
+    init(screen: CustomerSandboxScreen, state: CustomerSandboxState? = nil, replaysLoading: Bool = false, startsOnGrooming: Bool = false) {
         self.screen = screen
+        self.replaysLoading = replaysLoading
+        self.startsOnGrooming = startsOnGrooming
         let state = state ?? screen.states[0]
         _state = State(initialValue: state)
         _session = State(initialValue: CustomerSandboxSession(screen: screen, state: state))
@@ -61,6 +65,11 @@ struct CustomerSandboxScreenHost: View {
                 try await current.prepare()
                 guard session === current, !Task.isCancelled else { return }
                 ready = true
+                if replaysLoading {
+                    try await Task.sleep(for: .seconds(1.6))
+                    guard session === current, !Task.isCancelled else { return }
+                    current.boundary.state = .loaded
+                }
             } catch { preparationError = String(describing: error) }
         }
         .environment(\.beckonFeedbackCenter, session.feedback)
@@ -81,7 +90,7 @@ struct CustomerSandboxScreenHost: View {
     }
 
     @ViewBuilder private var renderedScreen: some View {
-        CustomerSandboxAppScreen(session: session)
+        CustomerSandboxAppScreen(session: session, startsOnGrooming: startsOnGrooming)
     }
 
     private var controls: some View {
@@ -94,6 +103,10 @@ struct CustomerSandboxScreenHost: View {
             .pickerStyle(.menu)
             .accessibilityIdentifier("sandbox.state")
             .onChange(of: state) { _, _ in reset() }
+            if state == .loading {
+                Button("Show loaded content") { session.boundary.state = .loaded }
+                    .accessibilityIdentifier("sandbox.loaded")
+            }
             Button("Reset sandbox", systemImage: "arrow.counterclockwise") { reset() }
                 .labelStyle(.iconOnly).frame(width: 44, height: 44).help("Reset local fixtures")
                 .accessibilityIdentifier("sandbox.reset")
@@ -112,6 +125,7 @@ struct CustomerSandboxScreenHost: View {
 
 private struct CustomerSandboxAppScreen: View {
     let session: CustomerSandboxSession
+    var startsOnGrooming = false
     @State private var requestPath: [UUID] = []
     @FocusState private var reviewFocus: BookingReviewFocusTarget?
 
@@ -130,12 +144,11 @@ private struct CustomerSandboxAppScreen: View {
     @ViewBuilder private var content: some View {
         let requestID = CustomerSandboxFixtures.requestID
         let bookingID = CustomerSandboxFixtures.bookingID
-        let booking = session.bookings.booking(withID: bookingID) ?? CustomerSandboxFixtures.booking(state: session.state)
-        switch session.screen {
+                switch session.screen {
         case .tabs:
             if session.authentication.rootState == .signedOut {
                 AuthenticationView(sandboxStore: session.authentication, showsForm: true)
-            } else { CustomerTabView(sandbox: session) }
+            } else { CustomerTabView(sandbox: session, initialTab: startsOnGrooming ? .requests : .home) }
         case .landing, .signIn, .signUp:
             Group {
                 if case .signedIn = session.authentication.rootState { CustomerTabView(sandbox: session) }
@@ -228,4 +241,11 @@ private struct CustomerSandboxPetList: View {
 
 #Preview("Customer - all tabs") { CustomerFlowSandbox() }
 #Preview("Customer - screen index") { CustomerScreenIndexSandbox() }
+#Preview("Home · loading replay") { CustomerSandboxScreenHost(screen: .home, state: .loading, replaysLoading: true) }
+#Preview("Grooming · loading replay") { CustomerSandboxScreenHost(screen: .requests, state: .loading, replaysLoading: true) }
+#Preview("Messages · loading replay") { CustomerSandboxScreenHost(screen: .messages, state: .loading, replaysLoading: true) }
+#Preview("Account · loading replay") { CustomerSandboxScreenHost(screen: .account, state: .loading, replaysLoading: true) }
+#Preview("Detail · loading replay") { CustomerSandboxScreenHost(screen: .bookingDetail, state: .loading, replaysLoading: true) }
+#Preview("Grooming · add first pet") { CustomerSandboxScreenHost(screen: .tabs, state: .empty, startsOnGrooming: true) }
+#Preview("Launch scene") { LaunchScene() }
 #endif

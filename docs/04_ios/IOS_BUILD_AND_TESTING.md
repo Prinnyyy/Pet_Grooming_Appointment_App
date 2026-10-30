@@ -65,6 +65,8 @@ Local session repositories support publication, invitations, pool state, booking
 
 Current adoption evidence and its limits are recorded in the [T-420 plan](../superpowers/plans/2026-10-25-customer-ui-adoption.md). T-418 Original/Playful and T-419 Home-only evidence are historical and do not certify the later all-customer adoption. For opt-in local UI acceptance, use `CustomerUIAdoptionAcceptanceTests/testLocalCustomerJourney` with the existing `--beckon-ui-test-signed-out-auth` test-host argument and `BECKON_UI_ADOPTION=1`; the test replaces the window root with the isolated host and restores it afterward. Do not set `XCODE_RUNNING_FOR_PREVIEWS` for hosted Simulator tests: that Canvas-specific flag prevents this interactive host from rendering.
 
+The D-066 loading previews in `FlowSandbox/Customer/CustomerFlowSandbox.swift` reuse these same fixtures: Home, Grooming, Messages, Account and detail each have a loading replay; Reset repeats the wait and Show loaded content releases the existing mock boundary. Grooming's no-pet tab preview exercises the real dialog→Home pet editor route. `Launch scene` previews the shared opening artwork. First-answer flags belong to production Stores; no preview timer or mock data enters the production dependency graph. [T-422](../superpowers/plans/2026-10-29-loading-home-flow-adoption.md) records this delta's acceptance.
+
 ## Pet Flow Preview
 
 Open `ios/Beckon/Beckon/Features/Customer/Pets/CustomerPetsFlowSandbox.swift` in Xcode,

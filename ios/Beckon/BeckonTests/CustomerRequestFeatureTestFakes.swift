@@ -33,6 +33,7 @@ extension CustomerRequestsStore {
 
 @MainActor
 final class CustomerRequestPetRepositoryFake: CustomerPetRepository {
+    var onPetRead: (@MainActor () async -> Void)?
     var onPhotoRead: (@MainActor () async -> Void)?
     var petsResult: Result<[CustomerPet], CustomerPetRepositoryError>
     var photosResult: Result<[CustomerPetPhoto], CustomerPetRepositoryError>
@@ -51,7 +52,9 @@ final class CustomerRequestPetRepositoryFake: CustomerPetRepository {
     }
 
     func pets(customerID: UUID) async throws -> [CustomerPet] {
-        try petsResult.get()
+        let answer = petsResult
+        await onPetRead?()
+        return try answer.get()
     }
 
     func photos(customerID: UUID) async throws -> [CustomerPetPhoto] {

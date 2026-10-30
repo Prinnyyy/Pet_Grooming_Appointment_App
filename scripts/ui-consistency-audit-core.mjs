@@ -41,6 +41,7 @@ export const LEDGE_TIER_PATHS = Object.freeze([
   "Features/Customer/Grooming/GroomingHistory.swift",
   "Features/Customer/Grooming/CustomerGroomingView.swift",
   "Features/Customer/Grooming/GroomingCard.swift",
+  "Features/Customer/Grooming/GroomingSkeletons.swift",
   "Features/Customer/Grooming/GroomingDetailActions.swift",
   "Features/Customer/Grooming/GroomingDetailView.swift",
 
@@ -64,6 +65,7 @@ export const LEDGE_TIER_PATHS = Object.freeze([
   "Features/Bookings/BookingActionDialogs.swift",
   "Features/Bookings/AppointmentReminderDestinationView.swift",
   "Features/Chat/ChatView.swift",
+  "Features/Chat/ChatSkeletons.swift",
   "Features/Auth/AuthenticatedAccountView.swift",
   "Features/Auth/AuthenticationView.swift",
   "Features/Auth/PasswordRecoveryView.swift",

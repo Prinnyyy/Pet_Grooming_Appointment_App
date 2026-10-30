@@ -17,6 +17,8 @@ struct CustomerTabView: View {
     @State private var requestsNavigationRevision = 0
     @State private var groomingPath: [GroomingRoute] = []
     @State private var focusedConversationBookingID: UUID?
+    /// Grooming's New Request, with no pet, asked for the Pet form; Home owns it (design).
+    @State private var addPetRequested = false
     @State private var notificationStore: CustomerNotificationsStore?
     @State private var chatStore: ChatStore?
     @State private var requestStore: CustomerRequestsStore?
@@ -26,7 +28,8 @@ struct CustomerTabView: View {
     #if DEBUG
     private var sandbox: CustomerSandboxSession?
 
-    init(sandbox: CustomerSandboxSession) {
+    init(sandbox: CustomerSandboxSession, initialTab: CustomerTab = .home) {
+        _selection = State(initialValue: initialTab)
         self.sandbox = sandbox
         customerID = CustomerSandboxFixtures.customerID
         customerDisplayName = sandbox.accountRepository.details.nickname
@@ -201,7 +204,7 @@ struct CustomerTabView: View {
     private func destination(for tab: CustomerTab) -> some View {
         #if DEBUG
         if let sandbox, tab == .home {
-            CustomerHomeView(sandbox: sandbox, isActiveTab: selection == .home, onSelectRequest: { id in
+            CustomerHomeView(sandbox: sandbox, isActiveTab: selection == .home, addPetRequested: $addPetRequested, onSelectRequest: { id in
                 showRequest(id)
             }, onOpenChat: openBookingChat)
         } else if let sandbox, tab == .bookings {
@@ -226,6 +229,7 @@ struct CustomerTabView: View {
                 customerID: customerID,
                 displayName: customerDisplayName,
                 isActiveTab: selection == .home,
+                addPetRequested: $addPetRequested,
                 repository: petRepository,
                 customerProfileRepository: customerProfileRepository,
                 requestRepository: requestRepository,
@@ -243,9 +247,15 @@ struct CustomerTabView: View {
                 sessionIsCurrent: acceptanceSessionIsCurrent
             )
         } else if tab == .requests, let requestStore, let bookingsStore {
-            CustomerGroomingView(requestStore: requestStore, bookingsStore: bookingsStore,
-                customerProfileRepository: customerProfileRepository, isActiveTab: selection == .requests,
-                focusedRequestID: $focusedRequestID, onOpenChat: openBookingChat)
+            CustomerGroomingView(
+                requestStore: requestStore,
+                bookingsStore: bookingsStore,
+                customerProfileRepository: customerProfileRepository,
+                isActiveTab: selection == .requests,
+                focusedRequestID: $focusedRequestID,
+                onOpenChat: openBookingChat,
+                onAddPet: openPetForm
+            )
         } else if tab == .messages,
                   let customerID,
                   let chatRepository,
@@ -269,6 +279,12 @@ struct CustomerTabView: View {
                 accent: .customer
             )
         }
+    }
+
+    /// The Pet form is Home's: go there, and ask for it.
+    private func openPetForm() {
+        select(.home)
+        addPetRequested = true
     }
 
     private func openBookingChat(_ booking: Booking) {

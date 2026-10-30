@@ -56,6 +56,7 @@ final class CustomerPetsStore {
     private(set) var photoDataByPhotoID: [UUID: Data] = [:]
     private var cachedAvatarDataByPetID: [UUID: Data] = [:]
     private(set) var isLoading = false
+    private(set) var hasLoadedOnce = false
     private(set) var isSaving = false
     private(set) var isUploading = false
 
@@ -160,6 +161,7 @@ final class CustomerPetsStore {
             photosByPetID = Dictionary(grouping: photos, by: \.petID)
             photoDataByPhotoID = cachedPhotoDataMap(for: photos)
             clearStaleCachedAvatarData()
+            hasLoadedOnce = true
             isLoading = false
 
             let downloadedPhotoData = await photoDataMap(for: photos)
@@ -186,6 +188,8 @@ final class CustomerPetsStore {
         } catch let error as CustomerPetRepositoryError {
             guard isCurrentLoad(operation, revision: revision) else { return }
             isLoading = false
+            guard !Task.isCancelled else { return }
+            hasLoadedOnce = true
             errorMessage = message(for: error, action: "load")
             recordStoreFailure(
                 "load",
@@ -200,6 +204,8 @@ final class CustomerPetsStore {
         } catch {
             guard isCurrentLoad(operation, revision: revision) else { return }
             isLoading = false
+            guard !Task.isCancelled else { return }
+            hasLoadedOnce = true
             errorMessage = message(for: .unavailable, action: "load")
             recordStoreFailure(
                 "load",

@@ -21,6 +21,7 @@ final class CustomerProfileStore {
     private(set) var cachedProfileSnapshot: ProfileSnapshot?
     private(set) var avatarPhotoData: Data?
     private(set) var isLoading = false
+    private(set) var hasLoadedOnce = false
     private(set) var isSaving = false
     private(set) var isUploading = false
 
@@ -125,6 +126,7 @@ final class CustomerProfileStore {
             guard isCurrentLoad(operation, revision: revision) else { return }
             profile = loadedProfile
             if profileFormSnapshot == loadedForm { populateForm(with: loadedProfile) }
+            hasLoadedOnce = true
             isLoading = false
             saveProfileSnapshot(profile: loadedProfile, avatarData: avatarPhotoData)
 
@@ -152,11 +154,17 @@ final class CustomerProfileStore {
             recordStoreCancelled("load", startedAt: startedAt)
         } catch let error as CustomerProfileRepositoryError {
             guard isCurrentLoad(operation, revision: revision) else { return }
+            guard !Task.isCancelled else { return }
+            hasLoadedOnce = true
             errorMessage = message(for: error, action: "load")
             recordStoreFailure("load", startedAt: startedAt, error: error)
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("load", startedAt: startedAt)
         } catch {
             guard isCurrentLoad(operation, revision: revision) else { return }
             let mappedError = CustomerProfileRepositoryError.unavailable
+            guard !Task.isCancelled else { return }
+            hasLoadedOnce = true
             errorMessage = message(for: mappedError, action: "load")
             recordStoreFailure("load", startedAt: startedAt, error: error)
         }

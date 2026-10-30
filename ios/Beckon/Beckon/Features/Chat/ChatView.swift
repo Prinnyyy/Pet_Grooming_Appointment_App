@@ -25,6 +25,7 @@ struct ChatConversationsView: View {
     @Binding private var focusedBookingID: UUID?
     @State private var store: ChatStore
     @State private var focusedConversation: ChatConversation?
+    private var conversationsSettled: Bool { store.hasLoadedOnce || !store.conversations.isEmpty }
 
     init(
         participantID: UUID,
@@ -106,42 +107,37 @@ struct ChatConversationsView: View {
         if customerDesign { customerConversationsContent } else { groomerConversationsContent }
     }
 
-    @ViewBuilder private var customerConversationsContent: some View {
-        if store.isLoadingConversations, store.conversations.isEmpty {
-            ScrollView {
-                BeckonLoadingView(
-                    title: "Loading conversations…",
-                    message: "Checking accepted bookings for participant chats.",
-                    accent: role.beckonLoadingAccent
-                )
-                .accessibilityIdentifier("chat.conversations.loading")
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                .padding(.vertical, DesignTokens.Spacing.xl)
-            }
-                .beckonTracksScroll()
-        } else {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    conversationWorkspace
+    private var customerConversationsContent: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: DesignTokens.Layout.sectionSpacing) {
+                // The title is the page's frame: it is there from the first frame, wait or no wait.
+                BeckonPageTitle(presentation.title)
+                    .beckonEntrance(0)
 
-                    if store.canLoadMoreConversations || store.isLoadingMoreConversations {
-                        BeckonLoadMoreButton(
-                            isLoading: store.isLoadingMoreConversations,
-                            accent: role.beckonSecondaryAccent,
-                            accessibilityIdentifier: "chat.conversations.load-more"
-                        ) {
-                            await store.loadNextConversationsPage()
-                        }
+                DesignReveal(isLoading: !conversationsSettled) {
+                    conversationWorkspace
+                } placeholder: {
+                    ChatConversationsSkeleton()
+                        .accessibilityIdentifier("chat.conversations.loading")
+                        .beckonEntrance(1)
+                }
+
+                if store.canLoadMoreConversations || store.isLoadingMoreConversations {
+                    BeckonLoadMoreButton(
+                        isLoading: store.isLoadingMoreConversations,
+                        accent: role.beckonSecondaryAccent,
+                        accessibilityIdentifier: "chat.conversations.load-more"
+                    ) {
+                        await store.loadNextConversationsPage()
                     }
                 }
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                .padding(.top, DesignTokens.Spacing.xl)
-                .padding(.bottom, DesignTokens.Spacing.xl + DesignTokens.Spacing.xl)
-                .beckonEntranceClock()
             }
-                .beckonTracksScroll()
-            .accessibilityIdentifier("chat.conversations.list")
+            // The page's own insets and title row, like Grooming and Account: the first card is at the same height on every tab (design).
+            .beckonPageInsets()
+            .beckonEntranceClock()
         }
+            .beckonTracksScroll()
+        .accessibilityIdentifier("chat.conversations.list")
     }
 
     @ViewBuilder private var groomerConversationsContent: some View {
@@ -185,9 +181,6 @@ struct ChatConversationsView: View {
     }
 
     @ViewBuilder private var customerConversationWorkspace: some View {
-        ChatMessagesTitle(presentation.title)
-            .beckonEntrance(0)
-
         if store.conversations.isEmpty {
             emptyConversationsState
                 .beckonEntrance(1)
@@ -220,17 +213,15 @@ struct ChatConversationsView: View {
         if customerDesign { customerEmptyConversationsState } else { groomerEmptyConversationsState }
     }
 
-    @ViewBuilder private var customerEmptyConversationsState: some View {
-        DesignPupPeek {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                Text("No conversations yet")
-                    .font(DesignTokens.Typography.Expressive.title)
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                Text("Accepted bookings create participant conversations.")
-                    .designSupportingText()
-            }
-            .designCardBody()
+    private var customerEmptyConversationsState: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text("No conversations yet")
+                .font(DesignTokens.Typography.Expressive.title)
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+            Text("Accepted bookings create participant conversations.")
+                .designSupportingText()
         }
+        .designCardBody()
         .accessibilityIdentifier("chat.conversations.empty")
     }
 

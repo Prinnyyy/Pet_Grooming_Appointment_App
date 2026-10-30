@@ -41,6 +41,7 @@ final class BookingsStore {
 
     private(set) var bookings: [Booking] = []
     private(set) var isLoading = false
+    private(set) var hasLoadedOnce = false
     private(set) var isLoadingMore = false
     private(set) var isCancelling = false
     private(set) var isCompleting = false
@@ -263,6 +264,7 @@ final class BookingsStore {
             // A page does not establish absence of an individually verified booking.
             let retained = bookings.filter { synchronizedBookingIDs.contains($0.id) }
             bookings = ListPageMerge.appendingUnique(retained, to: page.items)
+            hasLoadedOnce = true
             nextPageRequest = page.nextRequest
             await loadScheduleCalendar()
             try Task.checkCancellation()
@@ -280,6 +282,8 @@ final class BookingsStore {
             recordStoreCancelled("load", startedAt: startedAt)
         } catch let error as BookingRepositoryError {
             guard sessionIsCurrent(), generation == listGeneration else { return }
+            guard !Task.isCancelled else { return }
+            hasLoadedOnce = true
             errorMessage = message(for: error, action: "load")
             recordStoreFailure(
                 "load",
@@ -291,6 +295,8 @@ final class BookingsStore {
             recordStoreCancelled("load", startedAt: startedAt)
         } catch {
             guard sessionIsCurrent(), generation == listGeneration else { return }
+            guard !Task.isCancelled else { return }
+            hasLoadedOnce = true
             errorMessage = message(for: .unavailable, action: "load")
             recordStoreFailure(
                 "load",

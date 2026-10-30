@@ -20,6 +20,12 @@ enum DesignTokens {
         static let mintHeroEnd: UInt = 0xA4DDD3
         static let mintHeroBubble: UInt = 0xBAE5DD
         static let mintHeroDecoration: UInt = 0x6CB6A9
+        // The scene behind Home's greeting (design): sky, two ranges of mountains, a lawn.
+        static let sceneSkyTop: UInt = 0xD6EEEA
+        static let sceneSkyHorizon: UInt = 0xEAF7F3
+        static let sceneMountainFar: UInt = 0xCDE8E8
+        static let sceneMountainNear: UInt = 0xB9DFDB
+        static let sceneLawn: UInt = 0xB1E0C5
         static let coralFill: UInt = 0xFF9A8B
         static let coralFillPressed: UInt = 0xFF8A79
         static let coralInk: UInt = 0x4A1C14
@@ -74,6 +80,11 @@ enum DesignTokens {
         static let customerHeroEnd = Palette.mintHeroEnd
         static let customerHeroBubble = Palette.mintHeroBubble
         static let customerHeroDecoration = Palette.mintHeroDecoration
+        static let sceneSkyTop = Palette.sceneSkyTop
+        static let sceneSkyHorizon = Palette.sceneSkyHorizon
+        static let sceneMountainFar = Palette.sceneMountainFar
+        static let sceneMountainNear = Palette.sceneMountainNear
+        static let sceneLawn = Palette.sceneLawn
         static let statusSuccessText = Palette.successText
         static let statusSuccessFill = Palette.successFill
         static let statusSuccessBorder = Palette.successBorder
@@ -109,6 +120,11 @@ enum DesignTokens {
         static let customerInk = Color(hex: ColorHex.customerInk)
         static let customerDeep = Color(hex: ColorHex.customerDeep)
         static let customerTint = Color(hex: ColorHex.customerTint)
+        /// A placeholder bar of a page that is loading, and the light that sweeps over it (design).
+        static let skeleton = Color(hex: ColorHex.customerTint)
+        /// A bar on the page itself (the mint wash at the top is as light as `skeleton`, so it would vanish there).
+        static let skeletonOnPage = Color(hex: ColorHex.customerHeroBubble)
+        static let skeletonSweep = Color(hex: ColorHex.surface, opacity: 0.85)
         static let groomerFill = Color(hex: ColorHex.groomerFill)
         static let groomerFillPressed = Color(hex: ColorHex.groomerFillPressed)
         static let groomerInk = Color(hex: ColorHex.groomerInk)
@@ -117,6 +133,11 @@ enum DesignTokens {
         static let customerHeroEnd = Color(hex: ColorHex.customerHeroEnd)
         static let customerHeroBubble = Color(hex: ColorHex.customerHeroBubble)
         static let customerHeroDecoration = Color(hex: ColorHex.customerHeroDecoration)
+        static let sceneSkyTop = Color(hex: ColorHex.sceneSkyTop)
+        static let sceneSkyHorizon = Color(hex: ColorHex.sceneSkyHorizon)
+        static let sceneMountainFar = Color(hex: ColorHex.sceneMountainFar)
+        static let sceneMountainNear = Color(hex: ColorHex.sceneMountainNear)
+        static let sceneLawn = Color(hex: ColorHex.sceneLawn)
         static let statusSuccessText = Color(hex: ColorHex.statusSuccessText)
         static let statusSuccessFill = Color(hex: ColorHex.statusSuccessFill)
         static let statusSuccessBorder = Color(hex: ColorHex.statusSuccessBorder)
@@ -178,6 +199,16 @@ enum DesignTokens {
 
     enum Metrics {
         static let minimumTouchTarget: CGFloat = 44
+        /// The row of a tab's big title (Grooming, Messages, Account): as tall as the tallest thing that can stand in it (the New Request
+        /// pill), so that the title and what is under it are at the same height on every tab (design).
+        static let homeTitleSize: CGFloat = 46
+        // Adopted Home greeting only: a single decorative title may shrink before wrapping.
+        static let homeTitleMinimumScale: CGFloat = 0.5
+        static let launchBottomReserve = ledgePrimaryButtonHeight * 2 + Spacing.xl
+        static let groomingPathHeadroom: CGFloat = 48
+        static let groomingPathConnector: CGFloat = 9
+        static let groomingPetAvatar: CGFloat = 48
+        static let tabTitleRowHeight: CGFloat = 52
         static let fieldHeight: CGFloat = 52
         static let actionHeight: CGFloat = 52
         static let settingsIconSlot: CGFloat = 36
@@ -291,6 +322,15 @@ enum DesignTokens {
         static let currentNodeScale: CGFloat = 1.14
         /// Decorative loops redraw at this rate.
         static let idleFrame = 1.0 / 30
+        /// A placeholder turning into what it stood for: the same place, a plain cross-fade, no travel (design).
+        static let reveal = Animation.easeInOut(duration: 0.32)
+        /// The light across a loading page takes this long from one edge to the other and rests a moment.
+        static let skeletonPeriod = 1.6
+        /// Data that arrives sooner than this never shows a placeholder; one that was shown stays at least `skeletonMinimum`.
+        static let skeletonShowDelay = 0.15
+        static let skeletonMinimum = 0.45
+        static let launchMinimum: Double = 0.7
+        static let pullRefreshMinimum = 1.0
     }
 
     enum Shapes {
@@ -331,6 +371,9 @@ enum DesignTokens {
 
         /// SF Rounded roles for expressive (Tier L/M) screens. Still semantic text styles, so Dynamic Type applies.
         enum Expressive {
+            static func homeGreeting(size: CGFloat) -> Font {
+                .system(size: size, weight: .black, design: .rounded)
+            }
             static let display = Font.system(.largeTitle, design: .rounded, weight: .black)
             static let hero = Font.system(.title, design: .rounded, weight: .black)
             static let section = Font.system(.title2, design: .rounded, weight: .black)

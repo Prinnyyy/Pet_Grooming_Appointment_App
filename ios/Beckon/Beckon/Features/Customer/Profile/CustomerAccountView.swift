@@ -6,6 +6,9 @@ struct CustomerAccountView: View {
     let profile: MarketplaceProfile
     @Bindable var authenticationStore: AuthenticationStore
     @State private var store: CustomerProfileStore
+    /// The first load is over (answered, or a saved profile can be shown): until then everything under the title is bars, not
+    /// "Pet Owner" and links that look ready to press (design).
+    private var profileSettled: Bool { store.hasLoadedOnce || store.profile != nil || store.cachedProfileSnapshot != nil }
 
     #if DEBUG
     init(sandbox: CustomerSandboxSession) {
@@ -45,44 +48,63 @@ struct CustomerAccountView: View {
                 BeckonCascade(spacing: DesignTokens.Layout.sectionSpacing) {
                     BeckonPageTitle("Account")
 
-                    BeckonAccountIdentityHeader(
-                        displayName: store.profileDisplayName,
-                        detailText: store.profileDetailText,
-                        roleTitle: "Pet owner",
-                        roleSystemImage: "pawprint.fill",
-                        roleAccent: .customer
-                    ) {
-                        CustomerAvatarImage(
-                            data: store.avatarPhotoData,
-                            size: BeckonAccountLayoutPolicy.identityAvatarSize,
-                            placeholderSize: 30
+                    waits {
+                        BeckonAccountIdentityHeader(
+                            displayName: store.profileDisplayName,
+                            detailText: store.profileDetailText,
+                            roleTitle: "Pet owner",
+                            roleSystemImage: "pawprint.fill",
+                            roleAccent: .customer
+                        ) {
+                            CustomerAvatarImage(
+                                data: store.avatarPhotoData,
+                                size: BeckonAccountLayoutPolicy.identityAvatarSize,
+                                placeholderSize: 30
+                            )
+                        }
+                    } placeholder: {
+                        BeckonAccountIdentitySkeleton(
+                            roleTitle: "Pet owner",
+                            roleSystemImage: "pawprint.fill",
+                            roleAccent: .customer
                         )
                     }
 
                     // What the person uses most, as two tiles: their own details and the groomers they saved.
-                    DesignShortcutRow {
-                        DesignShortcutTile(
-                            title: "Profile settings",
-                            summary: "Photo, nickname, contact, and address",
-                            systemImage: "person.crop.circle"
-                        ) {
-                            CustomerProfileSettingsView(store: store)
-                        }
-
-                        if let marketplace {
+                    waits {
+                        DesignShortcutRow {
                             DesignShortcutTile(
-                                title: "Saved groomers",
-                                summary: "Groomers you have hearted",
-                                systemImage: "heart"
+                                title: "Profile settings",
+                                summary: "Photo, nickname, contact, and address",
+                                systemImage: "person.crop.circle"
                             ) {
-                                CustomerFavoriteGroomersView(marketplace: marketplace)
+                                CustomerProfileSettingsView(store: store)
                             }
-                            .accessibilityIdentifier("account.saved-groomers")
+
+                            if let marketplace {
+                                DesignShortcutTile(
+                                    title: "Saved groomers",
+                                    summary: "Groomers you have hearted",
+                                    systemImage: "heart"
+                                ) {
+                                    CustomerFavoriteGroomersView(marketplace: marketplace)
+                                }
+                                .accessibilityIdentifier("account.saved-groomers")
+                            }
+                        }
+                    } placeholder: {
+                        DesignShortcutRow {
+                            DesignShortcutTileSkeleton()
+                            if marketplace != nil { DesignShortcutTileSkeleton() }
                         }
                     }
 
-                    BeckonSection("Help") {
-                        AccountReleaseLinksSection(accent: .customer)
+                    waits {
+                        BeckonSection("Help") {
+                            AccountReleaseLinksSection(accent: .customer)
+                        }
+                    } placeholder: {
+                        BeckonSettingsSectionSkeleton(summaries: [false, false])
                     }
 
                     if let errorMessage = authenticationStore.errorMessage {
@@ -94,30 +116,43 @@ struct CustomerAccountView: View {
                     }
 
                     #if DEBUG
-                    BeckonSection("Development") {
-                        BeckonGroupedSurface {
-                            BeckonSettingsNavigationRow(
-                                title: "Debug console",
-                                summary: "Runtime events and diagnostics",
-                                systemImage: "ladybug",
-                                accent: .customer
-                            ) {
-                                DebugPanelView(
-                                    diagnostics: DebugDiagnostics.current(
-                                        session: session,
-                                        profile: profile
+                    waits {
+                        BeckonSection("Development") {
+                            BeckonGroupedSurface {
+                                BeckonSettingsNavigationRow(
+                                    title: "Debug console",
+                                    summary: "Runtime events and diagnostics",
+                                    systemImage: "ladybug",
+                                    accent: .customer
+                                ) {
+                                    DebugPanelView(
+                                        diagnostics: DebugDiagnostics.current(
+                                            session: session,
+                                            profile: profile
+                                        )
                                     )
-                                )
+                                }
+                                .accessibilityIdentifier("account.debug-console")
                             }
-                            .accessibilityIdentifier("account.debug-console")
                         }
+                    } placeholder: {
+                        BeckonSettingsSectionSkeleton(summaries: [true])
                     }
                     #endif
 
-                    BeckonSection("Account access") {
-                        AccountDangerActions(
-                            authenticationStore: authenticationStore
-                        )
+                    waits {
+                        BeckonSection("Account access") {
+                            AccountDangerActions(
+                                authenticationStore: authenticationStore
+                            )
+                        }
+                    } placeholder: {
+                        VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
+                            DesignSkeletonLine(width: 0.4, font: DesignTokens.Typography.Expressive.section)
+                                .designSkeletonOnPage()
+                                .designSkeleton(label: nil)
+                            AccountDangerActionsSkeleton()
+                        }
                     }
                 }
                 .beckonPageInsets()
@@ -134,5 +169,14 @@ struct CustomerAccountView: View {
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("customer.account")
+    }
+
+    /// One block of the page that waits for the profile: its placeholder until the first load is over, then the block itself, all
+    /// blocks together.
+    private func waits<Content: View, Placeholder: View>(
+        @ViewBuilder _ content: () -> Content,
+        @ViewBuilder placeholder: () -> Placeholder
+    ) -> some View {
+        DesignReveal(isLoading: !profileSettled, content: content, placeholder: placeholder)
     }
 }

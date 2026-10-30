@@ -18,20 +18,11 @@ struct AuthenticationGateView: View {
         Group {
             switch store.rootState {
             case .loading:
-                ZStack {
-                    DesignTokens.Colors.appBackground
-                        .ignoresSafeArea()
-
-                    BeckonLoadingView(
-                        title: "Restoring session…",
-                        message: "Checking your secure Beckon session."
-                    )
-                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                        .accessibilityIdentifier("auth.loading")
-                }
+                LaunchWaitingView().accessibilityIdentifier("auth.loading")
 
             case .signedOut:
                 AuthenticationView(store: store)
+                    .preference(key: LaunchReadyKey.self, value: true)
 
             case let .signedIn(session):
                 AuthenticatedEntryView(

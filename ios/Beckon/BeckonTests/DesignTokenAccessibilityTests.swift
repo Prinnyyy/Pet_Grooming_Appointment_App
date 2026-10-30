@@ -6,6 +6,13 @@ import UIKit
 
 @MainActor
 struct DesignTokenAccessibilityTests {
+    @Test func homeTitleRemainsReadableOnScene() {
+        for background in [DesignTokens.ColorHex.sceneSkyTop, DesignTokens.ColorHex.sceneSkyHorizon,
+                           DesignTokens.ColorHex.sceneMountainFar, DesignTokens.ColorHex.sceneMountainNear, DesignTokens.ColorHex.sceneLawn] {
+            #expect(Self.contrastRatio(DesignTokens.ColorHex.textPrimary, background) >= 4.5)
+        }
+    }
+
     @Test
     func semanticPaletteUsesApprovedSRGBValues() {
         #expect(DesignTokens.ColorHex.appBackground == 0xFAF7F2)

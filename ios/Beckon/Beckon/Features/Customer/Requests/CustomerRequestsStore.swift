@@ -135,6 +135,7 @@ final class CustomerRequestsStore {
     private var refreshNotifications: (@MainActor () async -> Void)?
 
     private(set) var pets: [CustomerPet] = []
+    private var petSnapshotRevision = 0
     private(set) var petPhotosByPetID: [UUID: [CustomerPetPhoto]] = [:]
     private(set) var petPhotoDataByID: [UUID: Data] = [:]
     private(set) var requests: [CustomerGroomingRequest] = [] {
@@ -159,6 +160,7 @@ final class CustomerRequestsStore {
     private(set) var acknowledgedBookingHandoffRequestIDs: Set<UUID> = []
     private var acknowledgingHandoffRequestIDs: Set<UUID> = []
     private(set) var isLoading = false
+    private(set) var hasLoadedOnce = false
     private(set) var isPreparingRepublish = false
     private(set) var isSubmitting = false
     private(set) var nextRequestsPageRequest: ListPageRequest?
@@ -431,9 +433,10 @@ final class CustomerRequestsStore {
 
         do {
             try checkAcceptanceSession()
+            let petRevision = petSnapshotRevision
             let loadedPets = try await petRepository.pets(customerID: customerID)
             guard isCurrentRequestLoad(operation, revision: revision) else { return }
-            pets = loadedPets
+            if petSnapshotRevision == petRevision { pets = loadedPets }
             let requestPage = try await requestRepository.requests(
                 customerID: customerID,
                 page: .first
@@ -470,6 +473,7 @@ final class CustomerRequestsStore {
             if selectedPetID == nil {
                 selectedPetID = pets.first?.id
             }
+            hasLoadedOnce = true
             isLoading = false
             await refreshDistributionProgress(requestIDs: activeRequests.map(\.id))
             guard isCurrentRequestLoad(operation) else { return }
@@ -499,6 +503,8 @@ final class CustomerRequestsStore {
             recordStoreCancelled("load", startedAt: startedAt)
         } catch let error as CustomerPetRepositoryError {
             guard isCurrentRequestLoad(operation, revision: revision) else { return }
+            guard !Task.isCancelled else { return }
+            hasLoadedOnce = true
             errorMessage = message(for: error, action: "load")
             recordStoreFailure(
                 "load",
@@ -508,6 +514,8 @@ final class CustomerRequestsStore {
             )
         } catch let error as CustomerRequestRepositoryError {
             guard isCurrentRequestLoad(operation, revision: revision) else { return }
+            guard !Task.isCancelled else { return }
+            hasLoadedOnce = true
             errorMessage = message(for: error, action: "load")
             recordStoreFailure(
                 "load",
@@ -520,6 +528,8 @@ final class CustomerRequestsStore {
             recordStoreCancelled("load", startedAt: startedAt)
         } catch {
             guard isCurrentRequestLoad(operation, revision: revision) else { return }
+            guard !Task.isCancelled else { return }
+            hasLoadedOnce = true
             errorMessage = message(for: CustomerRequestRepositoryError.unavailable, action: "load")
             recordStoreFailure(
                 "load",
@@ -595,6 +605,15 @@ final class CustomerRequestsStore {
                 startedAt: startedAt
             )
         }
+    }
+
+    /// Home owns confirmed pet edits. Publish that snapshot immediately so the next request
+    /// can use it, without an extra network round trip or an older read undoing the edit.
+    func synchronizePets(_ currentPets: [CustomerPet]) {
+        guard acceptanceSessionIsCurrent(), currentPets.allSatisfy({ $0.customerID == customerID }) else { return }
+        petSnapshotRevision += 1
+        pets = currentPets
+        if !pets.contains(where: { $0.id == selectedPetID }) { selectedPetID = pets.first?.id }
     }
 
     func startCreate() {
@@ -676,10 +695,11 @@ final class CustomerRequestsStore {
             guard source.id == booking.requestID, source.customerID == customerID else {
                 throw CustomerRequestRepositoryError.notAllowed
             }
+            let petRevision = petSnapshotRevision
             let currentPets = try await petRepository.pets(customerID: customerID)
             try checkAcceptanceSession()
             guard !isShowingWizard else { return false }
-            pets = currentPets
+            if petSnapshotRevision == petRevision { pets = currentPets }
             return startRepublish(from: current, originalRequest: source, now: now)
         } catch where AppDebugErrorClassifier.isCancellation(error) {
             return false

@@ -51,7 +51,16 @@ struct AppRootView: View {
         self.roleOnboardingContent = roleOnboardingContent
     }
 
+    @State private var launchReady = false
+
     var body: some View {
+        LaunchGate(isReady: launchReady) {
+            routedContent
+                .onPreferenceChange(LaunchReadyKey.self) { launchReady = $0 }
+        }
+    }
+
+    @ViewBuilder private var routedContent: some View {
         switch route {
         case .authentication:
             if let authenticationStore,
@@ -84,7 +93,7 @@ struct AppRootView: View {
             }
         case .roleOnboarding:
             if let roleOnboardingContent {
-                roleOnboardingContent
+                roleOnboardingContent.preference(key: LaunchReadyKey.self, value: true)
             } else {
                 AuthenticationBootstrapView(
                     state: .configurationError(
@@ -93,9 +102,9 @@ struct AppRootView: View {
                 )
             }
         case .customer:
-            CustomerTabView()
+            CustomerTabView().preference(key: LaunchReadyKey.self, value: true)
         case .groomer:
-            GroomerTabView()
+            GroomerTabView().preference(key: LaunchReadyKey.self, value: true)
         }
     }
 }

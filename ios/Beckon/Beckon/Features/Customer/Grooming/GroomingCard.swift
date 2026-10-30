@@ -123,7 +123,8 @@ struct GroomingCard: View {
             }
         }
         .padding(DesignTokens.Spacing.lg)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // Accept the parent's width even when a row's intrinsic measurement rounds up a pixel.
+        .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
         .frame(height: height, alignment: .top)
         .multilineTextAlignment(.leading)
         .beckonLedge(.card)

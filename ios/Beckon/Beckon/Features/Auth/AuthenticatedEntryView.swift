@@ -105,6 +105,7 @@ struct AuthenticatedEntryView: View {
                 loadFailureView(message: message)
             }
         }
+        .preference(key: LaunchReadyKey.self, value: store.state != .loading)
         .task(id: session.userID) {
             await store.load(userID: session.userID)
         }
@@ -151,17 +152,7 @@ struct AuthenticatedEntryView: View {
     }
 
     private var loadingView: some View {
-        ZStack {
-            DesignTokens.Colors.appBackground
-                .ignoresSafeArea()
-
-            BeckonLoadingView(
-                title: "Loading profile…",
-                message: "Preparing your Beckon workspace."
-            )
-            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                .accessibilityIdentifier("profile.loading")
-        }
+        LaunchWaitingView().accessibilityIdentifier("profile.loading")
     }
 
     private func loadFailureView(message: String) -> some View {

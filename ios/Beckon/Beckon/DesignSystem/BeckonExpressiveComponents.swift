@@ -199,37 +199,6 @@ struct BeckonCountdownStrip: View {
 }
 
 
-/// Greeting hand that waves a few times when the page first appears. Decorative; amber never encodes state.
-struct BeckonWaveHand: View {
-    @Environment(\.beckonEntranceReplay) private var replay
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var waveUp = false
-    @State private var playedReplay: Int?
-
-    var body: some View {
-        Image(systemName: "hand.wave.fill")
-            .font(DesignTokens.Typography.Expressive.glyphLarge)
-            .foregroundStyle(DesignTokens.Colors.ratingStar)
-            .rotationEffect(.degrees(waveUp ? 18 : -12), anchor: .bottomTrailing)
-            .accessibilityHidden(true)
-            .task(id: replay) {
-                guard playedReplay != replay else { return }
-                playedReplay = replay
-                waveUp = false
-                guard !reduceMotion else { return }
-                try? await Task.sleep(for: .milliseconds(700))
-                for _ in 0..<3 {
-                    guard !Task.isCancelled else { return }
-                    withAnimation(.easeInOut(duration: 0.26)) { waveUp = true }
-                    try? await Task.sleep(for: .milliseconds(260))
-                    withAnimation(.easeInOut(duration: 0.26)) { waveUp = false }
-                    try? await Task.sleep(for: .milliseconds(260))
-                }
-            }
-    }
-}
-
-
 /// Label of a dashed "add" slot: a plus that turns on its own beat, and a caption.
 struct BeckonLedgeAddSlot: View {
     let title: String

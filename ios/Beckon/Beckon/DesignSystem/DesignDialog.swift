@@ -98,6 +98,17 @@ struct DesignAlertDialog {
         ])
     }
 
+    /// A request is for a pet, so with none the buttons that start one (Home's Start Grooming Request, the Grooming tab's New Request)
+    /// ask first, in these words (design). Add pet runs `addPet` once the dialog has left, so a form can be opened by it.
+    static func addPetFirst(confirmIdentifier: String, addPet: @escaping @MainActor () -> Void) -> Self {
+        .confirmation(title: "Add your pet first",
+            message: "Groomers quote for a particular pet, so a request starts from a pet profile.",
+            systemImage: "pawprint.fill", confirmTitle: "Add pet", confirmSystemImage: "plus",
+            confirmIdentifier: confirmIdentifier, cancelTitle: "Not now") {
+            designRunAfterDialog { addPet() }
+        }
+    }
+
     fileprivate var spec: DesignDialogSpec {
         DesignDialogSpec(systemImage: systemImage, tone: tone, title: title, message: message, content: nil, actions: actions)
     }
@@ -178,6 +189,18 @@ private enum DesignDialogSequence {
     static func waitForTurn() async {
         let wait = freeAt - ContinuousClock.now
         if wait > .zero { try? await Task.sleep(for: wait) }
+    }
+}
+
+
+/// For a dialog's action that opens something else over the screen (a form, a sheet): it runs once the dialog's cover is gone, because
+/// UIKit refuses a cover while another is still leaving. Call it inside the action.
+@MainActor
+func designRunAfterDialog(_ work: @escaping @MainActor () -> Void) {
+    Task { @MainActor in
+        await DesignDialogSequence.waitForTurn()
+        guard !Task.isCancelled else { return }
+        work()
     }
 }
 

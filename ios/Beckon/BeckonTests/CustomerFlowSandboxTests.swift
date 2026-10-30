@@ -118,6 +118,7 @@ struct CustomerFlowSandboxTests {
         defer { session.invalidate() }
         try await session.prepare()
         let repo = session.marketplaceRepository
+        let seededIDs = Set(repo.items.map(\.id))
         let firstDraft = session.draft, secondDraft = session.draft
         let firstSession = repo.prepareLocal(draft: firstDraft)
         let secondSession = repo.prepareLocal(draft: secondDraft)
@@ -127,10 +128,12 @@ struct CustomerFlowSandboxTests {
             poolEnabled: true, groomerIDs: [CustomerSandboxFixtures.id(72)])
         #expect(first.requestID != second.requestID)
         #expect(first.requestID != CustomerSandboxFixtures.requestID)
-        #expect(repo.items.count == 3)
+        #expect(repo.items.count == seededIDs.count + 2)
+        #expect(Set(repo.items.map(\.id)) == seededIDs.union([first.requestID, second.requestID]))
         #expect(try await repo.publish(operationID: firstDraft.publishOperationID, session: firstSession,
             poolEnabled: false, groomerIDs: [CustomerSandboxFixtures.id(71)]) == first)
-        #expect(repo.items.count == 3)
+        #expect(repo.items.count == seededIDs.count + 2)
+        #expect(Set(repo.items.map(\.id)) == seededIDs.union([first.requestID, second.requestID]))
         let progress = try await repo.progress(requestIDs: [first.requestID, second.requestID])
         #expect(progress.first { $0.requestID == first.requestID }?.poolEnabled == false)
         #expect(progress.first { $0.requestID == second.requestID }?.invitations.map(\.groomerID) == [CustomerSandboxFixtures.id(72)])

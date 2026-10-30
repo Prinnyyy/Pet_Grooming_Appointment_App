@@ -16,8 +16,8 @@ extension CustomerRequestsStoreTests {
             isRequestStoreBusy: false
         )
 
-        #expect(loadingWithPet.isStartRequestDisabled == false)
-        #expect(emptyPets.isStartRequestDisabled == true)
+        #expect(loadingWithPet.needsPetFirst == false)
+        #expect(emptyPets.needsPetFirst == true)
     }
 
     @Test @MainActor

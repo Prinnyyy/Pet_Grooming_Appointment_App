@@ -7,17 +7,51 @@ import SwiftUI
 
 /// Customer hero: related-color gradient with drifting bubbles, a Deep-lipped base, and the pup peeking over the edge.
 /// `content` is the hero copy and its primary button; `isExcited` perks the pup while that button is pressed.
+/// `isPupHidden` (design): while the page is still loading the pup is not there; when it turns false it comes up from behind the
+/// card, stretching as it shoots up and settling with a wobble, the ears flung and the eyes wide, then its paws land on the edge
+/// and the card gives a little under them. A hero that was never hidden shows the pup at rest, as before.
 struct BeckonLedgeHero<Content: View>: View {
     var isExcited = false
+    var isPupHidden = false
     @ViewBuilder let content: Content
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.beckonEntranceActive) private var pageIsActive
+    @State private var riseOffset: CGFloat
+    @State private var stretch: CGFloat
+    @State private var tilt: Double
+    @State private var pawsLanded: Double
+    @State private var clipLine: CGFloat
+    @State private var cardDip: CGFloat = 1
+    @State private var isSurprised = false
+
+    init(isExcited: Bool = false, isPupHidden: Bool = false, @ViewBuilder content: () -> Content) {
+        self.isExcited = isExcited
+        self.isPupHidden = isPupHidden
+        self.content = content()
+        _riseOffset = State(initialValue: isPupHidden ? BeckonHeroPup.hiddenDepth : 0)
+        _stretch = State(initialValue: isPupHidden ? BeckonHeroPup.launchStretch : 0)
+        _tilt = State(initialValue: isPupHidden ? BeckonHeroPup.launchTilt : 0)
+        _pawsLanded = State(initialValue: isPupHidden ? 0 : 1)
+        _clipLine = State(initialValue: isPupHidden ? BeckonHeroPup.cardEdge : BeckonHeroPup.unclipped)
+    }
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            card.padding(.top, 46)
-            pup.padding(.trailing, 22).offset(y: -16)
+        VStack(alignment: .leading, spacing: 0) {
+            // The room above the card is the pup's: as tall as its art stands above the card's edge (the top of its frame is
+            // transparent, so the frame may reach a little into whatever is above).
+            Color.clear.frame(height: BeckonHeroPup.bandHeight)
+            // The pup is laid over the card's top edge (not scaled with it: the card dips under the pup's paws).
+            card
+                .scaleEffect(cardDip, anchor: .bottom)
+                .overlay(alignment: .topTrailing) { pup }
         }
+        .task(id: [isPupHidden, reduceMotion, scenePhase == .active, pageIsActive]) {
+            if isPupHidden { hidePup() }
+            else if reduceMotion || scenePhase != .active || !pageIsActive { showPup() }
+            else if riseOffset != 0 || pawsLanded != 1 { await emerge() }
+        }
+        .onDisappear { if !isPupHidden { showPup() } }
     }
 
     private var card: some View {
@@ -44,14 +78,111 @@ struct BeckonLedgeHero<Content: View>: View {
     }
 
     private var pup: some View {
-        let paused = BeckonMotionGate(reduceMotion: reduceMotion, scenePhase: scenePhase).isPaused
-        return TimelineView(.animation(minimumInterval: DesignTokens.Motion.idleFrame, paused: paused)) { context in
-            BeckonPup(time: paused ? 0 : context.date.timeIntervalSinceReferenceDate, excited: isExcited)
+        let paused = BeckonMotionGate(reduceMotion: reduceMotion, scenePhase: scenePhase).isPaused || !pageIsActive
+        // The frame stays where the pup rests; the pup moves inside it, and the cut at the card's top edge stays too, so what is
+        // below the edge is behind the card until the pup is above it.
+        return ZStack {
+            TimelineView(.animation(minimumInterval: DesignTokens.Motion.idleFrame, paused: paused)) { context in
+                BeckonPup(time: paused ? 0 : context.date.timeIntervalSinceReferenceDate,
+                    excited: isExcited || isSurprised, pawsLanded: pawsLanded)
+            }
+            .frame(width: 120, height: 92)
+            .scaleEffect(0.92, anchor: .bottom)
+            .scaleEffect(x: 1 - stretch / 2, y: 1 + stretch, anchor: .bottom)
+            .rotationEffect(.degrees(tilt), anchor: .bottom)
+            .offset(y: riseOffset)
         }
         .frame(width: 120, height: 92)
-        .scaleEffect(0.92, anchor: .bottom)
+        .clipShape(BeckonPupClip(bottom: clipLine))
+        .padding(.trailing, BeckonHeroPup.trailingInset)
+        .offset(y: -BeckonHeroPup.room)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+
+    private func hidePup() {
+        var instant = Transaction(animation: nil)
+        instant.disablesAnimations = true
+        withTransaction(instant) {
+            riseOffset = BeckonHeroPup.hiddenDepth
+            stretch = BeckonHeroPup.launchStretch
+            tilt = BeckonHeroPup.launchTilt
+            pawsLanded = 0
+            clipLine = BeckonHeroPup.cardEdge
+            isSurprised = false
+        }
+    }
+
+    private func showPup() {
+        var instant = Transaction(animation: nil)
+        instant.disablesAnimations = true
+        withTransaction(instant) {
+            riseOffset = 0
+            stretch = 0
+            tilt = 0
+            pawsLanded = 1
+            clipLine = BeckonHeroPup.unclipped
+            cardDip = 1
+            isSurprised = false
+        }
+    }
+
+    /// The pup comes up (design). The words of the card have faded in first; then, over about a second: it shoots up from behind the
+    /// card past its place (the spring overshoots), long and thin, tilted, ears flung and eyes wide; at the top of the overshoot its
+    /// chin is above the card's edge, so the cut is taken away without a trace, and its paws land on the edge with a bounce while
+    /// the card dips under them; then it calms down.
+    @MainActor private func emerge() async {
+        if reduceMotion { showPup(); return }
+        try? await Task.sleep(for: .milliseconds(300))
+        guard !Task.isCancelled, !isPupHidden else { return }
+        isSurprised = true
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.46)) {
+            riseOffset = 0
+            tilt = 0
+        }
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.42)) { stretch = 0 }
+        try? await Task.sleep(for: .milliseconds(270))
+        guard !Task.isCancelled, !isPupHidden else { return }
+        var cut = Transaction(animation: nil)
+        cut.disablesAnimations = true
+        withTransaction(cut) { clipLine = BeckonHeroPup.unclipped }
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.46)) { pawsLanded = 1 }
+        withAnimation(.spring(response: 0.22, dampingFraction: 0.5)) { cardDip = 0.985 }
+        try? await Task.sleep(for: .milliseconds(130))
+        guard !Task.isCancelled, !isPupHidden else { return }
+        withAnimation(.spring(response: 0.34, dampingFraction: 0.5)) { cardDip = 1 }
+        try? await Task.sleep(for: .milliseconds(420))
+        guard !Task.isCancelled else { return }
+        isSurprised = false
+    }
+}
+
+
+/// Where the pup is when it is behind the card, in the pup's own frame (the card's top edge is 62 pt below the frame's top).
+private enum BeckonHeroPup {
+    /// How far above the card's top edge the pup's frame reaches (its paws rest on the edge), and what the band above the card keeps
+    /// for the pup: the art starts about 11 pt below the top of its frame, so the band is shorter than the reach.
+    static let room: CGFloat = 62
+    static let bandHeight = BeckonHeroBand.height
+    static let trailingInset: CGFloat = 22
+    static let hiddenDepth: CGFloat = 84
+    static let cardEdge: CGFloat = 62
+    static let unclipped: CGFloat = 10_000
+    static let launchStretch: CGFloat = 0.22
+    static let launchTilt: Double = -14
+}
+
+
+/// Everything above `bottom` (in the frame's own coordinates, and without limit upward and sideways) is drawn.
+private struct BeckonPupClip: Shape {
+    var bottom: CGFloat
+    var animatableData: CGFloat {
+        get { bottom }
+        set { bottom = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        Path(CGRect(x: rect.minX - 400, y: rect.minY - 1000, width: rect.width + 800, height: 1000 + bottom))
     }
 }
 
@@ -129,6 +260,8 @@ struct BeckonBubbles: View {
 struct BeckonPup: View {
     let time: TimeInterval
     let excited: Bool
+    /// 1 = both paws on the edge; less, and they are smaller and lifted (a pup that is just putting them down).
+    var pawsLanded: Double = 1
 
     var body: some View {
         let bob = sin(time * 2.1) * 2.4
@@ -171,8 +304,8 @@ struct BeckonPup: View {
             .offset(y: bob)
             .stroke(DesignTokens.Colors.customerInk, style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round))
 
-            paw.position(x: 37, y: 80 + hop)
-            paw.position(x: 83, y: 80 + hop)
+            paw.scaleEffect(pawsLanded).offset(y: (1 - pawsLanded) * -16).position(x: 37, y: 80 + hop)
+            paw.scaleEffect(pawsLanded).offset(y: (1 - pawsLanded) * -16).position(x: 83, y: 80 + hop)
         }
         .frame(width: 120, height: 92)
         .rotationEffect(.degrees(tilt), anchor: .bottom)

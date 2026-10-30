@@ -277,3 +277,19 @@ private extension UserRole {
         }
     }
 }
+
+struct AccountDangerActionsSkeleton: View {
+    var body: some View {
+        VStack(spacing: DesignTokens.Spacing.sm) {
+            DesignSkeletonLine(width: 0.3, font: DesignTokens.Typography.Expressive.emphasis)
+                .designSkeleton(label: nil)
+                .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.ledgePrimaryButtonHeight)
+                .beckonLedge(.card)
+
+            DesignSkeletonLine(width: 0.34)
+                .designSkeletonOnPage()
+                .designSkeleton(label: nil)
+                .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.minimumTouchTarget)
+        }
+    }
+}

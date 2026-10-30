@@ -5,6 +5,22 @@ import XCTest
 
 @MainActor
 final class CustomerUIAdoptionAcceptanceTests: XCTestCase {
+    func testLaunchArtworkRendersFromSharedBrand() throws {
+        let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let lockup = ImageRenderer(content: BeckonLockup().padding(.vertical, 64).frame(width: 345)
+            .environment(\.scenePhase, .inactive).environment(\.dynamicTypeSize, .large))
+        lockup.scale = 3
+        let image = try XCTUnwrap(lockup.uiImage)
+        try XCTUnwrap(image.pngData()).write(to: directory.appendingPathComponent("LaunchLockup.png"))
+        let wash = ImageRenderer(content: VStack(spacing: 0) {
+            LinearGradient(colors: [DesignTokens.Colors.customerTint, DesignTokens.Colors.appBackground],
+                startPoint: .top, endPoint: .bottom).frame(height: 800)
+            DesignTokens.Colors.appBackground.frame(height: 200)
+        }.frame(width: 8, height: 1000))
+        try XCTUnwrap(wash.uiImage?.pngData()).write(to: directory.appendingPathComponent("LaunchWash.png"))
+        print("T422 launch artwork: \(image.size.width) × \(image.size.height) pt, 3x; \(directory.path)")
+    }
+
     func testDeclaredScreenStatesRenderAtDefaultAndAccessibilitySizes() async throws {
         let (window, previous) = try testWindow()
         defer { window.rootViewController = previous; window.makeKeyAndVisible() }

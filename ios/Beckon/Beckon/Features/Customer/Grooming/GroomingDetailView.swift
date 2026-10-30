@@ -32,6 +32,7 @@ struct GroomingDetailView: View {
     @State private var isCancelRequestPresented = false
     @State private var now = Date()
     @State private var loadError: String?
+    @State private var isResolving = true
     @Environment(\.scenePhase) private var scenePhase
     private let tick = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
 
@@ -75,17 +76,21 @@ struct GroomingDetailView: View {
     // MARK: Body
 
     var body: some View {
-        Group {
-            if booking != nil || request != nil {
-                page
-            } else {
-                unavailable
-            }
+        DesignReveal(isLoading: isResolving && booking == nil && request == nil) {
+            if booking != nil || request != nil { page } else { unavailable }
+        } placeholder: {
+            DesignPage(cascades: false) { GroomingDetailSkeleton() }
+                .accessibilityIdentifier("grooming.detail.loading")
         }
         .navigationTitle("Details")
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier(booking != nil ? "bookings.detail" : "customer.requests.detail")
-        .task(id: target) { await load() }
+        .task(id: target) {
+            isResolving = true
+            await load()
+            guard !Task.isCancelled else { return }
+            isResolving = false
+        }
         .onReceive(tick) { if scenePhase == .active { now = $0 } }
     }
 
@@ -99,7 +104,9 @@ struct GroomingDetailView: View {
                             .buttonStyle(BeckonGuardedPlainButtonStyle())
                     }
                 }
-                needsYou
+                DesignReveal(isLoading: isResolving && booking != nil && booking?.fulfillment == nil && (stage == .booked || stage == .finished)) {
+                    needsYou
+                } placeholder: { GroomingNeedsSkeleton() }
                 stageSection
                 details
                 manage
@@ -436,10 +443,6 @@ struct GroomingDetailView: View {
                     Button("Retry") { Task { await load() } }.buttonStyle(BeckonGuardedPlainButtonStyle())
                 }
             case .booking(let id):
-                if bookingsStore == nil || bookingsStore?.bookingReadStates[id] == nil || bookingsStore?.bookingReadStates[id] == .loading {
-                    BeckonLoadingView(title: "Loading booking…", message: "Checking this appointment.", accent: .customer)
-                        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                } else {
                     VStack(spacing: DesignTokens.Spacing.lg) {
                         BeckonLedgeNote(systemImage: "calendar.badge.exclamationmark",
                             text: "Booking unavailable. This booking could not be verified.")
@@ -450,7 +453,6 @@ struct GroomingDetailView: View {
                         .accessibilityIdentifier("bookings.detail.retry")
                     }
                     .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                }
             }
         }
     }

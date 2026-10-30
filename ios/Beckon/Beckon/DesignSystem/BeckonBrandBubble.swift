@@ -4,6 +4,57 @@
 import SwiftUI
 
 
+/// The brand lockup: the orb with the pup, "Beckon", and the line under it. The landing and the launch scene (design) show the same
+/// one in the same place, so the app opens on it and the landing is the launch scene with its two buttons added.
+struct BeckonLockup: View {
+    var hasEntered = true
+    var isExcited = false
+    /// The words arrive as the first block of the page (the landing); the launch scene has them from its first frame.
+    var dealsInWords = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
+
+    var body: some View {
+        VStack(spacing: DesignTokens.Spacing.lg) {
+            BeckonBrandBubble(isMotionEnabled: !reduceMotion && scenePhase == .active,
+                hasEntered: hasEntered || reduceMotion, isExcited: isExcited)
+
+            words.modifier(LockupEntrance(deals: dealsInWords))
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var words: some View {
+        VStack(spacing: DesignTokens.Spacing.sm) {
+            Text("Beckon")
+                .font(DesignTokens.Typography.Expressive.display)
+                .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                .multilineTextAlignment(.center)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .accessibilityAddTraits(.isHeader)
+
+            Text("Pet groomers at your beck and call.")
+                .font(DesignTokens.Typography.Expressive.body)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                .multilineTextAlignment(.center)
+                .lineSpacing(3)
+                .frame(maxWidth: 310)
+        }
+    }
+
+    private struct LockupEntrance: ViewModifier {
+        let deals: Bool
+
+        func body(content: Content) -> some View {
+            if deals { content.beckonEntrance(0) } else { content }
+        }
+    }
+}
+
+
 /// Brand artwork has its own material; it is not an actionable card.
 struct BeckonBrandBubble: View {
     let isMotionEnabled: Bool

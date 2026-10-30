@@ -67,6 +67,11 @@ private struct BeckonEntranceActiveKey: EnvironmentKey {
 }
 
 
+private struct BeckonRevealsInPlaceKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+
 extension EnvironmentValues {
     /// False while the page a block sits in is not the one on screen (the other tabs). Its blocks wait hidden and arrive again
     /// the moment it becomes true, so a tab root is dealt in every time it is selected, not only the first time.
@@ -80,6 +85,13 @@ extension EnvironmentValues {
     var beckonEntranceSettled: Bool {
         get { self[BeckonEntranceSettledKey.self] }
         set { self[BeckonEntranceSettledKey.self] = newValue }
+    }
+
+    /// True inside a revealed placeholder (`DesignReveal`): the content takes the place the placeholder held, so its blocks
+    /// are simply there (the reveal cross-fades them) instead of springing in a second time from below (design).
+    var beckonRevealsInPlace: Bool {
+        get { self[BeckonRevealsInPlaceKey.self] }
+        set { self[BeckonRevealsInPlaceKey.self] = newValue }
     }
 
     var beckonEntranceRhythm: BeckonEntranceRhythm {
@@ -106,6 +118,7 @@ private struct BeckonEntranceModifier: ViewModifier {
     @Environment(\.beckonEntranceTravel) private var travel
     @Environment(\.beckonEntranceSettled) private var pageIsSettled
     @Environment(\.beckonEntranceActive) private var pageIsActive
+    @Environment(\.beckonRevealsInPlace) private var revealsInPlace
     @Environment(\.layoutDirection) private var layoutDirection
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var arrived = false
@@ -171,6 +184,12 @@ private struct BeckonEntranceModifier: ViewModifier {
     }
 
     private func play(profile: DesignTokens.Motion.Entrance, isLeader: Bool, isLate: Bool) {
+        if revealsInPlace {
+            var inPlace = Transaction(animation: nil)
+            inPlace.disablesAnimations = true
+            withTransaction(inPlace) { arrived = true }
+            return
+        }
         let beats = isLate ? 0 : Double(min(max(order, 0), profile.maxBeats))
         withAnimation(reduceMotion
             ? DesignTokens.Motion.reduced

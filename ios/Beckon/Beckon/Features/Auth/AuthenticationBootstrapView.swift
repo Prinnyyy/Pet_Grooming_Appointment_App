@@ -4,6 +4,14 @@ struct AuthenticationBootstrapView: View {
     let state: AuthenticationBootstrapState
 
     var body: some View {
+        switch state {
+        case .ready: LaunchWaitingView()
+        case .configurationError:
+            configurationErrorContent.preference(key: LaunchReadyKey.self, value: true)
+        }
+    }
+
+    private var configurationErrorContent: some View {
         ZStack {
             DesignTokens.Colors.appBackground
                 .ignoresSafeArea()

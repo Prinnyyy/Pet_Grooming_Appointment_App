@@ -5,6 +5,7 @@ struct CustomerHomeView: View {
     @Environment(\.customerRequestFlowHosted) private var requestFlowHosted
     private let displayName: String
     private let isActiveTab: Bool
+    @Binding private var addPetRequested: Bool
     private let customerProfileRepository: (any CustomerProfileRepository)?
     private let onActiveRequestSelected: (UUID) -> Void
     private let onBookingChatSelected: (Booking) -> Void
@@ -14,11 +15,24 @@ struct CustomerHomeView: View {
     @State private var bookingStore: BookingsStore
     @State private var notificationStore: CustomerNotificationsStore
     @State private var isShowingNotifications = false
+    /// Each store has finished its first load (design). Until then a place shows its own shape in bars, never an empty state.
+    private var petsSettled: Bool { petStore.hasLoadedOnce || !petStore.pets.isEmpty }
+    private var requestsSettled: Bool { requestStore.hasLoadedOnce || !requestStore.requests.isEmpty }
+    private var bookingSettled: Bool { bookingStore.hasLoadedOnce || !bookingStore.bookings.isEmpty }
+    /// Start Grooming Request was tapped with no pet yet: a dialog asks to add one first (design).
+    @State private var isAskingForPet = false
+    /// Where the page is scrolled (design): the scene's layers and the header read it; the page itself does not.
+    @State private var scrollDepth = BeckonScrollDepth()
+    /// The page is pulled far enough that letting go refreshes it.
+    @State private var isPullArmed = false
+    @State private var didHapticForPull = false
+    @State private var refreshTask: Task<Void, Never>?
 
     init(
         customerID: UUID,
         displayName: String? = nil,
         isActiveTab: Bool = true,
+        addPetRequested: Binding<Bool> = .constant(false),
         repository: any CustomerPetRepository,
         customerProfileRepository: (any CustomerProfileRepository)? = nil,
         requestRepository: any CustomerRequestRepository,
@@ -38,6 +52,7 @@ struct CustomerHomeView: View {
         ) ?? ""
         self.displayName = trimmedName.isEmpty ? "there" : trimmedName
         self.isActiveTab = isActiveTab
+        _addPetRequested = addPetRequested
         self.customerProfileRepository = customerProfileRepository
         self.onActiveRequestSelected = onActiveRequestSelected
         self.onBookingChatSelected = onBookingChatSelected
@@ -95,6 +110,19 @@ struct CustomerHomeView: View {
         .sheet(isPresented: $petStore.isShowingPetForm) {
             CustomerPetFormView(store: petStore)
         }
+        .onChange(of: petStore.pets) { _, currentPets in
+            requestStore.synchronizePets(currentPets)
+        }
+        // A request is for a pet, so with none the button asks first and Add pet opens the same form as the Pets row's last cell.
+        .designAlertDialog(isPresented: $isAskingForPet) {
+            .addPetFirst(confirmIdentifier: "customer.home.start-request.add-pet") { petStore.startCreate() }
+        }
+        // Another tab (Grooming's New Request) asked for the Pet form: this is the page that owns it.
+        .onChange(of: addPetRequested, initial: true) { _, requested in
+            guard requested else { return }
+            addPetRequested = false
+            petStore.startCreate()
+        }
         .sheet(isPresented: requestWizardPresentationBinding) {
             CustomerRequestWizardView(
                 store: requestStore,
@@ -116,20 +144,22 @@ struct CustomerHomeView: View {
         }
         .accessibilityIdentifier("customer.home")
         .environment(\.beckonCustomerDesign, true)
+        .onDisappear { refreshTask?.cancel(); refreshTask = nil; scrollDepth.isRefreshing = false }
     }
 
     private var screenContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionSpacing) {
-                CustomerHomeHeader(
+                CustomerHomeTop(
                     displayName: displayName,
-                    line: greeting.line,
+                    isHeroLoading: !petsSettled,
+                    depth: scrollDepth,
                     unreadNotificationCount: notificationStore.unreadCount,
                     notificationAction: {
                         isShowingNotifications = true
-                    }
+                    },
+                    startAction: startGroomingRequest
                 )
-                .beckonEntrance(0)
 
                 if petStore.hasPendingCreation || petStore.hasCreationRecoveryError {
                     Button { petStore.startCreate() } label: {
@@ -145,23 +175,17 @@ struct CustomerHomeView: View {
                     .buttonStyle(BeckonLedgeButtonStyle(.card))
                     .accessibilityLabel("Confirm pending pet")
                     .accessibilityIdentifier("customer.pets.resume-create")
-                    .beckonEntrance(1)
+                    .beckonEntrance(2)
                 }
-
-                CustomerHomeRequestHero(
-                    isDisabled: requestHeroPresentation.isStartRequestDisabled,
-                    action: startGroomingRequest
-                )
-                .beckonEntrance(1)
-                .beckonScrollEase()
 
                 GroomingPhotoUploadRetryList(store: requestStore)
                     .beckonEntrance(2)
 
-                CustomerHomePetsSection(store: petStore)
+                CustomerHomePetsSection(store: petStore, isSettled: petsSettled)
 
                 CustomerHomeNextUpSection(
                     entries: nextUpEntries,
+                    isSettled: requestsSettled && bookingSettled,
                     requests: activeRequestPresentation,
                     booking: nextBookingPresentation,
                     staleBookingNote: nextBooking == nil ? nil : bookingStore.errorMessage,
@@ -185,6 +209,34 @@ struct CustomerHomeView: View {
         }
             .beckonTracksScroll()
         .scrollContentBackground(.hidden)
+        .onScrollGeometryChange(for: CGFloat.self) { geometry in
+            geometry.contentOffset.y + geometry.contentInsets.top
+        } action: { _, offset in
+            scrollDepth.offset = offset
+            let armed = -offset >= BeckonScrollDepth.armedPull
+            if armed != isPullArmed { isPullArmed = armed }
+            if armed, !scrollDepth.isRefreshing, !didHapticForPull { didHapticForPull = true }
+        }
+        // Pull down and let go: refresh the page (the same load as coming back to the app). Nothing is drawn for it, neither a
+        // spinner nor a mark in the scene: what changed changes in place (design).
+        .onScrollPhaseChange { old, new in
+            if new == .interacting { didHapticForPull = false }
+            guard old == .interacting, new != .interacting, isPullArmed, isActiveTab, !scrollDepth.isRefreshing else { return }
+            refreshByPull()
+        }
+        .sensoryFeedback(.impact(weight: .light), trigger: didHapticForPull) { _, armed in armed }
+    }
+
+    private func refreshByPull() {
+        scrollDepth.isRefreshing = true
+        refreshTask = Task {
+            let started = ProcessInfo.processInfo.systemUptime
+            await loadHome()
+            // Another pull has to wait a moment, however quick the answer was.
+            let rest = DesignTokens.Motion.pullRefreshMinimum - (ProcessInfo.processInfo.systemUptime - started)
+            if rest > 0 { try? await Task.sleep(for: .seconds(rest)) }
+            if !Task.isCancelled { scrollDepth.isRefreshing = false }
+        }
     }
 
     private var requestHeroPresentation: CustomerHomeRequestHeroPresentation {
@@ -194,20 +246,10 @@ struct CustomerHomeView: View {
         )
     }
 
-    private var greeting: CustomerHomeGreetingPresentation {
-        let card = requestStore.visibleActionCards.first
-        return CustomerHomeGreetingPresentation(
-            requestStep: card.flatMap { CustomerRequestSummaryPresentation(card: $0).step },
-            offerCount: card?.loadedOfferCount,
-            petName: card?.request.petSnapshot.name ?? petStore.pets.first?.name,
-            bookingCountdown: nextBooking.flatMap { BeckonBookingCountdown.label(for: $0) }
-        )
-    }
-
     private var activeRequestPresentation: CustomerHomeActiveRequestPresentation {
         CustomerHomeActiveRequestPresentation(
             cards: requestStore.visibleActionCards,
-            isLoading: requestStore.isLoading,
+            isLoading: !requestsSettled && requestStore.isLoading,
             loadErrorMessage: requestStore.errorMessage
         )
     }
@@ -226,7 +268,7 @@ struct CustomerHomeView: View {
     private var nextBookingPresentation: CustomerHomeNextBookingPresentation {
         CustomerHomeNextBookingPresentation(
             booking: nextBooking,
-            isLoading: bookingStore.isLoading,
+            isLoading: !bookingSettled && bookingStore.isLoading,
             loadErrorMessage: bookingStore.errorMessage
         )
     }
@@ -240,7 +282,11 @@ struct CustomerHomeView: View {
     }
 
     private func startGroomingRequest() {
-        requestStore.startCreate()
+        if requestHeroPresentation.needsPetFirst {
+            isAskingForPet = true
+        } else {
+            requestStore.startCreate()
+        }
     }
 
     private var requestWizardPresentationBinding: Binding<Bool> {
@@ -268,7 +314,8 @@ struct CustomerHomeRequestHeroPresentation: Equatable {
     let hasPets: Bool
     let isRequestStoreBusy: Bool
 
-    var isStartRequestDisabled: Bool {
+    /// The button is always offered; with no pet it asks to add one before it starts a request.
+    var needsPetFirst: Bool {
         !hasPets
     }
 }
@@ -351,25 +398,42 @@ struct CustomerHomeNextBookingPresentation: Equatable {
 }
 
 
-/// The one line under the greeting: always names the next step, from the data the modules below show.
-struct CustomerHomeGreetingPresentation: Equatable {
-    let line: String
+/// The top of Home (design, design): the title with the bell on one row, like the other tabs, then the request card straight under it.
+/// Nothing is written under the title; the room above the card is the pup's. Behind all of it stands the scene (sky, clouds,
+/// mountains, lawn). While the page is pulled down the title and the bell stay where they are and the card goes down with the
+/// page, so the scene opens up between them.
+private struct CustomerHomeTop: View {
+    let displayName: String
+    var isHeroLoading = false
+    let depth: BeckonScrollDepth
+    let unreadNotificationCount: Int
+    let notificationAction: () -> Void
+    let startAction: () -> Void
 
-    init(requestStep: Int?, offerCount: Int?, petName: String?, bookingCountdown: String?) {
-        let subject = petName ?? "Your pet"
-        switch (requestStep, bookingCountdown) {
-        case (2?, _):
-            let pet = petName ?? "your pet"
-            line = offerCount.map { "\($0) offer\($0 == 1 ? " is" : "s are") waiting for \(pet)!" }
-                ?? "Offers are waiting for \(pet)!"
-        case (3?, let when?), (nil, let when?):
-            line = "\(subject)'s groom is \(when.lowercased())"
-        case (3?, nil):
-            line = "\(subject)'s groom is booked!"
-        case (1?, _):
-            line = "Groomers are looking at your request"
-        default:
-            line = "Ready for a fresh trim?"
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            CustomerHomeHeader(
+                displayName: displayName,
+                unreadNotificationCount: unreadNotificationCount,
+                notificationAction: notificationAction
+            )
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+            .beckonEntrance(0)
+            .beckonStaysWhilePulled(depth)
+            // The scene stands behind the hero and reaches up behind the title, so the title is drawn above it.
+            .zIndex(1)
+
+            CustomerHomeRequestHero(
+                isLoading: isHeroLoading,
+                action: startAction
+            )
+            .beckonEntrance(1)
+            .beckonScrollEase()
+            .background(alignment: .top) {
+                BeckonHomeScene(depth: depth)
+                    .padding(.horizontal, -DesignTokens.Layout.pageHorizontalInset)
+                    .offset(y: -BeckonHomeScene.headroom)
+            }
         }
     }
 }
@@ -377,28 +441,22 @@ struct CustomerHomeGreetingPresentation: Equatable {
 
 private struct CustomerHomeHeader: View {
     let displayName: String
-    let line: String
     let unreadNotificationCount: Int
     let notificationAction: () -> Void
+    /// One size above `Expressive.display` (design): the greeting is the only text of the top, so it carries it; it still follows the
+    /// text size setting (up to the largest ordinary size) and shrinks before it wraps.
+    @ScaledMetric(relativeTo: .largeTitle) private var titleSize = DesignTokens.Metrics.homeTitleSize
 
     var body: some View {
         HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    Text("Hi, \(displayName)!")
-                        .font(DesignTokens.Typography.Expressive.display)
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    BeckonWaveHand()
-                }
-
-                Text(line)
-                    .designSupportingText()
-                    .id(line)
-                    .transition(.push(from: .bottom))
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .beckonAnimation(DesignTokens.Motion.swap, value: line)
+            Text("Hi, \(displayName)!")
+                .font(DesignTokens.Typography.Expressive.homeGreeting(size: titleSize))
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(DesignTokens.Metrics.homeTitleMinimumScale)
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityAddTraits(.isHeader)
 
             BeckonExpressiveNotificationBell(
                 unreadCount: unreadNotificationCount,
@@ -411,12 +469,34 @@ private struct CustomerHomeHeader: View {
 
 
 private struct CustomerHomeRequestHero: View {
-    let isDisabled: Bool
+    /// The pets are not known yet (design): the card says nothing, as bars, its button is a bar (it depends on the pets, so it is not
+    /// offered before they are known), and the pup is not there; when the words arrive the pup comes up from behind the card.
+    var isLoading = false
     let action: () -> Void
     @State private var isActionPressed = false
+    @State private var isRevealed: Bool
+
+    init(isLoading: Bool = false, action: @escaping () -> Void) {
+        self.isLoading = isLoading
+        self.action = action
+        _isRevealed = State(initialValue: !isLoading)
+    }
 
     var body: some View {
-        BeckonLedgeHero(isExcited: isActionPressed) {
+        BeckonLedgeHero(isExcited: isActionPressed, isPupHidden: !isRevealed) {
+            DesignReveal(isLoading: isLoading, onReveal: { isRevealed = true }) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                    words
+                    startButton
+                }
+            } placeholder: {
+                bars
+            }
+        }
+    }
+
+    private var words: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             Text(CustomerHomeRequestHeroPresentation.title)
                 .font(DesignTokens.Typography.Expressive.hero)
                 .foregroundStyle(DesignTokens.Colors.customerInk)
@@ -426,79 +506,64 @@ private struct CustomerHomeRequestHero: View {
                 .font(DesignTokens.Typography.Expressive.body)
                 .foregroundStyle(DesignTokens.Colors.customerInk)
                 .fixedSize(horizontal: false, vertical: true)
-
-            Button(action: action) {
-                BeckonLedgePrimaryLabel(
-                    title: CustomerHomeRequestHeroPresentation.actionTitle,
-                    systemImage: "scissors"
-                )
-            }
-            .buttonStyle(BeckonLedgeButtonStyle(.primary) { isActionPressed = $0 })
-            .padding(.top, DesignTokens.Spacing.sm)
-            .disabled(isDisabled)
-            .accessibilityIdentifier("customer.home.start-request")
-            .accessibilityLabel(CustomerHomeRequestHeroPresentation.actionTitle)
-
-            if isDisabled {
-                Label(
-                    "Add a pet profile before starting a grooming request.",
-                    systemImage: "pawprint"
-                )
-                .font(DesignTokens.Typography.status)
-                .foregroundStyle(DesignTokens.Colors.customerInk)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("customer.home.start-request.requirement")
-            }
         }
+    }
+
+    private var startButton: some View {
+        Button(action: action) {
+            BeckonLedgePrimaryLabel(
+                title: CustomerHomeRequestHeroPresentation.actionTitle,
+                systemImage: "scissors"
+            )
+        }
+        .buttonStyle(BeckonLedgeButtonStyle(.primary) { isActionPressed = $0 })
+        .padding(.top, DesignTokens.Spacing.sm)
+        .accessibilityIdentifier("customer.home.start-request")
+        .accessibilityLabel(CustomerHomeRequestHeroPresentation.actionTitle)
+    }
+
+    /// The same room as the words and the button: a headline of two lines, a text of two lines, the button as a block.
+    private var bars: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            VStack(alignment: .leading, spacing: 0) {
+                DesignSkeletonLine(width: 0.82, font: DesignTokens.Typography.Expressive.hero)
+                DesignSkeletonLine(width: 0.58, font: DesignTokens.Typography.Expressive.hero)
+            }
+            VStack(alignment: .leading, spacing: 0) {
+                DesignSkeletonLine(width: 0.96, font: DesignTokens.Typography.Expressive.body)
+                DesignSkeletonLine(width: 0.6, font: DesignTokens.Typography.Expressive.body)
+            }
+            DesignSkeletonBlock(cornerRadius: DesignTokens.CornerRadius.ledgeButton)
+                .frame(height: DesignTokens.Metrics.ledgePrimaryButtonHeight)
+                .padding(.top, DesignTokens.Spacing.sm)
+        }
+        .designSkeleton(label: "Loading")
     }
 }
 
 
 struct CustomerHomePetsSection: View {
     @Bindable var store: CustomerPetsStore
+    /// False while the first load is out: the row shows pet cards as bars (design).
+    var isSettled = true
     @State private var removing: CustomerPet?
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
-            BeckonLedgeHeading(title: "Pets", systemImage: "pawprint.fill", count: store.pets.count)
-                .beckonEntrance(2)
-
-            if store.isLoading, store.pets.isEmpty {
-                BeckonLoadingView(
-                    title: "Loading pets…",
-                    message: "Fetching your saved pet profiles.",
-                    accent: .customer
-                )
-                .accessibilityIdentifier("customer.pets.loading")
-            } else if store.pets.isEmpty {
-                DesignPupPeek {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                        Text("Add your first pet")
-                            .font(DesignTokens.Typography.Expressive.title)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        Text("A profile helps groomers match you with the right care.")
-                            .designSupportingText()
-                        Button { store.startCreate() } label: {
-                            DesignActionLabel(title: "Add pet", systemImage: "plus")
-                        }
-                        .buttonStyle(BeckonLedgeButtonStyle(.pill))
-                        .accessibilityIdentifier("customer.pets.add")
-                    }
-                    .designCardBody()
-                }
-                .accessibilityIdentifier("customer.pets.list")
-            } else if typeSize.isAccessibilitySize {
-                // Accessibility sizes reflow the carousel into full-width cards instead of squeezing text.
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    tiles(width: 0)
-                }
-                .padding(.vertical, DesignTokens.Spacing.sm)
-                .accessibilityIdentifier("customer.pets.list")
-            } else {
-                BeckonPeekCarousel(wholeCards: 2) { width in tiles(width: width) }
-                .accessibilityIdentifier("customer.pets.list")
+            DesignReveal(isLoading: !isSettled) {
+                BeckonLedgeHeading(title: "Pets", systemImage: "pawprint.fill", count: store.pets.count)
+            } placeholder: {
+                DesignSkeletonHeading()
             }
+            .beckonEntrance(2)
+
+            DesignReveal(isLoading: !isSettled) {
+                petsContent
+            } placeholder: {
+                petsPlaceholder
+            }
+            .beckonEntrance(3)
         }
         // Removing a pet has no restore (no snackbar to offer), so it asks first.
         .designAlertDialog(item: $removing) { pet in
@@ -511,18 +576,78 @@ struct CustomerHomePetsSection: View {
         }
     }
 
+    @ViewBuilder
+    private var petsContent: some View {
+        // With no pet the row is the same row with only its last cell, the dashed Add pet card, at the width of a pet card (design).
+        if typeSize.isAccessibilitySize {
+            // Accessibility sizes reflow the carousel into full-width cards instead of squeezing text.
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                tiles(width: 0)
+            }
+            .padding(.vertical, DesignTokens.Spacing.sm)
+            .accessibilityIdentifier("customer.pets.list")
+        } else {
+            BeckonPeekCarousel(wholeCards: 2) { width in tiles(width: width) }
+            .accessibilityIdentifier("customer.pets.list")
+        }
+    }
+
+    /// The row while the pets are on their way: the cards in the size they will have, as bars, the third peeking in.
+    @ViewBuilder
+    private var petsPlaceholder: some View {
+        if typeSize.isAccessibilitySize {
+            CustomerHomePetTileSkeleton(width: 0)
+                .padding(.vertical, DesignTokens.Spacing.sm)
+        } else {
+            BeckonPeekCarousel(wholeCards: 2) { width in
+                CustomerHomePetTileSkeleton(width: width)
+                CustomerHomePetTileSkeleton(width: width)
+                CustomerHomePetTileSkeleton(width: width)
+            }
+            .scrollDisabled(true)
+        }
+    }
+
     /// `width` is the carousel's card width; accessibility sizes stack full-width cards and ignore it.
     @ViewBuilder
     private func tiles(width: CGFloat) -> some View {
         ForEach(Array(store.pets.enumerated()), id: \.element.id) { index, pet in
             CustomerHomePetTile(pet: pet, index: index, store: store, width: width) { removing = $0 }
-                .beckonEntrance(3 + min(index, 1))
         }
 
         CustomerHomeAddPetTile(width: width) {
             store.startCreate()
         }
-        .beckonEntrance(3 + min(store.pets.count, 1))
+    }
+}
+
+
+/// A pet card as bars: the head, the name and breed, the two facts; the same frame as the card, so the card takes its place.
+private struct CustomerHomePetTileSkeleton: View {
+    let width: CGFloat
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            DesignSkeletonBlock(cornerRadius: 0)
+                .frame(height: 112)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    DesignSkeletonLine(width: 0.7, font: DesignTokens.Typography.Expressive.title)
+                    DesignSkeletonLine(width: 0.55)
+                }
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    DesignSkeletonLine(width: 0.4, font: DesignTokens.Typography.Expressive.label)
+                    DesignSkeletonLine(width: 0.34, font: DesignTokens.Typography.Expressive.label)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(DesignTokens.Spacing.md)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .designSkeleton(label: "Loading your pets")
+        .homePetCardFrame(width: width)
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous))
+        .beckonLedge(.card)
     }
 }
 
@@ -705,6 +830,8 @@ private struct CustomerHomeAddPetTile: View {
 /// stale note when the booking could not refresh, and the empty line.
 private struct CustomerHomeNextUpSection: View {
     let entries: [GroomingEntry]
+    /// False while the first load of the requests or the booking is out: one card as bars (design).
+    let isSettled: Bool
     let requests: CustomerHomeActiveRequestPresentation
     let booking: CustomerHomeNextBookingPresentation
     let staleBookingNote: String?
@@ -715,8 +842,24 @@ private struct CustomerHomeNextUpSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
-            BeckonLedgeHeading(title: "Next up", systemImage: "sparkles", count: entries.count)
+            DesignReveal(isLoading: !isSettled) {
+                BeckonLedgeHeading(title: "Next up", systemImage: "sparkles", count: entries.count)
+            } placeholder: {
+                DesignSkeletonHeading()
+            }
 
+            DesignReveal(isLoading: !isSettled) {
+                loadedContent
+            } placeholder: {
+                GroomingCardSkeleton(style: .glance)
+                    .accessibilityIdentifier("customer.home.next-up.loading")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var loadedContent: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
             if !entries.isEmpty {
                 row
                 if let staleBookingNote {
@@ -724,13 +867,6 @@ private struct CustomerHomeNextUpSection: View {
                         .font(DesignTokens.Typography.supporting)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
                 }
-            } else if requests.state == .loading || booking.shouldShowLoading {
-                BeckonLoadingView(
-                    title: "Loading your grooming…",
-                    message: "Checking what is in progress.",
-                    accent: .customer
-                )
-                .accessibilityIdentifier("customer.home.next-up.loading")
             } else {
                 if case .error(let message) = requests.state {
                     GroomingLoadFailureBanner(
@@ -806,10 +942,11 @@ private struct CustomerHomeStatusView: View {
 
 #if DEBUG
 extension CustomerHomeView {
-    init(sandbox: CustomerSandboxSession, isActiveTab: Bool = true,
+    init(sandbox: CustomerSandboxSession, isActiveTab: Bool = true, addPetRequested: Binding<Bool> = .constant(false),
          onSelectRequest: @escaping (UUID) -> Void, onOpenChat: @escaping (Booking) -> Void = { _ in }) {
         displayName = sandbox.accountRepository.details.nickname
         self.isActiveTab = isActiveTab
+        _addPetRequested = addPetRequested
         customerProfileRepository = sandbox.accountRepository
         onActiveRequestSelected = onSelectRequest
         onBookingChatSelected = onOpenChat
@@ -823,6 +960,7 @@ extension CustomerHomeView {
     init(previewSession: CustomerHomeFlowSandboxSession, onSelectRequest: @escaping (UUID) -> Void) {
         displayName = "Lian"
         isActiveTab = true
+        _addPetRequested = .constant(false)
         customerProfileRepository = nil
         onActiveRequestSelected = onSelectRequest
         onBookingChatSelected = { _ in previewSession.pets.feedbackCenter.showError(

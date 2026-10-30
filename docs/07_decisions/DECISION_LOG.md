@@ -18,6 +18,16 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-066
+Date: 2026-10-29
+Task: T-422
+Decision: Adopt handoff 3's latest customer flow and visual states. One launch scene spans startup/session/profile resolution; real failure and retry remain reachable. Existing Stores expose first-load completion instead of a timed assumption; skeletons delay 0.15s, remain at least 0.45s and reveal content in place, never return for refresh/load-more. Home's 72pt pull refresh is explicitly approved, as is lawn color B1E0C5. Request entry with no pet opens one Add pet first dialog; Grooming routes to Home's existing form and saving remains on Home.
+Context: The user prioritizes the refined interaction flow, delegates D1/D2/D6, and permits shared component updates across roles because groomer UX will be redesigned later. This supersedes handoff 3's customer-only restriction for shared primitives, not its data safety constraints.
+Consequences: Adopt the new Home scene/header/hero, reserved loading layouts, plain empty cards and aligned tab title rows. Shared title/loading primitives may evolve together; preserve role semantics, actions and accents. Reuse tokens and existing repositories/fixtures; no six-second false success, new backend state, broad audit exemption or groomer-page redesign.
+Linked files: docs/superpowers/plans/2026-10-29-loading-home-flow-adoption.md.
+```
+
+```text
 Decision ID: D-065
 Date: 2026-10-29
 Task: T-421

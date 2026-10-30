@@ -17,9 +17,16 @@ struct CustomerGroomingView: View {
     /// False while another tab is showing: the request wizard is one shared sheet, and only the tab on screen presents it (S-041).
     private let isActiveTab: Bool
     private let onOpenChat: (Booking) -> Void
+    /// Opens the Pet form, which Home owns: the tab view takes the person there (design).
+    private let onAddPet: () -> Void
+    /// New Request was tapped with no pet yet: the same dialog as Home's Start Grooming Request asks to add one first.
+    @State private var isAskingForPet = false
     @State private var carouselPosition: UUID?
     @State private var destination: GroomingDestination?
     @State private var pendingCancelRequest: CustomerGroomingRequest?
+    /// The requests and the bookings have each finished their first load (design): until then the page is its own shape in bars.
+    private var requestsSettled: Bool { requestStore.hasLoadedOnce || !requestStore.requests.isEmpty }
+    private var bookingsSettled: Bool { bookingsStore.hasLoadedOnce || !bookingsStore.bookings.isEmpty }
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -29,7 +36,8 @@ struct CustomerGroomingView: View {
         customerProfileRepository: (any CustomerProfileRepository)? = nil,
         isActiveTab: Bool = true,
         focusedRequestID: Binding<UUID?> = .constant(nil),
-        onOpenChat: @escaping (Booking) -> Void = { _ in }
+        onOpenChat: @escaping (Booking) -> Void = { _ in },
+        onAddPet: @escaping () -> Void = {}
     ) {
         _requestStore = State(initialValue: requestStore)
         _bookingsStore = State(initialValue: bookingsStore)
@@ -37,16 +45,19 @@ struct CustomerGroomingView: View {
         self.customerProfileRepository = customerProfileRepository
         self.isActiveTab = isActiveTab
         self.onOpenChat = onOpenChat
+        self.onAddPet = onAddPet
     }
 
     #if DEBUG
     init(sandbox: CustomerSandboxSession, isActiveTab: Bool = true, focusedRequestID: Binding<UUID?> = .constant(nil),
-         onOpenChat: @escaping (Booking) -> Void = { _ in }) {
+         onOpenChat: @escaping (Booking) -> Void = { _ in }, onAddPet: @escaping () -> Void = {}) {
         self.init(requestStore: sandbox.requests, bookingsStore: sandbox.bookings,
             customerProfileRepository: sandbox.accountRepository, isActiveTab: isActiveTab,
-            focusedRequestID: focusedRequestID, onOpenChat: onOpenChat)
+            focusedRequestID: focusedRequestID, onOpenChat: onOpenChat, onAddPet: onAddPet)
     }
     #endif
+
+    private var isSettled: Bool { requestsSettled && bookingsSettled }
 
     var body: some View {
         ZStack {
@@ -55,9 +66,9 @@ struct CustomerGroomingView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionSpacing) {
                     GroomingHeader(
-                        summary: headerSummary,
-                        isCreateDisabled: requestStore.pets.isEmpty,
-                        createRequest: requestStore.startCreate
+                        isLoading: !isSettled,
+                        needsPet: requestStore.pets.isEmpty,
+                        createRequest: startNewRequest
                     )
                     .beckonEntrance(0)
 
@@ -88,6 +99,9 @@ struct CustomerGroomingView: View {
             CustomerRequestsStatusView(store: requestStore)
             BookingsStatusView(store: bookingsStore, role: .customer, presentation: bookingsFeedback)
         }
+        .designAlertDialog(isPresented: $isAskingForPet) {
+            .addPetFirst(confirmIdentifier: "customer.requests.create.add-pet", addPet: { onAddPet() })
+        }
         .designAlertDialog(item: $pendingCancelRequest) { request in
             .destructive(title: "Cancel this request?",
                 message: "This closes the request and any pending offers. A confirmed booking is cancelled from its own page.",
@@ -110,53 +124,59 @@ struct CustomerGroomingView: View {
         .groomingDestinations($destination, requestStore: requestStore, bookingsStore: bookingsStore, onOpenChat: onOpenChat)
     }
 
-    // MARK: Page
-
-    private var headerSummary: String {
-        let count = activeEntries.count
-        switch count {
-        case 0: return requestStore.pets.isEmpty ? "Add a pet profile to get started" : "Ask groomers for offers"
-        case 1: return "1 in progress"
-        default: return "\(count) in progress"
+    /// New Request: the form, or, with no pet to ask for grooming, the question that leads to the Pet form.
+    private func startNewRequest() {
+        if requestStore.pets.isEmpty {
+            isAskingForPet = true
+        } else {
+            requestStore.startCreate()
         }
     }
 
-    private var collectionState: GroomingCollectionState {
-        GroomingCollectionPresentation(activeCardCount: activeEntries.count,
-            closedRequestCount: requestStore.requests.count + bookingsStore.bookings.count,
-            photoRetryCount: requestStore.requestPhotoUploadRetries.count,
-            isLoading: requestStore.isLoading || bookingsStore.isLoading,
-            loadErrorMessage: requestStore.errorMessage).state
-    }
+    // MARK: Page
 
     @ViewBuilder
     private var listContent: some View {
-        if collectionState == .loading {
-            BeckonLoadingView(title: "Loading your grooming…", message: "Fetching your requests and bookings.", accent: .customer)
-                .accessibilityIdentifier("customer.grooming.loading")
-        } else {
-            if case .error(let message) = collectionState {
-                GroomingLoadFailureBanner(message: message) { Task { await requestStore.load() } }
-            }
-            if let error = bookingsFeedback.persistentLoadError {
-                BeckonPersistentErrorView(error) {
-                    Button {
-                        Task { await bookingsStore.load() }
-                    } label: {
-                        Text(error.actionTitle ?? "Try again")
-                            .font(DesignTokens.Typography.Expressive.emphasis)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-                            .padding(.horizontal, DesignTokens.Spacing.lg)
-                            .frame(minHeight: DesignTokens.Metrics.minimumTouchTarget)
-                    }
-                    .buttonStyle(BeckonLedgeButtonStyle(.card))
+        // Until the first load is over the page is one card as bars; its errors, retries and cards take that place, in the same
+        // place, so nothing above them moves. History does not wait for anything, so it is there from the first frame.
+        DesignReveal(isLoading: !isSettled) {
+            VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionSpacing) {
+                if case .error(let message) = GroomingCollectionPresentation(activeCardCount: activeEntries.count,
+                    closedRequestCount: requestStore.requests.count + bookingsStore.bookings.count,
+                    photoRetryCount: requestStore.requestPhotoUploadRetries.count, isLoading: false,
+                    loadErrorMessage: requestStore.errorMessage).state {
+                    GroomingLoadFailureBanner(message: message) { Task { await requestStore.load() } }
                 }
-                .accessibilityIdentifier("bookings.persistent-error")
+                if let error = bookingsFeedback.persistentLoadError {
+                    BeckonPersistentErrorView(error) {
+                        Button {
+                            Task { await bookingsStore.load() }
+                        } label: {
+                            Text(error.actionTitle ?? "Try again")
+                                .font(DesignTokens.Typography.Expressive.emphasis)
+                                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                                .padding(.horizontal, DesignTokens.Spacing.lg)
+                                .frame(minHeight: DesignTokens.Metrics.minimumTouchTarget)
+                        }
+                        .buttonStyle(BeckonLedgeButtonStyle(.card))
+                    }
+                    .accessibilityIdentifier("bookings.persistent-error")
+                }
+                GroomingPhotoUploadRetryList(store: requestStore)
+                activeSection
             }
-            GroomingPhotoUploadRetryList(store: requestStore)
-            activeSection
-            historyRow
+        } placeholder: {
+            GroomingCardSkeleton(style: .full)
+                .accessibilityIdentifier("customer.grooming.loading")
         }
+        .beckonEntrance(2)
+
+        DesignReveal(isLoading: !isSettled) {
+            historyRow
+        } placeholder: {
+            GroomingHistoryRowSkeleton()
+        }
+        .beckonEntrance(3)
     }
 
     /// What is in progress: a row of cards to swipe, the next one peeking in, dots that follow the finger. One card (or large text)
@@ -170,7 +190,6 @@ struct CustomerGroomingView: View {
             VStack(spacing: DesignTokens.Spacing.lg) {
                 ForEach(entries) { card(for: $0).id($0.id) }
             }
-            .beckonEntrance(2)
         } else {
             BeckonPeekCarousel(wholeCards: 1, pageCount: entries.count,
                 pageLabel: { "Grooming \($0 + 1) of \(entries.count)" }, scrollPosition: $carouselPosition) { width in
@@ -181,7 +200,6 @@ struct CustomerGroomingView: View {
                 }
             }
             .accessibilityIdentifier("customer.grooming.carousel")
-            .beckonEntrance(2)
         }
     }
 
@@ -204,21 +222,18 @@ struct CustomerGroomingView: View {
             .padding(DesignTokens.Spacing.md)
         }
         .buttonStyle(BeckonLedgeButtonStyle(.card))
-        .beckonEntrance(3)
         .accessibilityIdentifier("customer.grooming.history")
     }
 
     private var emptyState: some View {
-        DesignPupPeek {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                Text("No active grooming")
-                    .font(DesignTokens.Typography.Expressive.title)
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                Text("Open requests and confirmed bookings will appear here.")
-                    .designSupportingText()
-            }
-            .designCardBody()
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text("No active grooming")
+                .font(DesignTokens.Typography.Expressive.title)
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+            Text("Open requests and confirmed bookings will appear here.")
+                .designSupportingText()
         }
+        .designCardBody()
     }
 
     /// Either list can have another page: one button loads whichever has one.
@@ -330,10 +345,13 @@ struct CustomerGroomingView: View {
 }
 
 
-/// The page title with one line of where things stand, and New Request (the same pill the Requests tab had).
+/// The page title and New Request (the same pill the Requests tab had). Nothing under the title: a line there would change the height
+/// the button is centred on (design).
 private struct GroomingHeader: View {
-    let summary: String
-    let isCreateDisabled: Bool
+    /// New Request needs the pets, so until the first load is over it is a bar the size of the button.
+    var isLoading = false
+    /// No pet yet: the button is still there, and asks to add one first.
+    let needsPet: Bool
     let createRequest: () -> Void
 
     var body: some View {
@@ -341,24 +359,37 @@ private struct GroomingHeader: View {
             HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
                 titleBlock
                     .frame(maxWidth: .infinity, alignment: .leading)
-                createButton
+                createSlot
             }
+            // The row of a tab's title has one height on every tab (design).
+            .frame(minHeight: DesignTokens.Metrics.tabTitleRowHeight)
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 titleBlock
-                createButton
+                createSlot
             }
         }
     }
 
     private var titleBlock: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            Text("Grooming")
-                .font(DesignTokens.Typography.Expressive.display)
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .accessibilityAddTraits(.isHeader)
-            Text(summary)
-                .designSupportingText()
+        Text("Grooming")
+            .font(DesignTokens.Typography.Expressive.display)
+            .foregroundStyle(DesignTokens.Colors.textPrimary)
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    /// New Request depends on the pets, so until the first load is over it is a block the exact size of the button (the button itself,
+    /// hidden, gives the size), and the button takes its place.
+    private var createSlot: some View {
+        DesignReveal(isLoading: isLoading) {
+            createButton
+        } placeholder: {
+            createButton.hidden()
+                .overlay {
+                    DesignSkeletonBlock(cornerRadius: DesignTokens.CornerRadius.ledgeButton)
+                        .designSkeletonOnPage()
+                        .designSkeleton(label: nil)
+                }
         }
     }
 
@@ -373,8 +404,7 @@ private struct GroomingHeader: View {
             .frame(minHeight: DesignTokens.Metrics.minimumTouchTarget)
         }
         .buttonStyle(BeckonLedgeButtonStyle(.pill))
-        .disabled(isCreateDisabled)
         .accessibilityIdentifier("customer.requests.create")
-        .accessibilityHint(isCreateDisabled ? "Add a pet profile before creating a request." : "Opens the grooming request form.")
+        .accessibilityHint(needsPet ? "Asks you to add a pet profile first." : "Opens the grooming request form.")
     }
 }

@@ -597,6 +597,29 @@ struct DesignShortcutTile<Destination: View>: View {
     }
 }
 
+/// A shortcut tile as bars: the icon disc, the title, two lines of summary; the real tile's card and padding.
+struct DesignShortcutTileSkeleton: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            DesignSkeletonDisc()
+                .frame(width: DesignTokens.Metrics.minimumTouchTarget, height: DesignTokens.Metrics.minimumTouchTarget)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                DesignSkeletonLine(width: 0.7, font: DesignTokens.Typography.Expressive.emphasis)
+                VStack(alignment: .leading, spacing: 0) {
+                    DesignSkeletonLine(width: 0.95, font: DesignTokens.Typography.Expressive.chip)
+                    DesignSkeletonLine(width: 0.6, font: DesignTokens.Typography.Expressive.chip)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .designSkeleton(label: nil)
+        .padding(DesignTokens.Spacing.lg)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .beckonLedge(.card)
+    }
+}
+
+
 /// Lays shortcut tiles side by side at the same height; stacks them at accessibility sizes.
 struct DesignShortcutRow<Content: View>: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize

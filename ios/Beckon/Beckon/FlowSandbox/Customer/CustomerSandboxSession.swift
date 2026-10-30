@@ -82,8 +82,8 @@ final class CustomerSandboxSession {
         }
         let needsSeededRequest: Set<CustomerSandboxScreen> = [.requests, .dashboard, .requestDetail, .offers, .publication, .photoRetry,
             .groomerPicker, .groomerDetail, .candidateActions, .favorites]
-        if needsSeededRequest.contains(screen) || screen.wizardStep != nil
-            || ([.tabs, .home].contains(screen) && state != .loading && state != .error) {
+        if state != .loading && (needsSeededRequest.contains(screen) || screen.wizardStep != nil
+            || ([.tabs, .home].contains(screen) && state != .error)) {
             await requests.load()
             for request in requests.activeRequests where request.status == .hasOffers {
                 await requests.loadOffers(for: request)
@@ -147,6 +147,11 @@ final class CustomerSandboxSession {
 
     func activate() async {
         switch screen {
+        case .requests, .dashboard, .publication, .photoRetry,
+             .wizardPet, .wizardService, .wizardTime, .wizardDetails, .wizardReview:
+            // These standalone previews have no tab shell to start its shared reads.
+            await requests.load()
+            await bookings.load()
         case .pets: await pets.store.load()
         case .profile: await profile.load()
         case .groomerDetail, .candidateActions: await discoveryFlow.store.load()

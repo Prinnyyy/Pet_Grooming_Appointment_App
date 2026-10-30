@@ -121,7 +121,7 @@ struct BeckonPageTitle: View {
         Text(title)
             .font(DesignTokens.Typography.Expressive.display)
             .foregroundStyle(DesignTokens.Colors.textPrimary)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.tabTitleRowHeight, alignment: .leading)
             .accessibilityAddTraits(.isHeader)
     }
 
@@ -321,6 +321,92 @@ struct BeckonAccountIdentityHeader<Avatar: View>: View {
         .accessibilityElement(children: .combine)
     }
 }
+
+/// The Account banner while the profile is on its way (design): the real banner (the mint, its lip, the white ring of the avatar) with
+/// the avatar as a disc, the name and the detail as lines, and the role badge as a pill the exact size of the real badge (the badge
+/// itself, hidden, gives the size). Same height as `BeckonAccountIdentityHeader`, so the real one takes its place.
+struct BeckonAccountIdentitySkeleton: View {
+    let roleTitle: String
+    var roleSystemImage: String? = nil
+    let roleAccent: BeckonRoleAccent
+
+    var body: some View {
+        HStack(spacing: DesignTokens.Spacing.lg) {
+            DesignSkeletonDisc()
+                .frame(
+                    width: BeckonAccountLayoutPolicy.identityAvatarSize,
+                    height: BeckonAccountLayoutPolicy.identityAvatarSize
+                )
+                .overlay(Circle().strokeBorder(DesignTokens.Colors.surface, lineWidth: 4))
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                DesignSkeletonLine(width: 0.55, font: DesignTokens.Typography.Expressive.title)
+                DesignSkeletonLine(width: 0.85)
+                BeckonRoleBadge(title: roleTitle, systemImage: roleSystemImage, accent: roleAccent)
+                    .hidden()
+                    .overlay {
+                        DesignSkeletonBlock(cornerRadius: DesignTokens.CornerRadius.pill)
+                    }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .designSkeleton(label: "Loading your account")
+        .designBanner()
+    }
+}
+
+
+/// A settings row as bars: the icon as a disc, the title (and a summary) as lines, in the real row's padding and least height.
+struct BeckonSettingsRowSkeleton: View {
+    var hasSummary = false
+
+    var body: some View {
+        HStack(spacing: DesignTokens.Spacing.md) {
+            DesignSkeletonDisc()
+                .frame(width: DesignTokens.Metrics.ledgeIconTile, height: DesignTokens.Metrics.ledgeIconTile)
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                DesignSkeletonLine(width: 0.4, font: DesignTokens.Typography.Expressive.emphasis)
+                if hasSummary {
+                    DesignSkeletonLine(width: 0.7, font: DesignTokens.Typography.Expressive.chip)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .designSkeleton(label: nil)
+        .padding(.horizontal, DesignTokens.Layout.rowHorizontalInset)
+        .padding(.vertical, DesignTokens.Layout.rowVerticalInset)
+        .frame(minHeight: DesignTokens.Metrics.minimumTouchTarget)
+    }
+}
+
+
+/// A titled section of grouped rows as bars: the heading as a line on the page, the real grouped card (and its dividers) with a
+/// skeleton row for each entry. `summaries` says which rows have a second line.
+struct BeckonSettingsSectionSkeleton: View {
+    let summaries: [Bool]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
+            DesignSkeletonLine(width: 0.3, font: DesignTokens.Typography.Expressive.section)
+                .designSkeletonOnPage()
+                .designSkeleton(label: nil)
+
+            BeckonGroupedSurface {
+                VStack(spacing: 0) {
+                    ForEach(Array(summaries.enumerated()), id: \.offset) { index, hasSummary in
+                        if index > 0 {
+                            BeckonGroupedDivider(leadingInset: BeckonAccountLayoutPolicy.groupedRowDividerLeadingInset)
+                        }
+                        BeckonSettingsRowSkeleton(hasSummary: hasSummary)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 
 struct BeckonSettingsRowLabel: View {
     @Environment(\.beckonCustomerDesign) private var customerDesign

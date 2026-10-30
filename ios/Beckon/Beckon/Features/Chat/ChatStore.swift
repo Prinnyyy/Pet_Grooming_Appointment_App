@@ -18,6 +18,7 @@ final class ChatStore {
     private(set) var nextConversationPageRequest: ListPageRequest?
     private(set) var nextMessagePageRequestByConversationID: [UUID: ListPageRequest] = [:]
     private(set) var isLoadingConversations = false
+    private(set) var hasLoadedOnce = false
     private(set) var isLoadingMoreConversations = false
     private(set) var loadingConversationIDs: Set<UUID> = []
     private(set) var loadingEarlierMessageConversationIDs: Set<UUID> = []
@@ -203,7 +204,7 @@ final class ChatStore {
     }
 
     func loadConversations() async {
-        guard !isLoadingConversations, !isLoadingMoreConversations else { return }
+        guard !Task.isCancelled, !isLoadingConversations, !isLoadingMoreConversations else { return }
 
         let startedAt = Date()
         recordStoreStart("loadConversations")
@@ -217,6 +218,8 @@ final class ChatStore {
                 role: role,
                 page: .first
             )
+            try Task.checkCancellation()
+            hasLoadedOnce = true
             conversations = page.items
             nextConversationPageRequest = page.nextRequest
             recordStoreSuccess(
@@ -230,6 +233,8 @@ final class ChatStore {
         } catch ChatRepositoryError.cancelled {
             recordStoreCancelled("loadConversations", startedAt: startedAt)
         } catch let error as ChatRepositoryError {
+            guard !Task.isCancelled else { return }
+            hasLoadedOnce = true
             errorMessage = message(for: error, action: "load conversations")
             recordStoreFailure(
                 "loadConversations",
@@ -240,6 +245,8 @@ final class ChatStore {
         } catch where AppDebugErrorClassifier.isCancellation(error) {
             recordStoreCancelled("loadConversations", startedAt: startedAt)
         } catch {
+            guard !Task.isCancelled else { return }
+            hasLoadedOnce = true
             errorMessage = message(for: .unavailable, action: "load conversations")
             recordStoreFailure(
                 "loadConversations",
