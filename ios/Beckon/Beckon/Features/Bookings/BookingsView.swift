@@ -79,7 +79,15 @@ struct BookingsView: View {
         }
     }
 
+    @ViewBuilder
     var body: some View {
+        if role == .groomer {
+            GroomerScheduleView(store: store, focusedBooking: $focusedBooking,
+                isActiveTab: isActiveTab, onOpenChat: onOpenChat)
+        } else { customerBody }
+    }
+
+    private var customerBody: some View {
         ZStack {
             if role == .customer {
                 BeckonExpressiveBackdrop()
@@ -88,7 +96,7 @@ struct BookingsView: View {
                 .ignoresSafeArea()
             }
 
-            bookingsContent
+            customerBookingsContent
         }
         .navigationTitle(role == .groomer ? "Schedule" : "")
         .navigationBarTitleDisplayMode(role == .groomer ? .large : .inline)
@@ -124,15 +132,6 @@ struct BookingsView: View {
         }
         .foregroundRefreshable {
             await store.load()
-        }
-    }
-
-    @ViewBuilder
-    private var bookingsContent: some View {
-        if role == .groomer {
-            groomerScheduleContent
-        } else {
-            customerBookingsContent
         }
     }
 
@@ -223,132 +222,6 @@ struct BookingsView: View {
             .beckonTracksScroll()
         .scrollContentBackground(.hidden)
         .accessibilityIdentifier("bookings.list")
-    }
-
-    @ViewBuilder
-    private var groomerScheduleContent: some View {
-        if let calendar = store.scheduleCalendar {
-            loadedGroomerScheduleContent(calendar: calendar)
-        } else if store.isLoading, store.bookings.isEmpty {
-            ProgressView("Loading schedule time zone")
-        } else {
-            ScrollView {
-            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                Text("Schedule time zone is unavailable. Check your availability settings or try again.")
-                Button("Retry", systemImage: "arrow.clockwise") { Task { await store.load() } }
-                    .disabled(store.isLoading)
-                ForEach(store.bookings.sortedByScheduledStart(ascending: true)) { booking in
-                    NavigationLink {
-                        BookingDetailView(bookingID: booking.id, role: .groomer, store: store,
-                            onOpenChat: onOpenChat)
-                    } label: {
-                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                            Text(booking.appointmentServiceTitle)
-                                .font(DesignTokens.Typography.headline)
-                            Text(booking.scheduledTimeSummary)
-                                .font(DesignTokens.Typography.caption)
-                                .fixedSize(horizontal: false, vertical: true)
-                            Text(booking.status.title)
-                                .font(DesignTokens.Typography.caption)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("groomer.schedule.fallback.\(booking.id.uuidString)")
-                }
-                if store.canLoadMore || store.isLoadingMore {
-                    BeckonLoadMoreButton(isLoading: store.isLoadingMore, accent: .groomer,
-                        accessibilityIdentifier: "groomer.schedule.load-more") {
-                        await store.loadNextPage()
-                    }
-                }
-            }
-            .padding()
-            }
-            .accessibilityIdentifier("groomer.schedule.time-zone-unavailable")
-        }
-    }
-
-    private func loadedGroomerScheduleContent(calendar: Calendar) -> some View {
-        let schedulePresentation = GroomerSchedulePresentation(referenceDate: Date(), bookings: store.bookings,
-            selectedDayKey: selectedScheduleDayKey, scopedBookings: store.scheduleBookings, calendar: calendar)
-        let interval = calendar.dateInterval(of: .day, for: schedulePresentation.selectedDate)
-        let scopeMatches = store.scheduleInterval == interval
-        let isComplete = scopeMatches && store.scheduleReadState == .complete
-        return ScrollView {
-            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                appointmentReminderNotice
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    Text("Appointment date").font(DesignTokens.Typography.fieldLabel)
-                    DatePicker("Appointment date", selection: Binding(
-                        get: { schedulePresentation.selectedDate },
-                        set: { selectedScheduleDayKey = GroomerScheduleDateFormatting.dayKey(from: $0, calendar: calendar) }
-                    ), displayedComponents: [.date])
-                        .labelsHidden()
-                        .environment(\.calendar, calendar).environment(\.timeZone, calendar.timeZone)
-                }
-
-                GroomerScheduleDayStrip(
-                    days: schedulePresentation.days,
-                    calendar: calendar,
-                    selectedDayKey: schedulePresentation.selectedDayKey,
-                    onSelect: { selectedScheduleDayKey = $0.id }
-                )
-                Label(BeckonDateTimeFormatter.zoneLabel(calendar.timeZone, at: schedulePresentation.selectedDate), systemImage: "globe")
-                    .accessibilityLabel(calendar.timeZone.identifier)
-                    .font(DesignTokens.Typography.caption)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .accessibilityIdentifier("groomer.schedule.time-zone")
-
-                if !scopeMatches || store.scheduleReadState == .idle || store.scheduleReadState == .loading {
-                    BeckonLoadingView(
-                        title: "Loading schedule...",
-                        message: "Fetching confirmed appointments for your day.",
-                        accent: .groomer
-                    )
-                    .accessibilityIdentifier("groomer.schedule.loading")
-                } else if !isComplete {
-                    Text("This day's schedule is not verified. Refresh before relying on its availability.")
-                        .font(DesignTokens.Typography.supporting).foregroundStyle(DesignTokens.Colors.textSecondary)
-                    Button("Refresh Day", systemImage: "arrow.clockwise") {
-                        if let interval { Task { await store.loadSchedule(interval: interval) } }
-                    }
-                }
-                if isComplete && schedulePresentation.selectedBookings.isEmpty {
-                    GroomerScheduleEmptyDayView(
-                        dayTitle: GroomerScheduleDateFormatting.longDayTitle(
-                            from: schedulePresentation.selectedDate, calendar: calendar
-                        )
-                    )
-                } else if scopeMatches && !schedulePresentation.selectedBookings.isEmpty {
-                    if let summary = schedulePresentation.summary {
-                        GroomerScheduleSummaryBand(
-                            dayTitle: GroomerScheduleDateFormatting.longDayTitle(
-                                from: schedulePresentation.selectedDate, calendar: calendar
-                            ),
-                            summary: summary
-                        )
-                    }
-
-                    GroomerScheduleTimeline(
-                        bookings: schedulePresentation.selectedBookings,
-                        calendar: calendar,
-                        store: store,
-                        onOpenChat: onOpenChat
-                    )
-                }
-
-            }
-            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-            .padding(.top, DesignTokens.Spacing.xl)
-            .padding(.bottom, DesignTokens.Spacing.xl + DesignTokens.Spacing.xl)
-        }
-        .scrollContentBackground(.hidden)
-            .accessibilityIdentifier("groomer.schedule")
-            .task(id: "\(schedulePresentation.selectedDayKey):\(store.scheduleRefreshID)") {
-                if let interval { await store.loadSchedule(interval: interval) }
-            }
     }
 
     private var feedbackPresentation: BookingsFeedbackPresentation {
@@ -697,299 +570,51 @@ private struct BookingScopeControl: View {
     }
 }
 
-private struct GroomerScheduleDayStrip: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    let days: [GroomerScheduleDay]
-    let calendar: Calendar
-    let selectedDayKey: String
-    let onSelect: (GroomerScheduleDay) -> Void
-
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                ForEach(days) { day in
-                    Button {
-                        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) {
-                            onSelect(day)
-                        }
-                    } label: {
-                        GroomerScheduleDayChip(
-                            day: day,
-                            calendar: calendar,
-                            isSelected: day.id == selectedDayKey
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.vertical, DesignTokens.Spacing.xs)
-        }
-        .scrollClipDisabled()
-        .accessibilityIdentifier("groomer.schedule.days")
-    }
-}
-
-private struct GroomerScheduleDayChip: View {
-    @ScaledMetric(relativeTo: .caption) private var chipWidth = 64.0
-    @ScaledMetric(relativeTo: .caption) private var chipHeight = 78.0
-    let day: GroomerScheduleDay
-    let calendar: Calendar
-    let isSelected: Bool
-
-    var body: some View {
-        VStack(spacing: 3) {
-            Text(GroomerScheduleDateFormatting.weekday(from: day.date, calendar: calendar))
-                .font(DesignTokens.Typography.caption.weight(.bold))
-                .foregroundStyle(isSelected ? DesignTokens.Colors.groomerInk : DesignTokens.Colors.textTertiary)
-
-            Text(GroomerScheduleDateFormatting.dayNumber(from: day.date, calendar: calendar))
-                .font(DesignTokens.Typography.sectionTitle)
-                .foregroundStyle(isSelected ? DesignTokens.Colors.groomerInk : DesignTokens.Colors.textPrimary)
-
-            Text(day.isToday ? "Today" : GroomerScheduleDateFormatting.month(from: day.date, calendar: calendar))
-                .font(DesignTokens.Typography.caption.weight(.bold))
-                .foregroundStyle(isSelected ? DesignTokens.Colors.groomerInk : DesignTokens.Colors.textTertiary)
-        }
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(width: chipWidth)
-        .frame(minHeight: chipHeight)
-        .background {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(isSelected ? DesignTokens.Colors.groomerFill : DesignTokens.Colors.surface)
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(
-                    isSelected ? DesignTokens.Colors.groomerDeep : DesignTokens.Colors.border,
-                    lineWidth: 1.5
-                )
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-}
-
-private struct GroomerScheduleSummaryBand: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    let dayTitle: String
-    let summary: GroomerScheduleSummary
-
-    var body: some View {
-        BeckonGroupedSurface {
-            summaryLayout {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(dayTitle)
-                        .font(DesignTokens.Typography.headline)
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                    Text("Next at \(summary.nextStartSummary) · \(summary.totalDurationSummary) booked")
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Text("\(summary.bookingCount) \(summary.bookingCount == 1 ? "appointment" : "appointments")")
-                    .font(DesignTokens.Typography.caption.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.groomerDeep)
-                    .padding(.horizontal, DesignTokens.Spacing.sm)
-                    .padding(.vertical, DesignTokens.Spacing.xs)
-                    .background(DesignTokens.Colors.groomerTint)
-                    .clipShape(DesignTokens.Shapes.chip)
-            }
-            .padding(DesignTokens.Spacing.md)
-        }
-        .accessibilityIdentifier("groomer.schedule.summary")
-        .accessibilityElement(children: .combine)
-    }
-
-    private var summaryLayout: AnyLayout {
-        dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
-            : AnyLayout(HStackLayout(alignment: .center, spacing: DesignTokens.Spacing.lg))
-    }
-}
-
-private struct GroomerScheduleEmptyDayView: View {
-    let dayTitle: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text(dayTitle)
-                .font(.title3.weight(.bold))
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-            BeckonEmptyState(
-                title: "No appointments",
-                message: "Confirmed bookings for this day will appear here.",
-                systemImage: "calendar.badge.clock",
-                accent: .groomer
-            )
-        }
-        .accessibilityIdentifier("groomer.schedule.empty")
-    }
-}
-
-private struct GroomerScheduleTimeline: View {
-    let bookings: [Booking]
-    let calendar: Calendar
+struct BookingDetailView: View {
+    @Environment(\.customerGroomingRequestStore) private var customerRequestStore
+    let bookingID: UUID
+    let role: UserRole
     let store: BookingsStore
-    let onOpenChat: (Booking) -> Void
+    let onOpenChat: ((Booking) -> Void)?
+    @Environment(\.openBookingChat) private var shellOpenChat
+    let onCreateNewRequestFromCancelledBooking: ((Booking) -> Void)?
+    @FocusState private var focusedReviewTarget: BookingReviewFocusTarget?
 
+    init(
+        bookingID: UUID,
+        role: UserRole,
+        store: BookingsStore,
+        onOpenChat: ((Booking) -> Void)? = nil,
+        onCreateNewRequestFromCancelledBooking: ((Booking) -> Void)? = nil
+    ) {
+        self.bookingID = bookingID
+        self.role = role
+        self.store = store
+        self.onOpenChat = onOpenChat
+        self.onCreateNewRequestFromCancelledBooking =
+            onCreateNewRequestFromCancelledBooking
+    }
+
+    @ViewBuilder
     var body: some View {
-        BeckonSection("Appointments") {
-            BeckonGroupedSurface {
-                VStack(spacing: 0) {
-                    ForEach(Array(bookings.enumerated()), id: \.element.id) { index, booking in
-                        if index > 0 {
-                            BeckonGroupedDivider(leadingInset: 72)
-                        }
-
-                        GroomerScheduleAppointmentRow(
-                            booking: booking,
-                            calendar: calendar,
-                            store: store,
-                            onOpenChat: onOpenChat
-                        )
-                    }
-                }
-            }
+        if role == .customer {
+            GroomingDetailView(target: .booking(bookingID), requestStore: customerRequestStore, bookingsStore: store,
+                onOpenChat: onOpenChat ?? shellOpenChat,
+                onCreateNewRequestFromBooking: onCreateNewRequestFromCancelledBooking)
+                .environment(\.beckonCustomerDesign, true)
+        } else {
+            GroomerBookingDetailView(bookingID: bookingID, store: store, onOpenChat: onOpenChat ?? shellOpenChat)
         }
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("groomer.schedule.timeline")
     }
 }
 
-private struct GroomerScheduleAppointmentRow: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    let booking: Booking
-    let calendar: Calendar
-    let store: BookingsStore
-    let onOpenChat: (Booking) -> Void
+nonisolated enum BookingReviewFocusTarget: String, Hashable {
+    case content = "bookings.review.content.container"
+}
 
-    private var presentation: GroomerScheduleAppointmentPresentation {
-        GroomerScheduleAppointmentPresentation(booking: booking)
-    }
-
-    private var appointmentLayout: AnyLayout {
-        dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
-            : AnyLayout(HStackLayout(alignment: .top, spacing: DesignTokens.Spacing.md))
-    }
-
-    private var actionLayout: AnyLayout {
-        dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(spacing: DesignTokens.Spacing.sm))
-            : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.sm))
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            NavigationLink {
-                BookingDetailView(
-                    bookingID: booking.id,
-                    role: .groomer,
-                    store: store,
-                    onOpenChat: onOpenChat
-                )
-            } label: {
-                appointmentLayout {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(GroomerScheduleDateFormatting.time(from: booking.scheduledStart, calendar: calendar))
-                            .font(DesignTokens.Typography.caption.weight(.bold))
-                            .foregroundStyle(DesignTokens.Colors.groomerInk)
-                        Text(GroomerScheduleDateFormatting.offset(from: booking.scheduledStart, calendar: calendar))
-                            .font(DesignTokens.Typography.caption)
-
-                        Text(GroomerScheduleDateFormatting.time(from: booking.scheduledEnd, calendar: calendar))
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(DesignTokens.Colors.textTertiary)
-                        Text(GroomerScheduleDateFormatting.offset(from: booking.scheduledEnd, calendar: calendar))
-                            .font(DesignTokens.Typography.caption)
-                    }
-                    .frame(width: dynamicTypeSize.isAccessibilitySize ? nil : 56, alignment: .leading)
-
-                    ZStack {
-                        DesignTokens.Colors.placeholderFill
-                        Image(systemName: "pawprint.fill")
-                            .font(.body.weight(.bold))
-                            .foregroundStyle(DesignTokens.Colors.textTertiary)
-                    }
-                    .frame(width: 44, height: 44)
-                    .clipShape(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    )
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(presentation.petName)
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text(presentation.petDetail)
-                            .font(DesignTokens.Typography.caption)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text("\(presentation.customerReference) · \(presentation.location)")
-                            .font(DesignTokens.Typography.caption)
-                            .foregroundStyle(DesignTokens.Colors.textTertiary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    VStack(alignment: .trailing, spacing: DesignTokens.Spacing.sm) {
-                        BeckonStatusChip(presentation.status.presentation)
-
-                        Image(systemName: "chevron.right")
-                            .font(DesignTokens.Typography.caption.weight(.bold))
-                            .foregroundStyle(DesignTokens.Colors.textTertiary)
-                            .accessibilityHidden(true)
-                    }
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier(
-                AppTestOpsAccessibility.requestIdentifier(
-                    prefix: "groomer.booking.row.request",
-                    requestID: booking.requestID
-                )
-            )
-
-            actionLayout {
-                Button {
-                    onOpenChat(booking)
-                } label: {
-                    Label("Message", systemImage: "message")
-                }
-                .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
-                .accessibilityIdentifier(
-                    AppTestOpsAccessibility.requestIdentifier(
-                        prefix: "groomer.booking.message.request",
-                        requestID: booking.requestID
-                    )
-                )
-
-                if booking.canComplete(for: .groomer) {
-                    Button {
-                        Task { await store.complete(booking) }
-                    } label: {
-                        Label("Complete", systemImage: "checkmark.circle")
-                    }
-                    .buttonStyle(BeckonPrimaryButtonStyle(accent: .groomer))
-                    .disabled(store.isCompleting || store.isCancelling)
-                    .accessibilityIdentifier(
-                        AppTestOpsAccessibility.requestIdentifier(
-                            prefix: "groomer.booking.complete.request",
-                            requestID: booking.requestID
-                        )
-                    )
-                }
-            }
-        }
-        .padding(DesignTokens.Spacing.md)
-    }
+nonisolated enum BookingReviewKeyboardPresentation {
+    static let actionPlacement: BeckonKeyboardActionPlacement = .pageAction
+    static let contentFocusTarget = BookingReviewFocusTarget.content.rawValue
 }
 
 private extension Booking {
@@ -1028,185 +653,6 @@ private extension Booking {
             "Location"
         }
     }
-}
-
-struct BookingDetailView: View {
-    @Environment(\.customerGroomingRequestStore) private var customerRequestStore
-    let bookingID: UUID
-    let role: UserRole
-    let store: BookingsStore
-    let onOpenChat: ((Booking) -> Void)?
-    @Environment(\.openBookingChat) private var shellOpenChat
-    let onCreateNewRequestFromCancelledBooking: ((Booking) -> Void)?
-    @FocusState private var focusedReviewTarget: BookingReviewFocusTarget?
-
-    init(
-        bookingID: UUID,
-        role: UserRole,
-        store: BookingsStore,
-        onOpenChat: ((Booking) -> Void)? = nil,
-        onCreateNewRequestFromCancelledBooking: ((Booking) -> Void)? = nil
-    ) {
-        self.bookingID = bookingID
-        self.role = role
-        self.store = store
-        self.onOpenChat = onOpenChat
-        self.onCreateNewRequestFromCancelledBooking =
-            onCreateNewRequestFromCancelledBooking
-    }
-
-    var body: some View {
-        detailContent.task(id: bookingID) { if role != .customer { await store.resolveBooking(id: bookingID) } }
-    }
-
-    @ViewBuilder
-    private var detailContent: some View {
-        if role == .customer {
-            GroomingDetailView(target: .booking(bookingID), requestStore: customerRequestStore, bookingsStore: store,
-                onOpenChat: onOpenChat ?? shellOpenChat,
-                onCreateNewRequestFromBooking: onCreateNewRequestFromCancelledBooking)
-                .environment(\.beckonCustomerDesign, true)
-        } else if let booking = store.booking(withID: bookingID) {
-            ScrollViewReader { scrollProxy in
-                ZStack {
-                    DesignTokens.Colors.appBackground
-                        .ignoresSafeArea()
-
-                    ScrollView {
-                        // This finite detail page has dynamic section heights; keep its scroll geometry stable.
-                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                            BookingDetailHeroCard(
-                                booking: booking,
-                                role: role
-                            )
-
-                            BookingDetailInfoCard(
-                                title: "Appointment",
-                                systemImage: "calendar.badge.clock",
-                                role: role
-                            ) {
-                                BookingDetailFactRow("Service", value: booking.appointmentServiceTitle)
-                                BookingDetailFactRow("Appointment Time", value: booking.scheduledTimeSummary, stacksValue: true)
-                                    .accessibilityLabel(booking.scheduledTimePresentation.accessibilityLabel)
-                                BookingDetailFactRow(
-                                    BeckonGroomingLocationModePresentation.detailFieldTitle,
-                                    value: bookingLocationTitle(booking)
-                                )
-                                BookingDetailFactRow("Address", value: booking.appointmentAddressSummary)
-                                BookingDetailFactRow("Price", value: booking.priceSummary)
-                            }
-
-                            if role == .customer,
-                               (booking.status.isCancellation || booking.status == .unfulfilled),
-                               let onCreateNewRequestFromCancelledBooking {
-                                CustomerRequestRepublishButton(
-                                    actionTitle: "Create a New Request from This Booking",
-                                    accessibilityIdentifier: "customer.bookings.republish",
-                                    action: {
-                                        onCreateNewRequestFromCancelledBooking(booking)
-                                    }
-                                )
-                            }
-
-                            BookingFulfillmentSection(booking: booking, store: store, role: role)
-                            BookingRescheduleSection(booking: booking, store: store)
-
-                            BookingPartnerOverviewCard(
-                                booking: booking,
-                                role: role,
-                                onOpenChat: onOpenChat ?? shellOpenChat
-                            )
-
-                            if booking.status == .completed {
-                                BeckonSectionHeader("Review")
-
-                                if let review = booking.review {
-                                    BookingReviewDisplay(review: review)
-                                } else if booking.canReview(for: role) {
-                                    BookingReviewForm(
-                                        booking: booking,
-                                        store: store,
-                                        accent: role.primaryButtonAccent,
-                                        focusedTarget: $focusedReviewTarget
-                                    )
-                                } else {
-                                    BeckonCard {
-                                        BookingMetadataRow(
-                                            systemImage: "star",
-                                            text: "Waiting for the customer to leave a review."
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                        .padding(.top, DesignTokens.Spacing.lg)
-                        .padding(.bottom, DesignTokens.Spacing.xl + DesignTokens.Spacing.xl)
-                    }
-                    .beckonKeyboardAvoidance(
-                        focusedTarget: focusedReviewTarget?.rawValue,
-                        using: scrollProxy
-                    )
-                }
-            }
-            .navigationTitle("Booking")
-            .navigationBarTitleDisplayMode(.inline)
-            .accessibilityElement(children: .contain)
-            .accessibilityIdentifier("bookings.detail")
-        } else {
-            ZStack {
-                DesignTokens.Colors.appBackground
-                    .ignoresSafeArea()
-
-                if store.bookingReadStates[bookingID] == nil || store.bookingReadStates[bookingID] == .loading {
-                    ProgressView("Loading Booking...")
-                } else {
-                    VStack(spacing: DesignTokens.Spacing.md) {
-                        BeckonEmptyState(
-                            title: "Booking unavailable",
-                            message: "This booking could not be verified.",
-                            systemImage: "calendar.badge.exclamationmark",
-                            accent: role.emptyStateAccent
-                        )
-                        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                        Button("Retry Booking", systemImage: "arrow.clockwise") {
-                            Task { await store.resolveBooking(id: bookingID) }
-                        }
-                        .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral, isFullWidth: false))
-                        .accessibilityIdentifier("bookings.detail.retry")
-                    }
-                }
-            }
-            .navigationTitle("Booking")
-        }
-    }
-
-    private func bookingLocationTitle(_ booking: Booking) -> String {
-        guard let locationMode = booking.locationMode else {
-            return "Location not confirmed"
-        }
-
-        let perspective: BeckonGroomingLocationPerspective = switch role {
-        case .customer:
-            .customer
-        case .groomer:
-            .groomer
-        }
-
-        return BeckonGroomingLocationModePresentation(
-            mode: locationMode,
-            perspective: perspective
-        ).title
-    }
-}
-
-nonisolated enum BookingReviewFocusTarget: String, Hashable {
-    case content = "bookings.review.content.container"
-}
-
-nonisolated enum BookingReviewKeyboardPresentation {
-    static let actionPlacement: BeckonKeyboardActionPlacement = .pageAction
-    static let contentFocusTarget = BookingReviewFocusTarget.content.rawValue
 }
 
 private struct BookingDetailHeroCard: View {

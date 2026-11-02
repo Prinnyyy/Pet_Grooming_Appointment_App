@@ -30,6 +30,10 @@ const ruleByID = new Map(UI_RULES.map((rule) => [rule.id, rule]));
 // deliberate act: record its tier in SCREEN_INVENTORY.md and a Decision Log entry, then add it here.
 export const LEDGE_TIER_PATHS = Object.freeze([
   "Features/Groomer/GroomerPetCard.swift",
+  "Features/Groomer/Schedule/GroomerScheduleView.swift",
+  "Features/Groomer/Schedule/GroomerScheduleParts.swift",
+  "Features/Groomer/Schedule/GroomerBookingParts.swift",
+  "Features/Groomer/Schedule/GroomerBookingDetailView.swift",
   "Features/Groomer/Requests/GroomerRequestsView.swift",
   "Features/Groomer/Requests/GroomerRequestDetailView.swift",
   "Features/Groomer/Requests/GroomerRequestDetailParts.swift",

@@ -102,3 +102,11 @@ extension BookingStatus {
         }
     }
 }
+
+// Shared agenda labels, matching the adopted booking lifecycle vocabulary.
+extension BeckonStatusPresentation {
+    static let agendaInService = Self(title: "In service", systemImage: "scissors", tone: .info)
+    static let agendaReady = Self(title: "Ready to start", systemImage: "play.circle", tone: .info)
+    static let agendaNeedsClosing = Self(title: "Needs closing", systemImage: "exclamationmark.circle", tone: .warning)
+    static func agendaWaiting(_ title: String) -> Self { Self(title: title, systemImage: "hourglass", tone: .warning) }
+}

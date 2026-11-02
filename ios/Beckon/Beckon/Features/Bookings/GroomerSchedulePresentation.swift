@@ -22,9 +22,10 @@ nonisolated struct GroomerSchedulePresentation: Sendable {
         bookings: [Booking],
         selectedDayKey: String?,
         scopedBookings: [Booking]? = nil,
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
+        displayedDays: [GroomerScheduleDay]? = nil
     ) {
-        var days = GroomerScheduleDay.days(
+        var days = displayedDays ?? GroomerScheduleDay.days(
             around: referenceDate,
             bookings: bookings,
             calendar: calendar

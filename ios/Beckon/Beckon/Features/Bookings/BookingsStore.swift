@@ -11,6 +11,7 @@ final class BookingsStore {
     private let repository: any BookingRepository
     private let groomerProfileRepository: (any GroomerProfileRepository)?
     private(set) var scheduleCalendar: Calendar?
+    private(set) var scheduleAvailabilityWindows: [GroomerAvailabilityWindow] = []
     private(set) var scheduleInterval: DateInterval?
     private(set) var scheduleBookings: [Booking] = []
     private(set) var scheduleReadState: BookingScopeReadState = .idle
@@ -310,6 +311,7 @@ final class BookingsStore {
     private func loadScheduleCalendar() async {
         guard role == .groomer, let groomerProfileRepository else { return }
         scheduleCalendar = nil
+        scheduleAvailabilityWindows = []
         do {
             let snapshot = try await groomerProfileRepository.availabilitySnapshot(groomerID: participantID)
             guard !Task.isCancelled else { return }
@@ -319,6 +321,7 @@ final class BookingsStore {
                   snapshot.windows.allSatisfy({ $0.groomerID == participantID }),
                   zones.count == 1, let identifier = zones.first else { return }
             scheduleCalendar = try GroomingServiceTiming.locationCalendar(identifier)
+            scheduleAvailabilityWindows = snapshot.windows
         } catch {
             scheduleCalendar = nil
         }

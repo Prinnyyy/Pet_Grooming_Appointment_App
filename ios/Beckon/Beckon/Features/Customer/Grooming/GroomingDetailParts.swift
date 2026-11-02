@@ -1,4 +1,4 @@
-// The parts of the Grooming detail page (S-062). One page for a grooming from the day it is posted to the day it is reviewed, so
+// The parts of the Grooming detail page (design). One page for a grooming from the day it is posted to the day it is reviewed, so
 // its parts are made for that: a hero that is the card opened up (same identity, same four-stop path and bubble), a card that
 // says what needs the owner, one details card that is "your request" before there is a booking and "your appointment" after,
 // the review, a timeline of what happened, and quiet manage rows.
@@ -108,8 +108,7 @@ struct GroomingNeedsCard<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            BeckonStateStrip(title: title, systemImage: systemImage,
-                tone: tone == .attention ? .warning : .accent)
+            BeckonStateStrip(title: title, systemImage: systemImage, tone: tone == .attention ? .warning : .accent)
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) { content }
                 .padding(DesignTokens.Spacing.lg)
@@ -121,7 +120,8 @@ struct GroomingNeedsCard<Content: View>: View {
 }
 
 
-/// The filled button or the secondary button of a needs-you card or a page block.
+/// The filled button or the secondary button of a needs-you card or a page block. The two are as tall as each other (design): a
+/// booking's buttons turn from one into the other as its state changes, and the page must not move when they do.
 struct GroomingActionButton: View {
     enum Style { case primary, secondary }
 
@@ -159,7 +159,6 @@ struct GroomingDetailsCard: View {
     let booking: Booking?
     let requestStore: CustomerRequestsStore?
     let onOpenChat: ((Booking) -> Void)?
-    @Environment(\.dynamicTypeSize) private var typeSize
 
     private var petSnapshot: GroomingRequestPetSnapshot? {
         request?.petSnapshot ?? booking?.agreementSnapshot?.petSnapshot ?? booking?.requestPetSnapshot
@@ -180,7 +179,7 @@ struct GroomingDetailsCard: View {
             BeckonLedgeHeading(title: booking == nil ? "Your request" : "Appointment",
                 systemImage: booking == nil ? "doc.text.fill" : "calendar")
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                if let booking { appointmentHeader(booking) }
+                if let booking { GroomingAppointmentHeader(booking: booking) }
                 if let locationRow { locationRow }
                 if let pet = petDetail {
                     DesignFactRow(systemImage: "pawprint.fill", title: "Pet", value: pet)
@@ -194,46 +193,10 @@ struct GroomingDetailsCard: View {
             }
             .designCardBody()
         }
-        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("customer.grooming.detail.details")
     }
 
     // MARK: Rows
-
-    /// The date, the service, the time and the price: the first thing about an appointment.
-    private func appointmentHeader(_ booking: Booking) -> some View {
-        (typeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
-            : AnyLayout(HStackLayout(alignment: .center, spacing: DesignTokens.Spacing.lg))) {
-            if let parts = BeckonBookingCountdown.dateParts(for: booking) {
-                BeckonDateTile(month: parts.month, day: parts.day)
-            }
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(booking.appointmentServiceTitle)
-                    .font(DesignTokens.Typography.Expressive.headline)
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(booking.scheduledTimeSummary)
-                    .font(DesignTokens.Typography.Expressive.supporting)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .accessibilityLabel(booking.scheduledTimePresentation.accessibilityLabel)
-                    .fixedSize(horizontal: false, vertical: true)
-                (typeSize.isAccessibilitySize
-                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.xs))
-                    : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.sm))) {
-                    Text(booking.priceSummary)
-                        .font(DesignTokens.Typography.Expressive.emphasis)
-                        .foregroundStyle(DesignTokens.Colors.customerDeep)
-                        .fixedSize()
-                    Text("#\(booking.referenceCode)")
-                        .font(DesignTokens.Typography.Expressive.chip)
-                        .foregroundStyle(DesignTokens.Colors.textTertiary)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .accessibilityElement(children: .combine)
-    }
 
     private var locationRow: DesignFactRow? {
         if let booking {
@@ -276,24 +239,84 @@ struct GroomingDetailsCard: View {
     }
 
     private func groomerFoot(_ booking: Booking) -> some View {
+        GroomingPartnerFoot(caption: "Your groomer", name: booking.partnerDisplayTitle(for: .customer),
+            messageLabel: "Message your groomer", onMessage: onOpenChat.map { open in { open(booking) } }) {
+            BeckonProfileAvatar(data: booking.groomerAvatarPhotoData, tone: .groomer, size: 44,
+                cornerRadius: DesignTokens.CornerRadius.pill)
+        }
+    }
+}
+
+
+/// The date, the service, the time and the price: the first thing about an appointment, for whoever is looking at it.
+struct GroomingAppointmentHeader: View {
+    let booking: Booking
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        (typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: DesignTokens.Spacing.lg))) {
+            if let parts = BeckonBookingCountdown.dateParts(for: booking) {
+                BeckonDateTile(month: parts.month, day: parts.day)
+            }
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(booking.appointmentServiceTitle)
+                    .font(DesignTokens.Typography.Expressive.headline)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(booking.scheduledTimeSummary)
+                    .font(DesignTokens.Typography.Expressive.supporting)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .accessibilityLabel(booking.scheduledTimePresentation.accessibilityLabel)
+                    .fixedSize(horizontal: false, vertical: true)
+                (typeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.xs))
+                    : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.sm))) {
+                    Text(booking.priceSummary)
+                        .font(DesignTokens.Typography.Expressive.emphasis)
+                        .foregroundStyle(DesignTokens.Colors.customerDeep)
+                        .fixedSize()
+                    Text("#\(booking.referenceCode)")
+                        .font(DesignTokens.Typography.Expressive.chip)
+                        .foregroundStyle(DesignTokens.Colors.textTertiary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+
+/// The other side of a booking and the way to message them: the owner's groomer, or the groomer's customer. The avatar is the
+/// caller's (a groomer has a photo, a customer a default face).
+struct GroomingPartnerFoot<Avatar: View>: View {
+    let caption: String
+    let name: String
+    /// What VoiceOver calls the Message button.
+    let messageLabel: String
+    let onMessage: (() -> Void)?
+    @ViewBuilder let avatar: Avatar
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
         (typeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
             : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.md))) {
-            BeckonProfileAvatar(data: booking.groomerAvatarPhotoData, tone: .groomer, size: 44,
-                cornerRadius: DesignTokens.CornerRadius.pill)
-                .accessibilityHidden(true)
+            avatar.accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Your groomer")
+                Text(caption)
                     .font(DesignTokens.Typography.Expressive.chip)
                     .foregroundStyle(DesignTokens.Colors.textTertiary)
-                Text(booking.partnerDisplayTitle(for: .customer))
+                Text(name)
                     .font(DesignTokens.Typography.Expressive.emphasis)
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            if let onOpenChat {
-                Button { onOpenChat(booking) } label: {
+            if let onMessage {
+                Button(action: onMessage) {
                     HStack(spacing: DesignTokens.Spacing.xs) {
                         Image(systemName: "bubble.left.fill")
                         Text("Message").lineLimit(1)
@@ -305,7 +328,7 @@ struct GroomingDetailsCard: View {
                     .frame(minHeight: DesignTokens.Metrics.minimumTouchTarget)
                 }
                 .buttonStyle(BeckonLedgeButtonStyle(.pill))
-                .accessibilityLabel("Message your groomer")
+                .accessibilityLabel(messageLabel)
                 .accessibilityIdentifier("bookings.detail.open-chat")
             }
         }
@@ -343,7 +366,6 @@ struct GroomingReviewSection: View {
                 GroomingReviewForm(booking: booking, store: store, accent: .customer, focusedTarget: focusedTarget)
             }
         }
-        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("customer.grooming.detail.review")
     }
 }
@@ -361,6 +383,57 @@ struct GroomingTimelineEntry: Identifiable {
 }
 
 
+extension GroomingTimelineEntry {
+    /// What happened to a booking, from "Booked" to the review, told by whoever is looking at it (design): the owner's page and the
+    /// groomer's booking page share it. The service record says "You" for what the viewer did and "Groomer" or "Customer" for the rest.
+    @MainActor
+    static func booking(_ booking: Booking, store: BookingsStore?, role: UserRole, zone: String?, now: Date) -> [GroomingTimelineEntry] {
+        func when(_ raw: String?) -> String? {
+            raw.map { GroomingRequestDateFormatting.displayString(from: $0, serviceTimeZoneIdentifier: zone) }
+        }
+        let viewerID = role == .groomer ? booking.groomerID : booking.customerID
+        let other = role == .groomer ? "Customer" : "Groomer"
+        let partner = role == .groomer ? "Customer" : booking.partnerDisplayTitle(for: .customer)
+        var entries: [GroomingTimelineEntry] = []
+        entries.append(.init(id: "booked", systemImage: "calendar", title: "Booked",
+            detail: when(booking.createdAt), note: "\(partner) · \(booking.priceSummary)"))
+        if let store {
+            if let proposal = store.rescheduleSnapshots[booking.id]?.proposal,
+               proposal.currentStatus(for: booking, now: now) != .pending {
+                entries.append(.init(id: "reschedule", systemImage: "calendar.badge.clock",
+                    title: proposal.currentStatus(for: booking, now: now).title))
+            }
+            if let service = booking.fulfillment {
+                if let started = service.actualStartedAt {
+                    entries.append(.init(id: "started", systemImage: "sparkles", title: "Service started", detail: when(started)))
+                }
+                if let ended = service.actualEndedAt {
+                    entries.append(.init(id: "ended", systemImage: "checkmark.circle", title: "Service ended", detail: when(ended)))
+                }
+                if service.basis == "bilateral_retrospective" {
+                    entries.append(.init(id: "basis", systemImage: "checkmark.seal",
+                        title: "Completion confirmed by both participants",
+                        note: "Unrecorded service times remain unknown."))
+                }
+            }
+            for event in store.fulfillmentHistory[booking.id] ?? [] {
+                entries.append(.init(id: "event-\(event.id)", systemImage: event.action.systemImage, title: event.action.title,
+                    detail: (event.actorID == viewerID ? "You" : other) + " · " + (when(event.recordedAt) ?? ""),
+                    note: event.note))
+            }
+            if let error = store.fulfillmentHistoryErrors[booking.id] {
+                entries.append(.init(id: "history-error", systemImage: "exclamationmark.triangle", title: "The record did not load", note: error))
+            }
+        }
+        if let review = booking.review {
+            entries.append(.init(id: "review", systemImage: "star.fill", title: "Review left", detail: when(review.createdAt),
+                note: review.ratingSummary))
+        }
+        return entries
+    }
+}
+
+
 /// What happened to this grooming, newest last, as a vertical line with a mint dot for each thing. It is a record to look up, not
 /// something to act on, so it is closed until opened.
 struct GroomingTimeline: View {
@@ -368,8 +441,9 @@ struct GroomingTimeline: View {
     /// A link under the line (the offers, when there were some).
     var offersDestination: AnyView?
     var offersTitle = "See all offers"
-    let identifier: String
-    let toggleIdentifier: String
+    /// The block's id and its toggle's: the groomer's booking page shares the block and says its own.
+    var identifier = "customer.grooming.detail.activity"
+    var toggleIdentifier = "customer.grooming.detail.activity.toggle"
     @State private var isOpen: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -424,7 +498,6 @@ struct GroomingTimeline: View {
                 .designCardBody()
             }
         }
-        .accessibilityElement(children: .contain)
         .accessibilityIdentifier(identifier)
     }
 

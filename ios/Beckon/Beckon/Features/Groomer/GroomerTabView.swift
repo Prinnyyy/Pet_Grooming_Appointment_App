@@ -166,18 +166,11 @@ struct GroomerTabView: View {
             GroomerRequestsView(route: Binding(get: { requestsRoute }, set: { requestsRoute = $0 }),
                 requests: requestsStore, offers: offersStore,
                 onOpenBooking: { focusedBooking = $0; select(.bookings) }, sessionIsCurrent: sessionIsCurrent)
-        } else if tab == .bookings,
-                  let groomerID,
-                  let bookingRepository {
-            BookingsView(
-                participantID: groomerID,
-                role: .groomer,
-                repository: bookingRepository,
-                groomerProfileRepository: profileRepository,
-                debugRecorder: debugRecorder,
+        } else if tab == .bookings, let bookingsStore {
+            GroomerScheduleView(store: bookingsStore,
                 focusedBooking: Binding(get: { focusedBooking }, set: { focusedBooking = $0 }),
-                onOpenChat: openBookingChat
-            )
+                isActiveTab: selection == .bookings, onOpenChat: openBookingChat,
+                onSeeRequests: { select(.requests) })
         } else if tab == .messages,
                   let groomerID,
                   let chatRepository,

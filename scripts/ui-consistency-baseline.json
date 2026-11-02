@@ -2,7 +2,7 @@
   "version": 1,
   "scope": "ios/Beckon/Beckon/Features",
   "lastChange": {
-    "reason": "T-431 replaces legacy request and offer pages with unified adopted workflow"
+    "reason": "T-432 retires superseded schedule and service sections"
   },
   "findings": [
     {
@@ -46,55 +46,6 @@
       "fingerprint": "6fe6725efae4970b2713d1e7cb89a1cfb02f88f5d2334fad4302e3c210f315c2",
       "expressionHash": "4fc8553e33e82a3789872690cff0fdcdb9b5e15b1f7255353a70d4b00fe38c5f",
       "occurrence": 1
-    },
-    {
-      "ruleID": "UI005",
-      "path": "ios/Beckon/Beckon/Features/Bookings/BookingsView.swift",
-      "fingerprint": "4d87edb6d61e86aab7944d14dcb9588e9a355a589f0c37b72de25510f5c7a126",
-      "expressionHash": "04df45d9331b1eb9cdf87061ccedc605d02e1d8b3609248a2f03317f578418f8",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI005",
-      "path": "ios/Beckon/Beckon/Features/Bookings/BookingsView.swift",
-      "fingerprint": "452848d0a8b9f18acca45526f71c410f9a4286e514ff761bc7f692b1869de951",
-      "expressionHash": "04df45d9331b1eb9cdf87061ccedc605d02e1d8b3609248a2f03317f578418f8",
-      "occurrence": 2
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Bookings/BookingsView.swift",
-      "fingerprint": "4b4b84b2ff76dcf758e69cc09b45e1eadd3bc14f63e13675fde7d5826732fe27",
-      "expressionHash": "4fc8553e33e82a3789872690cff0fdcdb9b5e15b1f7255353a70d4b00fe38c5f",
-      "occurrence": 2
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Bookings/BookingsView.swift",
-      "fingerprint": "0fc5ab34ca082f8598c2ad9cea6e675db171403c4ec2749e9012de5dddb2de5d",
-      "expressionHash": "5c2470bc6f20a4a72db1777dfa6622c5d3e71273ef5cd06ca1d8d4981d838b6b",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Bookings/BookingsView.swift",
-      "fingerprint": "fca8e5a77baa0b8dfe32e8bd2f54e46c50544344c349f8f7859ba126b31fe3dc",
-      "expressionHash": "c271f4a63ed68806ddf2d11ac3eb454463c2d903803fcb2f8122e74e5d57b0c9",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Bookings/BookingsView.swift",
-      "fingerprint": "8346152c0e73e8db8142b19e41273cb701187b8ad033607f6c3617ecafbade59",
-      "expressionHash": "e0c59269f85ec0ef911fd51371ea5a511c0de45f94d2df86ca4e91bc16cf5827",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI005",
-      "path": "ios/Beckon/Beckon/Features/Bookings/BookingsView.swift",
-      "fingerprint": "cdf37347c4382523f788d8d91861b6e7935e2a85e541b812f4fcc83590fa10cf",
-      "expressionHash": "04df45d9331b1eb9cdf87061ccedc605d02e1d8b3609248a2f03317f578418f8",
-      "occurrence": 3
     },
     {
       "ruleID": "UI002",

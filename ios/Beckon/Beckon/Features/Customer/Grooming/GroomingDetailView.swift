@@ -361,41 +361,7 @@ struct GroomingDetailView: View {
             }
         }
         guard let booking else { return entries }
-        entries.append(.init(id: "booked", systemImage: "calendar", title: "Booked",
-            detail: when(booking.createdAt), note: "\(booking.partnerDisplayTitle(for: .customer)) · \(booking.priceSummary)"))
-        if let bookingsStore {
-            if let proposal = bookingsStore.rescheduleSnapshots[booking.id]?.proposal,
-               proposal.currentStatus(for: booking, now: now) != .pending {
-                entries.append(.init(id: "reschedule", systemImage: "calendar.badge.clock",
-                    title: proposal.currentStatus(for: booking, now: now).title))
-            }
-            if let service = booking.fulfillment {
-                if let started = service.actualStartedAt {
-                    entries.append(.init(id: "started", systemImage: "sparkles", title: "Service started", detail: when(started)))
-                }
-                if let ended = service.actualEndedAt {
-                    entries.append(.init(id: "ended", systemImage: "checkmark.circle", title: "Service ended", detail: when(ended)))
-                }
-                if service.basis == "bilateral_retrospective" {
-                    entries.append(.init(id: "basis", systemImage: "checkmark.seal",
-                        title: "Completion confirmed by both participants",
-                        note: "Unrecorded service times remain unknown."))
-                }
-            }
-            for event in bookingsStore.fulfillmentHistory[booking.id] ?? [] {
-                entries.append(.init(id: "event-\(event.id)", systemImage: event.action.systemImage, title: event.action.title,
-                    detail: (event.actorID == booking.customerID ? "You" : "Groomer") + " · " + (when(event.recordedAt) ?? ""),
-                    note: event.note))
-            }
-            if let error = bookingsStore.fulfillmentHistoryErrors[booking.id] {
-                entries.append(.init(id: "history-error", systemImage: "exclamationmark.triangle", title: "The record did not load", note: error))
-            }
-        }
-        if let review = booking.review {
-            entries.append(.init(id: "review", systemImage: "star.fill", title: "Review left", detail: when(review.createdAt),
-                note: review.ratingSummary))
-        }
-        return entries
+        return entries + GroomingTimelineEntry.booking(booking, store: bookingsStore, role: .customer, zone: zone, now: now)
     }
 
     // MARK: Loading and refreshing

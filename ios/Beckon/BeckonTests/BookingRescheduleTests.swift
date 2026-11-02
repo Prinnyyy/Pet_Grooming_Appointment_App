@@ -131,7 +131,7 @@ final class BookingRescheduleRenderingTests: XCTestCase {
                 appointmentReminderScheduler: AppointmentReminderSchedulerFake())
             await store.loadReschedule(for: booking.id)
             XCTAssertEqual(store.rescheduleActions(for: booking), role == .customer ? [.withdraw] : [.accept, .reject])
-            try await render(ScrollView { BookingRescheduleSection(booking: booking, store: store).padding() },
+            try await render(ScrollView { GroomingRescheduleTimes(booking: booking, proposal: proposal).padding() },
                 name: "T-378 \(role.rawValue) pending proposal")
             try await render(RescheduleDialogHost(booking: booking, proposal: proposal,
                 action: role == .customer ? .withdraw : .accept),

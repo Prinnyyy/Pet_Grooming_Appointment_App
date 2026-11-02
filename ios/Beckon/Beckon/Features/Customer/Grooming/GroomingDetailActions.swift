@@ -1,4 +1,4 @@
-// What a booking asks of the owner on the Grooming detail page (S-062): the cards that say it (a new time to answer, a service to
+// What a booking asks of the owner on the Grooming detail page (design): the cards that say it (a new time to answer, a service to
 // confirm, an operation to check) and the quiet rows for what is rarely needed (change the time, cancel, report a problem). The
 // same actions, texts and store calls as the old Booking detail page, in cards made for the merged page.
 import SwiftUI
@@ -66,11 +66,16 @@ struct GroomingNeedsYou: View {
     let now: Date
     @Binding var fulfillmentAction: BookingFulfillmentAction?
     @Binding var rescheduleReview: GroomingRescheduleSelection?
+    /// Who is looking (design): the owner's page and the groomer's booking page share these cards; only some of the words differ.
+    var role: UserRole = .customer
     @Environment(\.dynamicTypeSize) private var typeSize
 
     private var state: GroomingBookingActionState {
         GroomingBookingActionState(booking: booking, store: store, now: now)
     }
+
+    private var proposalIdentifier: String { role == .groomer ? "groomer.booking.proposal" : "customer.grooming.detail.proposal" }
+    private var serviceIdentifier: String { role == .groomer ? "groomer.booking.service" : "customer.grooming.detail.service" }
 
     var body: some View {
         let state = state
@@ -78,16 +83,16 @@ struct GroomingNeedsYou: View {
             GroomingNeedsCard(title: "New time proposed", systemImage: "calendar.badge.clock") {
                 proposalBody(proposal, state: state)
             }
-            .accessibilityIdentifier("customer.grooming.detail.proposal")
+            .accessibilityIdentifier(proposalIdentifier)
         } else if let error = store.rescheduleErrors[booking.id], !state.hasServiceBlock {
             BeckonErrorBanner(title: "Time change unavailable", message: error)
         }
         if state.hasServiceBlock {
-            GroomingNeedsCard(title: booking.fulfillmentTitle, systemImage: phaseIcon(state.phase),
+            GroomingNeedsCard(title: serviceTitle(state), systemImage: phaseIcon(state.phase),
                 tone: state.serviceNeedsAnswer ? .attention : .info) {
                 serviceBody(state: state)
             }
-            .accessibilityIdentifier("customer.grooming.detail.service")
+            .accessibilityIdentifier(serviceIdentifier)
         }
     }
 
@@ -96,7 +101,8 @@ struct GroomingNeedsYou: View {
     private func proposalBody(_ proposal: BookingRescheduleProposal, state: GroomingBookingActionState) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             GroomingRescheduleTimes(booking: booking, proposal: proposal)
-            Text(proposal.initiatorID == booking.customerID ? "You proposed this time" : "The groomer proposed this time")
+            Text(proposal.initiatorID == (role == .groomer ? booking.groomerID : booking.customerID) ? "You proposed this time"
+                : (role == .groomer ? "The customer proposed this time" : "The groomer proposed this time"))
                 .font(DesignTokens.Typography.Expressive.chip)
                 .foregroundStyle(DesignTokens.Colors.textTertiary)
             Text("Reply before " + GroomingRequestDateFormatting.displayString(from: proposal.expiresAt,
@@ -168,6 +174,14 @@ struct GroomingNeedsYou: View {
                 }
             }
         }
+    }
+
+    /// The phase's own words; the groomer, whose booking is "Confirmed" until the service starts, is told what the time has come to.
+    private func serviceTitle(_ state: GroomingBookingActionState) -> String {
+        guard role == .groomer, state.phase == .scheduled,
+              let end = GroomingRequestDateFormatting.parsedDate(from: booking.scheduledEnd) else { return booking.fulfillmentTitle }
+        if now >= end { return "Needs closing" }
+        return state.decisionActions.contains(.start) ? "Time to start" : booking.fulfillmentTitle
     }
 
     private func phaseIcon(_ phase: BookingFulfillmentPhase?) -> String {

@@ -49,10 +49,9 @@ test("Groomer sign out uses the shared destructive style", () => {
 });
 
 test("groomer destructive entries retain their style and shared confirmations use destructive dialog actions", () => {
-  const fulfillment = read("Features/Bookings/BookingFulfillmentSection.swift");
-  assert.match(fulfillment, /if action\.isDestructive/);
-  assert.match(fulfillment, /BeckonDestructiveButtonStyle\(\)/);
-  assert.match(fulfillment, /bookingFulfillmentDialog\(action: \$selectedAction\)/);
+  const fulfillment = read("Features/Customer/Grooming/GroomingActionDialogs.swift");
+  assert.match(fulfillment, /item\.isDestructive/);
+  assert.match(fulfillment, /\.destructive\(title: item\.title/);
   const dialogs = read("Features/Bookings/BookingActionDialogs.swift");
   assert.match(dialogs, /if item\.isDestructive/);
   assert.match(dialogs, /\.destructive\(title: item\.title/);
