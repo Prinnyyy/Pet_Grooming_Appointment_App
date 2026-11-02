@@ -144,9 +144,56 @@ struct GroomerHomeView: View {
         }
     }
 
+    /// The live content and its skeleton use the same room. These regions also provide the geometry regression boundary.
+    var nextAppointment: some View {
+        appointmentLayout(isLoading: false)
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier(home.nextBooking != nil ? "groomer.home.next-booking" :
+                appointmentHasIssue ? "groomer.home.next-booking.error" : "groomer.home.next-booking.empty")
+    }
+
+    private var appointmentHasIssue: Bool { home.issues.contains { $0.section == .bookings } }
+
+    private var emptyAppointmentWords: some View {
+        heroWords(title: "No upcoming appointment", message: "Confirmed bookings will appear here.")
+    }
+
+    private var unavailableAppointmentWords: some View {
+        heroWords(title: "Schedule unavailable",
+            message: "Pull to refresh this section while the rest of Home remains available.")
+    }
+
+    /// Only layout is shared with the approved prototype: all words, photos and actions remain the real Home's.
+    private func appointmentLayout(isLoading: Bool) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            ZStack(alignment: .topLeading) {
+                ZStack(alignment: .topLeading) {
+                    emptyAppointmentWords
+                    unavailableAppointmentWords
+                    heroBarsMain
+                    appointmentMain
+                }
+                .hidden().accessibilityHidden(true).allowsHitTesting(false)
+                .environment(\.scenePhase, .inactive)
+                if isLoading { heroBarsMain }
+                else { appointmentMain }
+            }
+            ZStack(alignment: .topLeading) {
+                // Measure both real labels, including wrapping at large text sizes. No hidden controls or actions.
+                ZStack(alignment: .topLeading) {
+                    BeckonLedgePrimaryLabel(title: "View booking", systemImage: "calendar").beckonLedge(.primary)
+                    BeckonLedgePrimaryLabel(title: "See new requests", systemImage: "tray.full").beckonLedge(.primary)
+                }
+                .padding(.top, DesignTokens.Spacing.sm)
+                .hidden().accessibilityHidden(true).allowsHitTesting(false)
+                if isLoading { heroBarsFooter }
+                else { appointmentFooter }
+            }
+        }
+    }
+
     /// The card's words: the next appointment as it is in the Schedule, or what to do while there is none.
-    @ViewBuilder
-    private var nextAppointment: some View {
+    @ViewBuilder private var appointmentMain: some View {
         if let booking = home.nextBooking {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
@@ -169,25 +216,22 @@ struct GroomerHomeView: View {
                 }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("\(booking.appointmentServiceTitle), \(booking.scheduledTimePresentation.accessibilityLabel), \(booking.appointmentAddressSummary)")
-                heroButton(title: "View booking", systemImage: "calendar", identifier: "groomer.home.next-booking.view") {
-                    bookingAction(booking)
-                }
             }
-            .accessibilityElement(children: .contain)
-            .accessibilityIdentifier("groomer.home.next-booking")
-        } else if home.issues.contains(where: { $0.section == .bookings }) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                heroWords(title: "Schedule unavailable",
-                    message: "Pull to refresh this section while the rest of Home remains available.")
-            }
-            .accessibilityIdentifier("groomer.home.next-booking.error")
+        } else if appointmentHasIssue {
+            unavailableAppointmentWords
         } else {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                heroWords(title: "No upcoming appointment", message: "Confirmed bookings will appear here.")
-                heroButton(title: "See new requests", systemImage: "tray.full", identifier: "groomer.home.next-booking.requests",
-                    action: requestsAction)
+            emptyAppointmentWords
+        }
+    }
+
+    @ViewBuilder private var appointmentFooter: some View {
+        if let booking = home.nextBooking {
+            heroButton(title: "View booking", systemImage: "calendar", identifier: "groomer.home.next-booking.view") {
+                bookingAction(booking)
             }
-            .accessibilityIdentifier("groomer.home.next-booking.empty")
+        } else if !appointmentHasIssue {
+            heroButton(title: "See new requests", systemImage: "tray.full", identifier: "groomer.home.next-booking.requests",
+                action: requestsAction)
         }
     }
 
@@ -219,8 +263,14 @@ struct GroomerHomeView: View {
         .accessibilityIdentifier(identifier)
     }
 
-    /// The card's room while the schedule is not known: the avatar and a name, three chips, the button.
-    private var heroBars: some View {
+    /// Keep the card's measured layout while the first schedule read is pending, with the original mask and sweep.
+    var heroBars: some View {
+        appointmentLayout(isLoading: true)
+            .designSkeleton(label: "Loading your schedule")
+            .accessibilityIdentifier("groomer.home.next-booking.loading")
+    }
+
+    private var heroBarsMain: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             HStack(spacing: DesignTokens.Spacing.md) {
                 DesignSkeletonDisc()
@@ -237,14 +287,15 @@ struct GroomerHomeView: View {
                 BeckonMetaChip(text: "Service address", systemImage: "mappin")
             }
             .redacted(reason: .placeholder)
-            BeckonLedgePrimaryLabel(title: "View booking", systemImage: "calendar")
-                .hidden()
-                .overlay { DesignSkeletonBlock(cornerRadius: DesignTokens.CornerRadius.ledgeButton) }
-                .beckonLedge(.primary)
-                .padding(.top, DesignTokens.Spacing.sm)
         }
-        .designSkeleton(label: "Loading your schedule")
-        .accessibilityIdentifier("groomer.home.next-booking.loading")
+    }
+
+    private var heroBarsFooter: some View {
+        BeckonLedgePrimaryLabel(title: "View booking", systemImage: "calendar")
+            .hidden()
+            .overlay { DesignSkeletonBlock(cornerRadius: DesignTokens.CornerRadius.ledgeButton) }
+            .beckonLedge(.primary)
+            .padding(.top, DesignTokens.Spacing.sm)
     }
 
     // MARK: Needs attention
