@@ -21,6 +21,9 @@ final class GroomerProfileStore {
     private(set) var hasLoadedFitClaims = false
     private(set) var hasLoadedPortfolioTags = false
     private(set) var hasLoadedPetFitEvidence = false
+    private(set) var hasLoadedAccountCore = false
+    private(set) var hasLoadedPortfolioPhotos = false
+    private(set) var hasResolvedAccountSummary = false
     private var fitClaimsLoadFailed = false
     private var portfolioMetadataLoadFailed = false
 
@@ -201,6 +204,7 @@ final class GroomerProfileStore {
         )
         self.loadedAddressInput = emptyAddress
         self.loadedProfileForm = profileFormSnapshot
+        populateCachedProfileSnapshot()
     }
 
     func load() async {
@@ -241,6 +245,7 @@ final class GroomerProfileStore {
 
             profile = loadedProfile
             services = loadedServices
+            hasLoadedAccountCore = true
             if !isEditingAvailability || savedAvailability == nil {
                 applyAvailabilitySnapshot(loadedSchedule)
             }
@@ -257,6 +262,7 @@ final class GroomerProfileStore {
             guard isCurrentProfileLoad(loadID, revision: loadRevision) else { return }
             if let photos {
                 portfolioPhotos = photos
+                hasLoadedPortfolioPhotos = true
                 let ids = Set(photos.map(\.id))
                 portfolioPhotoDataByID = portfolioPhotoDataByID.filter { ids.contains($0.key) }
                 attemptedPortfolioPhotoDataIDs.formIntersection(ids)
@@ -277,6 +283,8 @@ final class GroomerProfileStore {
                 optionalLoadError = "Some portfolio or fit details could not be refreshed. Retry before editing those details."
             }
             isLoadingOptionalMetadata = false
+            hasResolvedAccountSummary = true
+            saveProfileSnapshot(profile: profile, avatarData: avatarPhotoData)
 
             let loadedAvatarPhoto = await avatarPhotoPayload(
                 from: loadedProfile.avatarPath
@@ -408,6 +416,30 @@ final class GroomerProfileStore {
         }
     }
 
+    private var accountSummarySnapshot: GroomerAccountSummarySnapshot {
+        let cached = cachedProfileSnapshot?.groomerAccountSummary
+        return GroomerAccountSummarySnapshot(
+            city: hasLoadedAccountCore ? profile?.baseCity : cached?.city,
+            state: hasLoadedAccountCore ? profile?.baseState : cached?.state,
+            hasProfile: hasLoadedAccountCore ? profile != nil : cached?.hasProfile,
+            isProfileActive: hasLoadedAccountCore ? profile?.isActive : cached?.isProfileActive,
+            serviceCount: hasLoadedAccountCore ? services.count : cached?.serviceCount,
+            activeServiceCount: hasLoadedAccountCore ? services.filter(\.isActive).count : cached?.activeServiceCount,
+            portfolioPhotoCount: hasLoadedPortfolioPhotos ? portfolioPhotos.count : cached?.portfolioPhotoCount,
+            enabledAvailabilityDayCount: hasLoadedAccountCore ? availabilityWindows.filter(\.isEnabled).count : cached?.enabledAvailabilityDayCount,
+            selectedFitSignalCount: hasLoadedFitClaims ? fitClaims.filter(\.isActive).count : cached?.selectedFitSignalCount,
+            evidenceSignalCount: hasLoadedPetFitEvidence ? petFitEvidenceSummary.count : cached?.evidenceSignalCount)
+    }
+
+    var accountPresentation: GroomerAccountPresentation {
+        let summary = accountSummarySnapshot
+        return GroomerAccountPresentation(city: summary.city, state: summary.state, fallbackDetail: profileDetailText,
+            hasProfile: summary.hasProfile, isProfileActive: summary.isProfileActive ?? false,
+            serviceCount: summary.serviceCount, activeServiceCount: summary.activeServiceCount,
+            portfolioPhotoCount: summary.portfolioPhotoCount, enabledAvailabilityDayCount: summary.enabledAvailabilityDayCount,
+            selectedFitSignalCount: summary.selectedFitSignalCount, evidenceSignalCount: summary.evidenceSignalCount)
+    }
+
     func saveProfileSnapshot(
         profile: GroomerProfile?,
         avatarData: Data?
@@ -420,7 +452,8 @@ final class GroomerProfileStore {
             displayName: displayName,
             detailText: profile.map(Self.detailText(for:))
                 ?? Self.normalized(cachedProfileSnapshot?.detailText),
-            avatarData: avatarData
+            avatarData: avatarData,
+            groomerAccountSummary: hasResolvedAccountSummary ? accountSummarySnapshot : cachedProfileSnapshot?.groomerAccountSummary
         )
         cachedProfileSnapshot = snapshot
         profileSnapshotCache.save(snapshot)

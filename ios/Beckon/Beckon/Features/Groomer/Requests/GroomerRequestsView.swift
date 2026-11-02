@@ -118,8 +118,8 @@ struct GroomerRequestsView: View {
         }
     }
 
-    /// The chosen segment is the coral pill, the other a white card; a count rides in each once its list has loaded.
-    private func segmentChip(_ segment: GroomerRequestsSegment) -> some View {
+    /// Keep the count's column from the first frame, so the title never recenters when a count arrives.
+    func segmentChip(_ segment: GroomerRequestsSegment) -> some View {
         let isSelected = route.segment == segment
         let count = segment == .matches ? matchCount : offerCount
         return Button {
@@ -127,15 +127,19 @@ struct GroomerRequestsView: View {
         } label: {
             HStack(spacing: DesignTokens.Spacing.sm) {
                 Text(segment.title).font(DesignTokens.Typography.Expressive.emphasis)
-                if let count {
-                    Text("\(count)")
-                        .font(DesignTokens.Typography.Expressive.label)
-                        .foregroundStyle(DesignTokens.Colors.customerDeep)
-                        .frame(minWidth: 24, minHeight: 24)
-                        .padding(.horizontal, DesignTokens.Spacing.xs)
-                        .background(isSelected ? DesignTokens.Colors.surface : DesignTokens.Colors.customerTint, in: Capsule())
-                        .accessibilityHidden(true)
+                ZStack {
+                    Text("99+").hidden()
+                    Text(count.map { BeckonBadgeLabel.text(for: $0) ?? "0" } ?? "0")
+                        .opacity(count == nil ? 0 : 1)
                 }
+                .font(DesignTokens.Typography.Expressive.label)
+                .monospacedDigit()
+                .foregroundStyle(DesignTokens.Colors.customerDeep)
+                .frame(minWidth: 24, minHeight: 24)
+                .padding(.horizontal, DesignTokens.Spacing.xs)
+                .background((isSelected ? DesignTokens.Colors.surface : DesignTokens.Colors.customerTint)
+                    .opacity(count == nil ? 0 : 1), in: Capsule())
+                .accessibilityHidden(true)
             }
             .foregroundStyle(isSelected ? DesignTokens.Colors.customerInk : DesignTokens.Colors.textSecondary)
             .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.minimumTouchTarget)

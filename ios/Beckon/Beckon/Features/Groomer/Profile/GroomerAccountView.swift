@@ -23,7 +23,7 @@ struct GroomerAccountView: View {
             ScrollView {
                 BeckonCascade(spacing: DesignTokens.Layout.sectionSpacing) {
                     BeckonPageTitle("Account")
-                    if store.profile == nil, let error = store.loadErrorMessage, !store.isLoading {
+                    if store.profile == nil, store.cachedProfileSnapshot == nil, let error = store.loadErrorMessage, !store.isLoading {
                         unavailable(error)
                     } else {
                         content
@@ -60,19 +60,7 @@ struct GroomerAccountView: View {
     }
 
     private var presentation: GroomerAccountPresentation {
-        GroomerAccountPresentation(
-            city: store.profile?.baseCity,
-            state: store.profile?.baseState,
-            fallbackDetail: store.profileDetailText,
-            hasProfile: store.profile != nil,
-            isProfileActive: store.profile?.isActive ?? false,
-            serviceCount: store.services.count,
-            activeServiceCount: store.services.filter(\.isActive).count,
-            portfolioPhotoCount: store.portfolioPhotos.count,
-            enabledAvailabilityDayCount: store.availabilityWindows.filter(\.isEnabled).count,
-            selectedFitSignalCount: store.fitClaims.filter(\.isActive).count,
-            evidenceSignalCount: store.petFitEvidenceSummary.count
-        )
+        store.accountPresentation
     }
 
     // MARK: Content
@@ -91,7 +79,7 @@ struct GroomerAccountView: View {
             }
         }
 
-        waits {
+        waits(identity: true) {
             BeckonAccountIdentityHeader(displayName: store.profileDisplayName, detailText: presentation.identitySubtitle,
                 roleTitle: "Groomer", roleSystemImage: "scissors", roleAccent: .groomer) {
                 BeckonProfileAvatar(data: store.avatarPhotoData, tone: .groomer,
@@ -181,9 +169,11 @@ struct GroomerAccountView: View {
         }
     }
 
-    private func waits<Content: View, Placeholder: View>(@ViewBuilder _ content: () -> Content,
+    private func waits<Content: View, Placeholder: View>(identity: Bool = false, @ViewBuilder _ content: () -> Content,
                                                          @ViewBuilder placeholder: () -> Placeholder) -> some View {
-        DesignReveal(isLoading: !settled && store.profile == nil && store.cachedProfileSnapshot == nil, content: content, placeholder: placeholder)
+        let hasDisplayData = identity ? (store.profile != nil || store.cachedProfileSnapshot != nil) :
+            (store.hasResolvedAccountSummary || store.cachedProfileSnapshot?.groomerAccountSummary != nil)
+        return DesignReveal(isLoading: !settled && !hasDisplayData, content: content, placeholder: placeholder)
     }
 
     /// A plain heading over one grouped card of rows, as the customer's Help and Account access.

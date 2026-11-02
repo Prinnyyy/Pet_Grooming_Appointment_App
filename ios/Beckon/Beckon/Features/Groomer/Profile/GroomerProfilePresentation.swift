@@ -13,14 +13,14 @@ nonisolated struct GroomerAccountPresentation: Equatable, Sendable {
         city: String?,
         state: String?,
         fallbackDetail: String,
-        hasProfile: Bool,
+        hasProfile: Bool?,
         isProfileActive: Bool,
-        serviceCount: Int,
-        activeServiceCount: Int,
-        portfolioPhotoCount: Int,
-        enabledAvailabilityDayCount: Int,
-        selectedFitSignalCount: Int,
-        evidenceSignalCount: Int
+        serviceCount: Int?,
+        activeServiceCount: Int?,
+        portfolioPhotoCount: Int?,
+        enabledAvailabilityDayCount: Int?,
+        selectedFitSignalCount: Int?,
+        evidenceSignalCount: Int?
     ) {
         let normalizedCity = Self.normalized(city)
         let normalizedState = Self.normalized(state)
@@ -35,12 +35,12 @@ nonisolated struct GroomerAccountPresentation: Equatable, Sendable {
             fallbackDetail
         }
 
-        profileSummary = hasProfile
-            ? (isProfileActive ? "Active" : "Hidden")
-            : "Set up"
+        profileSummary = hasProfile.map { $0 ? (isProfileActive ? "Active" : "Hidden") : "Set up" }
+            ?? "Profile details"
 
-        let validServiceCount = max(0, serviceCount)
-        let activeServices = min(max(0, activeServiceCount), validServiceCount)
+        let activeServices: Int? = if let serviceCount, let activeServiceCount {
+            min(max(0, activeServiceCount), max(0, serviceCount))
+        } else { nil }
         servicesSummary = Self.countSummary(
             activeServices,
             zero: "No active services",
@@ -80,11 +80,12 @@ nonisolated struct GroomerAccountPresentation: Equatable, Sendable {
     }
 
     private static func countSummary(
-        _ value: Int,
+        _ value: Int?,
         zero: String,
         singular: String,
         plural: String
     ) -> String {
+        guard let value else { return "Details unavailable" }
         let count = max(0, value)
         return switch count {
         case 0:
