@@ -60,10 +60,10 @@ extension View {
             let isPropose = item.action == .propose
             return DesignModal(systemImage: "calendar.badge.clock", title: item.action.title,
                 message: isPropose
-                    ? "The service, duration, price, pet, participants, location and buffers stay unchanged. The original appointment remains confirmed until both participants accept a valid new time."
+                    ? "The service, duration, price, pet, participants and location stay unchanged. The original appointment remains confirmed until both participants accept a valid new time."
                     : item.action == .accept
-                        ? "The service, duration, price, pet, participants, location and buffers stay unchanged. Accepting replaces the original appointment only if the new time is still available."
-                        : "The service, duration, price, pet, participants, location and buffers stay unchanged. The original appointment remains confirmed until both participants accept a valid new time.",
+                        ? "The service, duration, price, pet, participants and location stay unchanged. Accepting replaces the original appointment only if the new time is still available."
+                        : "The service, duration, price, pet, participants and location stay unchanged. The original appointment remains confirmed until both participants accept a valid new time.",
                 actions: [
                     .primary(item.action.title, systemImage: "calendar.badge.checkmark", identifier: "booking.reschedule.confirm",
                         isEnabled: { !isPropose || (draft.proposedStart != nil && draft.duration != nil) }) {

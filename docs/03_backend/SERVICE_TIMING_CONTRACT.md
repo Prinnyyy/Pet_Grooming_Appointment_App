@@ -2,6 +2,8 @@
 
 Owner scope: T-374 / functional-reliability WP-03. Migration `20260908052312_t374_service_timing.sql` was deployed on 2026-09-08 and is append-only. Installed-definition SQL assertions and authenticated publication/offer/acceptance plus concurrent Save checks passed with exact restoration. Original WP-03 client flows and integration gates pass; evidence and release limitations are recorded in the timing acceptance files linked from the plan.
 
+T-435 / D-069 adopts service-only occupancy; deployment and current acceptance are recorded in [P7](../superpowers/plans/2026-11-01-groomer-ui-p7-service-time.md). T-374 buffer settings below are superseded; its applied migration and historical commercial facts remain intact.
+
 ## Time Meaning
 
 - Persist instants as UTC timestamps and retain an IANA timezone identifier with the intent/agreement. Never reconstruct historical timezone from the device or a subsequently edited profile. Unknown legacy zones remain unknown.
@@ -14,17 +16,17 @@ Owner scope: T-374 / functional-reliability WP-03. Migration `20260908052312_t37
 ## Duration And Occupancy
 
 - Reuse the existing service-duration range of 15 through 720 integer minutes. A configured active owned service supplies an editable duration and price, not a guarantee of availability. Custom, missing, inactive or ambiguous configuration requires explicit assessment and a groomer-entered duration/price before an offer.
-- Duration is elapsed time, including across DST transitions. The offer and booking retain the selected duration and applied buffer values, not mutable service defaults.
-- Adopt explicit integer-minute settings: preparation and cleanup each 0...120; inbound and outbound mobile travel allowance each 0...180. Zero is allowed only as an explicit selection. Missing/unconfirmed values are not silently treated as zero. These bounds are product setting limits, not measured travel guarantees.
-- Every new quote requires confirmed buffer settings. Preparation precedes service and cleanup follows service. Mobile travel allowances additionally precede/follow those intervals; customer-travels service does not reserve the groomer for the customer's travel.
-- Pet occupancy is `[service_start, service_end)`. Groomer occupancy is `[service_start - preparation - applicable_inbound_travel, service_end + cleanup + applicable_outbound_travel)`. Adjacent intervals may touch but must not overlap.
-- Groomer availability/time-off checks cover the entire occupied interval. No appointment is deemed available from the first page of a list. Existing service-day restriction remains: the service must fit one service-location calendar day, allowing its exclusive end exactly at the next midnight. Resource coverage crossing midnight must be fully covered by the applicable schedule dates, otherwise reject.
-- Fixed travel allowances are estimates. Do not claim route optimization, guaranteed arrival or immunity to overruns. Existing confirmed appointments are never automatically shifted.
+- Duration is elapsed time, including across DST transitions. New offers/bookings use an explicit zero compatibility buffer snapshot and occupied start/end equal service start/end. Missing or previously saved positive buffer settings never downgrade matching or enlarge occupancy.
+- Pet and groomer occupancy are `[service_start, service_end)`, subject to the existing authorized fulfillment release. Adjacent intervals may touch; actual overlap remains rejected by locked admission and the groomer/pet exclusion constraints.
+- Availability and time-off checks cover the service interval, including on availability Save and reschedule. Keep the shared exact timezone/DST evaluator, daily capacity and minimum-notice checks. No page/cache truncation participates in admission. The service must still fit one service-location calendar day, allowing an exclusive end exactly at next midnight.
+- The groomer judges travel and preparation when offering a time. The app does not promise route optimization or guaranteed arrival and never shifts confirmed appointments automatically.
+- Existing immutable offers/booking snapshots retain their historical values. Old pending quotes whose padded timing differs from the new rule use existing `legacy_unverified` / replace-offer handling; they cannot silently create a booking with different frozen terms. Legacy booked facts remain readable; their operational resource interval uses service/release times. A verified reschedule preserves its prior agreement while applying service-only allocation to the new time.
+- Availability Save normalizes the deprecated compatibility key to explicit zero. The removed four-field draft and inert Auto-ready control do not appear in the UI; `auto_accept_bookings` remains a stored compatibility field with no automatic booking promise.
 
 ## Notice And Capacity
 
 - Preserve the existing configurable notice range 0...2 local calendar days and daily limit 1...12. Earliest service start is the later of `now + 5 minutes` and midnight of the schedule-local date plus configured notice days; one notice day is not 24 elapsed hours.
-- Count a booking once on its service-start date in the current schedule timezone, even if buffers touch another date. Recheck occupancy on every touched date; do not count buffers as extra appointments.
+- Count a booking once on its service-start date in the current schedule timezone. Recheck service coverage on every touched date.
 - Continue current confirmed/completed occupancy and count semantics until WP-06 defines actual fulfillment/release. Cancellation behavior is not broadened by this timing package. New admission, direct privileged writers and availability Save must use the same guarded allocation policy.
 
 ## DST And Interpretation
@@ -43,6 +45,6 @@ The shared typed/wire contract must carry preference start/end/reference timezon
 
 Do not invent historical travel allowances or timezone evidence. Keep legacy accepted timestamps intact, label missing provenance, and preserve at least existing allocation protection during transition. Block unsafe new writes from unsupported clients with an explicit update/confirmation error only after the compatible client and recovery path exist. Append-only migrations and rollback tests must precede deployment; do not edit T-371/T-373 applied migrations.
 
-Acceptance requires matching Swift/SQL vectors for clipping, unknown duration, 15/720-minute bounds, midnight, spring gaps, repeated fall times, device-zone changes, all four buffers, adjacent/conflicting occupancy, notice days, quota and outside-window rejection. Verify the actual Wizard/offer interaction, then full regression, concurrent admission/Save, ownership and rollback gates. No package checkbox closes merely because this document exists.
+Acceptance requires matching Swift/SQL vectors for clipping, unknown duration, 15/720-minute bounds, midnight, spring gaps, repeated fall times, device-zone changes, explicit zero snapshots and ignored historical buffers, adjacent/conflicting occupancy, notice days, quota and outside-window rejection. Verify the actual Wizard/offer interaction, then full regression, concurrent admission/Save, ownership and rollback gates. No package checkbox closes merely because this document exists.
 
 References: [functional reliability plan](../superpowers/plans/2026-09-07-functional-reliability-task-plan.md), [Supabase contract](SUPABASE_CONTRACT.md), [Apple location timezone](https://developer.apple.com/documentation/mapkit/mkmapitem/timezone).

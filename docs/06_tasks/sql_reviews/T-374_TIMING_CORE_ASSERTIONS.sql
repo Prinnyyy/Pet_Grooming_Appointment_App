@@ -7,14 +7,14 @@ begin
   select * into strict v from app_private.service_timing_allocation(
     '2026-09-07T18:00:00Z',60,15,10,30,20,'groomer_comes_to_customer');
   if v.service_end <> '2026-09-07T19:00:00Z'::timestamptz
-    or v.occupied_start <> '2026-09-07T17:15:00Z'::timestamptz
-    or v.occupied_end <> '2026-09-07T19:30:00Z'::timestamptz then
+    or v.occupied_start <> '2026-09-07T18:00:00Z'::timestamptz
+    or v.occupied_end <> '2026-09-07T19:00:00Z'::timestamptz then
     raise exception 'mobile_allocation_mismatch';
   end if;
   select * into strict v from app_private.service_timing_allocation(
     '2026-09-07T18:00:00Z',60,15,10,30,20,'customer_comes_to_groomer');
-  if v.occupied_start <> '2026-09-07T17:45:00Z'::timestamptz
-    or v.occupied_end <> '2026-09-07T19:10:00Z'::timestamptz then
+  if v.occupied_start <> '2026-09-07T18:00:00Z'::timestamptz
+    or v.occupied_end <> '2026-09-07T19:00:00Z'::timestamptz then
     raise exception 'customer_travel_reserved_groomer_time';
   end if;
   select * into strict v from app_private.service_timing_allocation(
@@ -45,11 +45,11 @@ begin
     raise exception 'invalid_duration_accepted';
   exception when sqlstate '22023' then null;
   end;
-  begin
-    perform app_private.service_timing_allocation('2026-09-07T18:00:00Z',60,121,0,0,0,'groomer_comes_to_customer');
-    raise exception 'invalid_buffer_accepted';
-  exception when sqlstate '22023' then null;
-  end;
+  select * into strict v from app_private.service_timing_allocation(
+    '2026-09-07T18:00:00Z',60,null,null,null,null,'groomer_comes_to_customer');
+  if v.occupied_start <> v.service_start or v.occupied_end <> v.service_end then
+    raise exception 'removed_settings_changed_service_occupancy';
+  end if;
   begin
     perform app_private.service_timing_earliest_start('2026-09-07T18:00:00Z',0,'Not/A_Zone');
     raise exception 'invalid_zone_accepted';

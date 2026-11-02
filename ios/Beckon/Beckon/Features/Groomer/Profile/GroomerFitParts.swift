@@ -92,4 +92,3 @@ struct GroomerProofBar: View {
         .accessibilityHidden(true)
     }
 }
-

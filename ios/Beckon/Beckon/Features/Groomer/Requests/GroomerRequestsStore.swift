@@ -799,7 +799,7 @@ final class GroomerRequestsStore {
         case .groomerUnavailable:
             "Choose a time that fits your availability, time off, and existing bookings, including preparation, cleanup, and travel."
         case .timingBuffersRequired:
-            "Confirm preparation, cleanup, and travel times in your availability settings before sending an offer."
+            "Refresh availability and update the app before sending an offer."
         case .clientUpdateRequired:
             "Update Beckon to send versioned appointment details."
         case .scheduleTimeZoneRequired:

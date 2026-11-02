@@ -15,9 +15,10 @@ assert.equal(credentials.SUPABASE_URL, "https://lqmasbuqzvcvtawonjlb.supabase.co
 const api = new SupabaseREST(credentials.SUPABASE_URL, credentials.SUPABASE_PUBLISHABLE_KEY);
 const verifyFulfillment = process.env.TESTOPS_VERIFY_FULFILLMENT === "1";
 const verifyRescheduling = process.env.TESTOPS_VERIFY_RESCHEDULING === "1";
-const preserveNoticePolicy = verifyFulfillment || verifyRescheduling;
+// Preserve notice/capacity in every mode: changing notice advances the authoritative eligibility epoch.
+const preserveNoticePolicy = true;
 const verifyAgreements = preserveNoticePolicy || process.env.TESTOPS_VERIFY_AGREEMENTS === "1";
-const runID = `${verifyRescheduling ? "T378" : verifyFulfillment ? "T377" : verifyAgreements ? "T376" : "T374"}-${randomUUID()}`;
+const runID = `${verifyRescheduling ? "T378" : verifyFulfillment ? "T377" : verifyAgreements ? "T376" : "T435"}-${randomUUID()}`;
 const verifyMatchRefresh = process.env.TESTOPS_VERIFY_MATCH_REFRESH === "1";
 const directory = `artifacts/testops/${runID}`;
 mkdirSync(directory, { recursive: true, mode: 0o700 });
@@ -41,17 +42,22 @@ const groomerAuth = await api.signIn(groomer.email, groomer.password);
 const fixtureAddress = (await api.rpc("get_my_profile_address_v3", {}, groomerAuth.accessToken)).address;
 assert.ok(fixtureAddress && Number.isFinite(fixtureAddress.latitude) && Number.isFinite(fixtureAddress.longitude));
 assert.equal(fixtureAddress.state, "CA", "The explicitly Los Angeles timing fixture requires its California location");
+await assert.rejects(api.rpc("get_groomer_availability", {}, customerAuth.accessToken),
+  error => error.code === "42501" && error.serverMessage === "groomer_profile_required");
 const customerID = customerAuth.user.id;
 const groomerID = groomerAuth.user.id;
 for (const id of [customerID, groomerID]) assert.match(id, /^[0-9a-f-]{36}$/i);
 const tables = ["groomer_availability_windows", "groomer_booking_preferences", "groomer_time_off_windows"];
 const aggregate = table => `(select coalesce(jsonb_agg(to_jsonb(t) order by to_jsonb(t)::text),'[]'::jsonb)
   from public.${table} t where groomer_id='${groomerID}')`;
-const settingsSQL = `select ${tables.map((table, index) => `${aggregate(table)} as rows${index}`).join(",")};`;
+const settingsSQL = `select ${tables.map((table, index) => `${aggregate(table)} as rows${index}`).join(",")},
+  (select coalesce(jsonb_agg(to_jsonb(s) order by s.id),'[]'::jsonb) from public.groomer_services s
+    where groomer_id='${groomerID}') as services;`;
 const baseline = captureT374TimingSnapshot();
 const [backup] = query(settingsSQL);
 if (preserveNoticePolicy) assert.equal(backup.rows1.length, 1, "Booking fixture requires existing preferences");
 const fixtures = [];
+const serviceID = randomUUID();
 let configured;
 let unknownOutcome = false;
 let preferSave = false;
@@ -76,7 +82,7 @@ api.rpc = async (name, parameters, token) => {
     throw error;
   }
 };
-writeFileSync(`${directory}/recovery.json`, JSON.stringify({ runID, customerID, groomerID, backup, baseline }), { mode: 0o600 });
+writeFileSync(`${directory}/recovery.json`, JSON.stringify({ runID, customerID, groomerID, serviceID, backup, baseline }), { mode: 0o600 });
 
 try {
   if (verifyMatchRefresh) {
@@ -91,6 +97,10 @@ try {
         raise exception 'Timing race fixtures are not isolated';
       end if;
     end $$;
+    insert into public.groomer_services(id,groomer_id,service_type,title,description,base_price,duration_minutes,
+      accepted_species,accepted_pet_sizes,is_active)
+    values('${serviceID}','${groomerID}','custom_request','TESTOPS:${runID}','Service-only timing acceptance',100,60,
+      array['dog'],array['XS','S','M','L','XL'],true);
     insert into public.groomer_availability_windows(groomer_id,weekday,start_time,end_time,is_enabled,timezone)
     select '${groomerID}',d,'00:00'::time,'24:00'::time,true,'America/Los_Angeles' from generate_series(1,7) d
     on conflict(groomer_id,weekday) do update set start_time=excluded.start_time,end_time=excluded.end_time,
@@ -104,7 +114,7 @@ try {
   [configured] = query(settingsSQL);
   writeFileSync(`${directory}/configured.json`, JSON.stringify(configured), { mode: 0o600 });
   for (let attempt = 0; attempt < (verifyAgreements && !preserveNoticePolicy ? 4 : 2); attempt++) {
-    const fixture = { operationID: randomUUID(), requestID: null, offerID: null };
+    const fixture = { operationID: randomUUID(), draftID: randomUUID(), sessionID: null, requestID: null, offerID: null };
     fixtures.push(fixture);
     writeFileSync(`${directory}/fixtures.json`, JSON.stringify(fixtures), { mode: 0o600 });
     const [created] = query(`select id as pet_id,
@@ -113,7 +123,7 @@ try {
     assert.ok(created?.pet_id, "Active fixture pet required");
     const publishParameters = {
       p_publish_operation_id: fixture.operationID, p_preference_time_zone_identifier: "America/Los_Angeles",
-      p_request: { pet_id: created.pet_id, service_type: "full_groom", service_notes: `TESTOPS:${runID}`,
+      p_request: { pet_id: created.pet_id, service_type: "custom_request", service_notes: `TESTOPS:${runID}`,
         preferred_start: created.start,
         preferred_end: new Date(Date.parse(created.start) + (verifyMatchRefresh || verifyAgreements ? 10800000 : 7200000)).toISOString(),
         location_mode: "groomer_comes_to_customer", street_address: fixtureAddress.line_1, city: fixtureAddress.city,
@@ -121,22 +131,30 @@ try {
         country_code: fixtureAddress.country_code, latitude: fixtureAddress.latitude,
         longitude: fixtureAddress.longitude, resolution_source: "manual_geocode", user_confirmed_at: new Date().toISOString() },
     };
-    const publication = await api.rpc("create_grooming_request_v4", publishParameters, customerAuth.accessToken);
+    const discovery = await api.rpc("prepare_request_discovery_v1", {
+      p_draft_id: fixture.draftID,
+      p_input: { ...publishParameters.p_request, preference_time_zone_identifier: "America/Los_Angeles" },
+    }, customerAuth.accessToken);
+    fixture.sessionID = discovery.session_id;
+    writeFileSync(`${directory}/fixtures.json`, JSON.stringify(fixtures), { mode: 0o600 });
+    const distribution = { p_operation_id: fixture.operationID, p_session_id: discovery.session_id,
+      p_input_digest: discovery.input_digest, p_pool_enabled: true, p_groomer_ids: [groomerID] };
+    const publication = [await api.rpc("publish_request_with_distribution_v1", distribution, customerAuth.accessToken)];
     const requestID = publication[0]?.request_id;
     assert.ok(requestID, "Publication receipt missing");
     fixture.requestID = requestID;
     writeFileSync(`${directory}/fixtures.json`, JSON.stringify(fixtures), { mode: 0o600 });
-    const publicationReplay = await api.rpc("create_grooming_request_v4", {
-      p_publish_operation_id: fixture.operationID, p_request: {}, p_preference_time_zone_identifier: null,
-    }, customerAuth.accessToken);
+    const publicationReplay = [await api.rpc("publish_request_with_distribution_v1", distribution, customerAuth.accessToken)];
     assert.deepEqual(publicationReplay, publication, "Publication retry must preserve its receipt");
     const matches = await api.restSelect("request_matches", `select=id&request_id=eq.${requestID}&groomer_id=eq.${groomerID}`, groomerAuth.accessToken);
     assert.equal(matches.length, 1, "Publication must actually match the fixture groomer; do not inject a match");
     const serviceEnd = new Date(Date.parse(created.start) + 3600000).toISOString();
-    const [requestTerms] = verifyAgreements ? await api.restSelect("grooming_requests",
-      `select=terms_revision&id=eq.${requestID}`, customerAuth.accessToken) : [];
-    const receipt = await api.rpc(verifyAgreements ? "create_groomer_offer_v2" : "create_groomer_offer", {
-      ...(verifyAgreements ? { p_expected_request_revision: requestTerms?.terms_revision } : {}), p_request_id: requestID,
+    const [requestTerms] = query(`select r.terms_revision,
+      app_private.match_required_confirmations(r.pet_snapshot,r.service_type,s.accepted_species,s.accepted_pet_sizes) as confirmations
+      from public.grooming_requests r join public.groomer_services s on s.id='${serviceID}' where r.id='${requestID}';`);
+    const receipt = await api.rpc("create_groomer_offer_v3", {
+      p_expected_request_revision: requestTerms.terms_revision, p_request_id: requestID,
+      p_assessment_confirmations: requestTerms.confirmations,
       p_proposed_start: created.start, p_proposed_end: serviceEnd, p_price_estimate: 100,
       p_message: `TESTOPS:${runID} timing allocation` }, groomerAuth.accessToken);
     const offerID = receipt[0]?.offer_id;
@@ -153,8 +171,8 @@ try {
       assert.equal(allocation.agreement_snapshot?.schema_version, 1);
       quoteRevisions.set(offerID, allocation.agreement_snapshot.quote_revision);
     }
-    const expectedBuffers = { preparation_minutes: 15, cleanup_minutes: 10,
-      inbound_travel_minutes: 30, outbound_travel_minutes: 20 };
+    const expectedBuffers = { preparation_minutes: 0, cleanup_minutes: 0,
+      inbound_travel_minutes: 0, outbound_travel_minutes: 0 };
     assert.deepEqual(allocation.applied_timing_buffers, expectedBuffers);
     assert.equal(allocation.service_time_zone_identifier, "America/Los_Angeles");
     assert.equal(allocation.schedule_time_zone_identifier, "America/Los_Angeles");
@@ -299,7 +317,25 @@ try {
           throw error;
         }
       } });
+    // This verified Save/recovery uses the new policy: public Availability normalizes the deprecated settings.
+    configured = { ...configured, rows1: configured.rows1.map(row => ({ ...row, timing_buffers: expectedBuffers })) };
+    writeFileSync(`${directory}/configured.json`, JSON.stringify(configured), { mode: 0o600 });
     assert.equal(result.winner, preferSave ? "time_off" : "booking", "Both admission orderings must be observed");
+    if (result.winner === "booking") {
+      const [proof] = query(`select
+        app_private.groomer_can_admit_service('${groomerID}','${serviceEnd}','${serviceEnd}'::timestamptz+interval '1 hour') as adjacent,
+        app_private.groomer_can_admit_service('${groomerID}','${serviceEnd}'::timestamptz-interval '1 minute','${serviceEnd}'::timestamptz+interval '1 hour') as overlaps;`);
+      assert.equal(proof.adjacent, true, "Service end is immediately available despite positive legacy settings");
+      assert.equal(proof.overlaps, false, "Actual service overlap remains blocked");
+      const [limits] = query(`begin;
+        update public.groomer_booking_preferences set max_appointments_per_day=1,minimum_advance_notice_days=0 where groomer_id='${groomerID}';
+        select not app_private.groomer_can_admit_service('${groomerID}','${serviceEnd}','${serviceEnd}'::timestamptz+interval '1 hour') as capacity_blocks,
+          '${runID}' as fixture;
+        rollback;`);
+      assert.equal(limits.capacity_blocks, true, "Service-only policy retains the daily cap");
+      console.log("Service-only admission: PASS (adjacent allowed; overlap and daily cap rejected)");
+    }
+
     const { bookingID, ...evidence } = result;
     if (verifyMatchRefresh) {
       const parameters = { p_groomer_id: groomerID, p_limit: 100, p_offset: 0 };
@@ -328,6 +364,9 @@ try {
     writeFileSync(`${directory}/race-${attempt}.json`, JSON.stringify(evidence), { mode: 0o600 });
     console.log(`Race ${attempt + 1}: PASS (${evidence.winner}; ${evidence.dispatch})`);
   }
+} catch (error) {
+  console.error("Acceptance operation failed:", error.code ?? "", error.serverMessage ?? error.message);
+  throw error;
 } finally {
   if (unknownOutcome) {
     console.error(`Unknown write outcome; preserve fixtures for reconciliation: ${directory}`);
@@ -336,6 +375,7 @@ try {
     // Save updates preference timestamps even when values are unchanged.
     const comparable = value => ({ ...value, rows1: value.rows1.map(({ updated_at, ...row }) => row) });
     assert.deepEqual(comparable(current), comparable(configured), "Unexpected fixture settings change; preserve recovery artifacts");
+    const draftIDs = fixtures.filter(row => row.draftID).map(row => `'${row.draftID}'::uuid`).join(",") || "null::uuid";
     const requestIDs = fixtures.filter(row => row.requestID).map(row => `'${row.requestID}'::uuid`).join(",") || "null::uuid";
     query(`begin; select set_config('app.availability_batch','1',true);
       do $$ begin
@@ -371,6 +411,15 @@ try {
       select app_private.cleanup_testops_request_address_location(id,'${runID}')
         from public.grooming_requests where id in (${requestIDs}) and service_notes='TESTOPS:${runID}';
       delete from public.grooming_requests where id in (${requestIDs}) and service_notes='TESTOPS:${runID}';
+      create temporary table timing_discovery_cleanup as select id,address_location_id
+        from app_private.request_discovery_sessions where customer_id='${customerID}' and draft_id in (${draftIDs})
+        and normalized_input->>'service_notes'='TESTOPS:${runID}';
+      delete from app_private.request_discovery_sessions where id in(select id from timing_discovery_cleanup);
+      delete from app_private.address_locations a where id in(select address_location_id from timing_discovery_cleanup)
+        and owner_id='${customerID}' and not exists(select 1 from public.grooming_requests where address_location_id=a.id)
+        and not exists(select 1 from public.customer_profiles where address_location_id=a.id)
+        and not exists(select 1 from public.groomer_profiles where address_location_id=a.id);
+      delete from public.groomer_services where id='${serviceID}' and groomer_id='${groomerID}' and title='TESTOPS:${runID}';
       ${preserveNoticePolicy ? `alter table public.groomer_booking_preferences disable trigger groomer_booking_preferences_set_updated_at;
         update public.groomer_booking_preferences prefs set timing_buffers=original.timing_buffers,updated_at=original.updated_at
           from jsonb_populate_recordset(null::public.groomer_booking_preferences,${json(backup.rows1)}) original
@@ -380,6 +429,11 @@ try {
         insert into public.${table} select * from jsonb_populate_recordset(null::public.${table},${json(backup[`rows${index}`])});`).join("\n")}
       ${verifyMatchRefresh || verifyAgreements ? `delete from app_private.match_refresh_queue where request_id in (${requestIDs});` : ""}
       commit;`);
+    const [restored] = query(settingsSQL);
+    assert.deepEqual(restored.services, backup.services, "Temporary service configuration was not restored");
+    const [discoveryRemaining] = query(`select count(*)::integer as count from app_private.request_discovery_sessions
+      where customer_id='${customerID}' and draft_id in (${draftIDs});`);
+    assert.equal(discoveryRemaining.count, 0);
     assert.deepEqual(captureT374TimingSnapshot(), baseline, "Exact fixture restoration failed");
     console.log("Exact 39-field fixture restoration: PASS");
   }

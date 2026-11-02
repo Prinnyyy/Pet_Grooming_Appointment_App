@@ -882,7 +882,7 @@ struct GroomerRequestsStoreTests {
 
     @Test(arguments: [
         (GroomerRequestRepositoryError.groomerUnavailable, "Choose a time that fits your availability, time off, and existing bookings, including preparation, cleanup, and travel."),
-        (.timingBuffersRequired, "Confirm preparation, cleanup, and travel times in your availability settings before sending an offer."),
+        (.timingBuffersRequired, "Refresh availability and update the app before sending an offer."),
         (.scheduleTimeZoneRequired, "Confirm the time zone in your availability settings before sending an offer."),
         (.serviceTimeZoneRequired, "The service address needs a confirmed time zone. For mobile service, the customer needs to publish a new request with a confirmed address. For service at your location, confirm your profile address.")
     ]) @MainActor

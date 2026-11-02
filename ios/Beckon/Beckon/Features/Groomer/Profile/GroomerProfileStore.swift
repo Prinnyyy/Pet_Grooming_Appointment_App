@@ -101,10 +101,6 @@ final class GroomerProfileStore {
     var availabilityTimezone = TimeZone.current.identifier
     var maxAppointmentsPerDay = 4
     var minimumAdvanceNoticeDays = 0
-    var preparationMinutesText = ""
-    var cleanupMinutesText = ""
-    var inboundTravelMinutesText = ""
-    var outboundTravelMinutesText = ""
     var autoAcceptBookings = false
     var isShowingTimeOffForm = false
     var timeOffTitle = ""
@@ -525,10 +521,6 @@ final class GroomerProfileStore {
         maxAppointmentsPerDay = min(max(preferences.maxAppointmentsPerDay, 1), 12)
         minimumAdvanceNoticeDays = min(max(preferences.minimumAdvanceNoticeDays, 0), 2)
         autoAcceptBookings = preferences.autoAcceptBookings
-        preparationMinutesText = preferences.timingBuffers.map { String($0.preparation) } ?? ""
-        cleanupMinutesText = preferences.timingBuffers.map { String($0.cleanup) } ?? ""
-        inboundTravelMinutesText = preferences.timingBuffers.map { String($0.inboundTravel) } ?? ""
-        outboundTravelMinutesText = preferences.timingBuffers.map { String($0.outboundTravel) } ?? ""
     }
 
     func populateFitClaims(with claims: [GroomerFitClaim]) {

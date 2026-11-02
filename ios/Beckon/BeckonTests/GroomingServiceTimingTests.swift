@@ -209,19 +209,19 @@ struct GroomingServiceTimingTests {
     }
 
     @Test
-    func buffersAreSeparateFromServiceAndCustomerTravel() throws {
+    func historicalBuffersDoNotEnlargeCurrentServiceReservations() throws {
         let start = try date("2026-09-07T18:00:00Z")
         let buffers = try GroomingTimingBuffers(preparation: 15, cleanup: 10, inboundTravel: 30, outboundTravel: 20)
         let mobile = try GroomingServiceTiming.allocation(start: start, durationMinutes: 60,
             buffers: buffers, locationMode: .groomerComesToCustomer)
         #expect(mobile.service.start == start)
         #expect(mobile.service.end == start.addingTimeInterval(3600))
-        #expect(mobile.occupied.start == start.addingTimeInterval(-2700))
-        #expect(mobile.occupied.end == start.addingTimeInterval(5400))
+        #expect(mobile.occupied.start == start)
+        #expect(mobile.occupied.end == start.addingTimeInterval(3600))
         let atGroomer = try GroomingServiceTiming.allocation(start: start, durationMinutes: 60,
             buffers: buffers, locationMode: .customerComesToGroomer)
-        #expect(atGroomer.occupied.start == start.addingTimeInterval(-900))
-        #expect(atGroomer.occupied.end == start.addingTimeInterval(4200))
+        #expect(atGroomer.occupied.start == start)
+        #expect(atGroomer.occupied.end == start.addingTimeInterval(3600))
     }
 
     @Test

@@ -8,6 +8,8 @@ Full pre-trim contract text is archived at `../09_frozen/backend_contracts/SUPAB
 
 ## Current Status
 
+- T-435 / Handoff 4 D2 (2026-11-01): `20261102071341_groomer_service_only_timing.sql` applied, 128 versions aligned, repeat push empty. New reservations occupy service time only with explicit zero compatibility buffers; matching, offer/booking snapshots, admission, reschedule, fulfillment release and availability coverage agree. Locked overlap, timezone/DST, time off, quota, notice and existing authorization/receipts remain. Historical immutable facts are retained; padded pending quotes use the existing replacement path. [Current timing contract](SERVICE_TIMING_CONTRACT.md), [scope and evidence](../superpowers/plans/2026-11-01-groomer-ui-p7-service-time.md).
+
 - Latest recorded migration verification: T-406 confirms 125 aligned versions through `20261017105527_pet_profile_reliability.sql`, with an empty repeat dry run; see [T-406 acceptance](../superpowers/plans/2026-10-17-pet-profile-reliability-plan.md#7-执行记录). Earlier counts below describe only their named historical baselines.
 - T-388 notification/replacement acceptance (2026-09-10): both notification tables expose nullable `related_conversation_id` with indexed `ON DELETE SET NULL` references. Text triggers target the opposite participant's conversation; no historical target inference. Atomic replacement cancels the locked original before unchanged quota-checked publication in the same transaction. Schema/RLS/ACL and real behavior acceptance passed; see [T-388](../04_ios/testops/T-388_BOOKING_REMEDIATION_ACCEPTANCE.md).
 - Authorized fresh project: `Beckon`, ref `lqmasbuqzvcvtawonjlb`, organization `Prinnyyy`, region `us-west-1`.

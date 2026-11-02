@@ -53,10 +53,10 @@ extension View {
             let isPropose = item.action == .propose
             return DesignModal(systemImage: "calendar.badge.clock", title: item.action.title,
                 message: isPropose
-                    ? "The service, duration, price, pet, participants, location and buffers stay unchanged. The original appointment remains confirmed until both participants accept a valid new time."
+                    ? "The service, duration, price, pet, participants and location stay unchanged. The original appointment remains confirmed until both participants accept a valid new time."
                     : item.action == .accept
-                        ? "The service, duration, price, pet, participants, location and buffers stay unchanged. Accepting replaces the original appointment only if the new time is still available."
-                        : "The service, duration, price, pet, participants, location and buffers stay unchanged. The original appointment remains confirmed until both participants accept a valid new time.",
+                        ? "The service, duration, price, pet, participants and location stay unchanged. Accepting replaces the original appointment only if the new time is still available."
+                        : "The service, duration, price, pet, participants and location stay unchanged. The original appointment remains confirmed until both participants accept a valid new time.",
                 actions: [
                     .primary(item.action.title, systemImage: "calendar.badge.checkmark", identifier: "booking.reschedule.confirm",
                         isEnabled: { !isPropose || (draft.proposedStart != nil && draft.duration != nil) }) {
@@ -186,10 +186,10 @@ extension BookingFulfillmentAction {
     var confirmationMessage: String {
         switch self {
         case .start: "Record the start of service now."
-        case .complete: "Confirm the service is complete now. The agreed cleanup and travel buffer remains reserved."
+        case .complete: "Confirm the service is complete now. This closes the service and releases its remaining time."
         case .cancel: "Cancel this booking before service starts. The original request will not reopen."
         case .reportInterruption, .reportNoShow: "Describe what happened. This report does not release reserved time or assign fault; the other participant can confirm or object."
-        case .confirmStop: "Confirm that service stopped or did not take place. This closes the booking without completion and releases remaining time after the agreed buffer."
+        case .confirmStop: "Confirm that service stopped or did not take place. This closes the booking without completion and releases the remaining appointment time."
         case .withdrawReport: "Withdraw your pending report and restore the previous service state. The activity record remains."
         case .closeElapsed: "Close the elapsed booking without confirmed completion. This does not assign fault or allow a review."
         case .reportCompletion: "Report that service took place. Completion requires the other participant's confirmation; missing actual times will not be invented."

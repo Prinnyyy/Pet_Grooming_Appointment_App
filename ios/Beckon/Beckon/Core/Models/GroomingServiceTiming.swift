@@ -31,6 +31,10 @@ nonisolated struct GroomingTimeSpan: Equatable, Sendable {
 }
 
 nonisolated struct GroomingTimingBuffers: Hashable, Codable, Sendable {
+    /// Compatibility snapshot for the service-only reservation policy. Historical values still decode faithfully.
+    static let serviceOnly = Self()
+    private init() { preparation = 0; cleanup = 0; inboundTravel = 0; outboundTravel = 0 }
+
     let preparation: Int
     let cleanup: Int
     let inboundTravel: Int
@@ -97,14 +101,8 @@ nonisolated enum GroomingServiceTiming {
         guard let end = serviceEnd(start: start, durationMinutes: durationMinutes) else {
             throw GroomingTimingError.invalidDuration
         }
-        let mobile = locationMode == .groomerComesToCustomer
-        let before = buffers.preparation + (mobile ? buffers.inboundTravel : 0)
-        let after = buffers.cleanup + (mobile ? buffers.outboundTravel : 0)
-        return GroomingTimingAllocation(
-            service: try GroomingTimeSpan(start: start, end: end),
-            occupied: try GroomingTimeSpan(start: start.addingTimeInterval(-TimeInterval(before) * 60),
-                                          end: end.addingTimeInterval(TimeInterval(after) * 60))
-        )
+        let service = try GroomingTimeSpan(start: start, end: end)
+        return GroomingTimingAllocation(service: service, occupied: service)
     }
 
     static func earliestStart(now: Date, noticeDays: Int, scheduleTimeZone: String) throws -> Date {

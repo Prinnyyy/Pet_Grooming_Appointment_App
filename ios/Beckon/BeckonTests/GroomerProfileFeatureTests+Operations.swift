@@ -59,107 +59,45 @@ extension GroomerProfileStoreTests {
     }
 
     @Test @MainActor
-    func invalidTimingBuffersNeverReachRepository() async throws {
+    func availabilityWritesExplicitServiceOnlyCompatibilitySnapshot() async throws {
         let id = UUID()
         let repository = GroomerProfileRepositoryFake()
         let store = GroomerProfileStore(groomerID: id, repository: repository)
         store.applyAvailabilitySnapshot(try await repository.availabilitySnapshot(groomerID: id))
-        for values in [["121", "0", "0", "0"], ["0", "-1", "0", "0"],
-                       ["0", "0", "181", "0"], ["0", "0", "0", "181"],
-                       ["1.5", "0", "0", "0"], ["", "0", "0", "0"]] {
-            store.preparationMinutesText = values[0]
-            store.cleanupMinutesText = values[1]
-            store.inboundTravelMinutesText = values[2]
-            store.outboundTravelMinutesText = values[3]
-            await store.saveAvailability()
-            #expect(repository.saveAvailabilityCallCount == 0)
-            #expect(store.errorMessage != nil)
-            #expect(store.hasAvailabilityEdits)
-        }
+        store.maxAppointmentsPerDay = 8
+        await store.saveAvailability()
+        #expect(repository.saveAvailabilityCallCount == 1)
+        #expect(repository.lastBookingPreferencesDraft?.timingBuffers == .serviceOnly)
+        #expect(store.errorMessage == nil)
+        #expect(!store.hasAvailabilityEdits)
     }
 
     @Test @MainActor
-    func confirmedTimingBuffersCannotBeCleared() async throws {
+    func historicalPositiveBuffersDoNotReturnThroughAvailabilitySave() async throws {
         let id = UUID()
         let repository = GroomerProfileRepositoryFake()
         let store = GroomerProfileStore(groomerID: id, repository: repository)
         let initial = try await repository.availabilitySnapshot(groomerID: id)
         var preferences = initial.preferences
-        preferences.timingBuffers = try GroomingTimingBuffers(
-            preparation: 120, cleanup: 120, inboundTravel: 180, outboundTravel: 180)
-        let snapshot = GroomerAvailabilitySnapshot(revision: initial.revision,
-            windows: initial.windows, preferences: preferences, timeOff: initial.timeOff,
-            timingVersion: initial.timingVersion)
-        store.applyAvailabilitySnapshot(snapshot)
-        store.preparationMinutesText = ""
-        store.cleanupMinutesText = ""
-        store.inboundTravelMinutesText = ""
-        store.outboundTravelMinutesText = ""
+        preferences.timingBuffers = try GroomingTimingBuffers(preparation: 120, cleanup: 120, inboundTravel: 180, outboundTravel: 180)
+        store.applyAvailabilitySnapshot(GroomerAvailabilitySnapshot(revision: initial.revision,
+            windows: initial.windows, preferences: preferences, timeOff: initial.timeOff, timingVersion: initial.timingVersion))
+        store.minimumAdvanceNoticeDays = 2
         await store.saveAvailability()
-        #expect(repository.saveAvailabilityCallCount == 0)
-        #expect(store.savedAvailability == snapshot)
-        #expect(store.errorMessage != nil)
-        store.discardAvailabilityEdits()
-        #expect(store.preparationMinutesText == "120")
-        #expect(store.outboundTravelMinutesText == "180")
+        #expect(repository.lastBookingPreferencesDraft?.timingBuffers == .serviceOnly)
+        #expect(store.savedAvailability?.preferences.timingBuffers == .serviceOnly)
+        #expect(store.errorMessage == nil)
         #expect(!store.hasAvailabilityEdits)
     }
 
     @Test @MainActor
-    func legacyBackendStillSavesOrdinaryScheduleWithoutInventingBuffers() async throws {
+    func unsupportedTimingBackendStillCannotReceiveNewAvailabilityWrites() async throws {
         let id = UUID()
         let repository = GroomerProfileRepositoryFake()
         repository.availabilityTimingVersion = nil
         let store = GroomerProfileStore(groomerID: id, repository: repository)
         store.applyAvailabilitySnapshot(try await repository.availabilitySnapshot(groomerID: id))
         store.maxAppointmentsPerDay = 8
-        await store.saveAvailability()
-        #expect(repository.saveAvailabilityCallCount == 1)
-        #expect(repository.lastBookingPreferencesDraft?.timingBuffers == nil)
-        #expect(store.preparationMinutesText.isEmpty)
-        #expect(store.errorMessage == nil)
-        #expect(!store.hasAvailabilityEdits)
-    }
-
-    @Test @MainActor
-    func timingBuffersAreExplicitAtomicAndDiscardable() async throws {
-        let id = UUID()
-        let repository = GroomerProfileRepositoryFake()
-        let store = GroomerProfileStore(groomerID: id, repository: repository)
-        store.applyAvailabilitySnapshot(try await repository.availabilitySnapshot(groomerID: id))
-        #expect(store.preparationMinutesText.isEmpty)
-        #expect(store.bookingPreferences?.timingBuffers == nil)
-        store.preparationMinutesText = "15"
-        #expect(store.hasAvailabilityEdits)
-        await store.saveAvailability()
-        #expect(repository.saveAvailabilityCallCount == 0)
-        store.discardAvailabilityEdits()
-        #expect(store.preparationMinutesText.isEmpty)
-        store.preparationMinutesText = "0"
-        store.cleanupMinutesText = "0"
-        store.inboundTravelMinutesText = "0"
-        store.outboundTravelMinutesText = "0"
-        await store.saveAvailability()
-        #expect(repository.saveAvailabilityCallCount == 1)
-        #expect(repository.lastBookingPreferencesDraft?.timingBuffers ==
-            (try GroomingTimingBuffers(preparation: 0, cleanup: 0, inboundTravel: 0, outboundTravel: 0)))
-        #expect(!store.hasAvailabilityEdits)
-        store.preparationMinutesText = "20"
-        store.discardAvailabilityEdits()
-        #expect(store.preparationMinutesText == "0")
-    }
-
-    @Test @MainActor
-    func timingBuffersDoNotWriteToAnUnsupportedBackend() async throws {
-        let id = UUID()
-        let repository = GroomerProfileRepositoryFake()
-        repository.availabilityTimingVersion = nil
-        let store = GroomerProfileStore(groomerID: id, repository: repository)
-        store.applyAvailabilitySnapshot(try await repository.availabilitySnapshot(groomerID: id))
-        store.preparationMinutesText = "15"
-        store.cleanupMinutesText = "15"
-        store.inboundTravelMinutesText = "30"
-        store.outboundTravelMinutesText = "30"
         await store.saveAvailability()
         #expect(repository.saveAvailabilityCallCount == 0)
         #expect(store.hasAvailabilityEdits)

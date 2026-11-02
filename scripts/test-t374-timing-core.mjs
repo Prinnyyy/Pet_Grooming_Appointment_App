@@ -8,7 +8,7 @@ assert.equal(readFileSync("supabase/.temp/project-ref", "utf8").trim(), "lqmasbu
 assert.ok(!process.argv.includes("--scale") || process.argv.includes("--bookings"),
   "--scale requires --bookings");
 const migration = process.argv.includes("--against-deployed") ? "" :
-  readFileSync("supabase/migrations/20260908052312_t374_service_timing.sql", "utf8");
+  readFileSync("supabase/migrations/20261102071341_groomer_service_only_timing.sql", "utf8");
 const assertions = readFileSync("docs/06_tasks/sql_reviews/T-374_TIMING_CORE_ASSERTIONS.sql", "utf8") +
   (process.argv.includes("--hours") ?
     readFileSync("docs/06_tasks/sql_reviews/T-374_TIMING_HOURS_ASSERTIONS.sql", "utf8") : "") +
