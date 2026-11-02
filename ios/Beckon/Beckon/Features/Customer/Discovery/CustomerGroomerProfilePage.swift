@@ -7,14 +7,15 @@ struct CustomerGroomerProfilePage<Bar: View>: View {
     var isFavorite: Bool?
     var onFavorite: () -> Void
     var onClose: (() -> Void)?
+    var onRefresh: (() async -> Void)?
     @State private var store: CustomerGroomerProfileStore
     private let bar: Bar
 
     init(groomerID: UUID, marketplace: CustomerMarketplaceSession, context: GroomerProfileContext? = nil,
          isFavorite: Bool? = nil, onFavorite: @escaping () -> Void = {}, onClose: (() -> Void)? = nil,
-         @ViewBuilder bar: () -> Bar) {
+         onRefresh: (() async -> Void)? = nil, @ViewBuilder bar: () -> Bar) {
         self.marketplace = marketplace; self.context = context; self.isFavorite = isFavorite
-        self.onFavorite = onFavorite; self.onClose = onClose; self.bar = bar()
+        self.onFavorite = onFavorite; self.onClose = onClose; self.onRefresh = onRefresh; self.bar = bar()
         _store = State(initialValue: marketplace.profileStore(groomerID: groomerID))
     }
 
@@ -26,7 +27,7 @@ struct CustomerGroomerProfilePage<Bar: View>: View {
                     onFavorite: onFavorite, onClose: onClose) {
                     VStack(spacing: DesignTokens.Spacing.sm) {
                         if !store.unavailablePhotoIDs.isEmpty {
-                            Button("Retry unavailable photos") { Task { await store.load() } }
+                            Button("Retry unavailable photos") { Task { await store.retryUnavailablePhotos() } }
                                 .buttonStyle(BeckonGuardedPlainButtonStyle())
                         }
                         bar
@@ -49,6 +50,13 @@ struct CustomerGroomerProfilePage<Bar: View>: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .refreshable { await onRefresh?(); await store.load() }
+        .background {
+            BeckonGlobalFeedbackForwarder(error: store.profile != nil ? store.error.map {
+                BeckonGlobalFeedbackError(scope: .page("customer.groomer-profile"),
+                    sourceKey: "customer.groomer-profile.refresh", title: "Profile not updated", message: $0.message)
+            } : nil)
+        }
         .task { await store.load() }
     }
 }

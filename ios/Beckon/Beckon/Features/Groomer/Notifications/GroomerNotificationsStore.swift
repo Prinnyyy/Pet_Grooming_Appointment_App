@@ -9,6 +9,7 @@ final class GroomerNotificationsStore {
 
     private(set) var notifications: [GroomerNotification] = []
     private(set) var isLoading = false
+    private(set) var hasLoadedOnce = false
     private(set) var isLoadingMore = false
     private(set) var isMarkingAllRead = false
     private(set) var markingNotificationIDs: Set<UUID> = []
@@ -48,7 +49,9 @@ final class GroomerNotificationsStore {
                 groomerID: groomerID,
                 page: .first
             )
+            try Task.checkCancellation()
             notifications = Self.displayOrdered(page.items)
+            hasLoadedOnce = true
             nextPageRequest = page.nextRequest
         } catch GroomerNotificationRepositoryError.cancelled {
             return

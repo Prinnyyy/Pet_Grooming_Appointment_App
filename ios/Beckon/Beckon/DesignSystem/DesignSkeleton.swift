@@ -171,7 +171,7 @@ extension View {
 /// - The change is a plain cross-fade; when it replaces a wait, the content's own entrance is switched off inside
 ///   (`beckonRevealsInPlace`), and the block that holds the whole place carries the page's entrance.
 /// - Once the content is there, a refresh never brings the placeholder back: pass `isLoading` for the first load only
-///   (`store.isLoading && store.items.isEmpty`).
+///   (`store.isLoading && !store.hasLoadedOnce && store.items.isEmpty`); a successful empty result is content too.
 struct DesignReveal<Content: View, Placeholder: View>: View {
     let isLoading: Bool
     /// Called when the content has taken the placeholder's place (not when it was there from the start): the cue for what comes next.

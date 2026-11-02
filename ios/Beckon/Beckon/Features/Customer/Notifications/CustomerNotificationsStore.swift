@@ -9,6 +9,7 @@ final class CustomerNotificationsStore {
 
     private(set) var notifications: [CustomerNotification] = []
     private(set) var isLoading = false
+    private(set) var hasLoadedOnce = false
     private(set) var isLoadingMore = false
     private(set) var isMarkingAllRead = false
     private(set) var markingNotificationIDs: Set<UUID> = []
@@ -55,7 +56,9 @@ final class CustomerNotificationsStore {
                 customerID: customerID,
                 page: .first
             )
+            try Task.checkCancellation()
             notifications = Self.displayOrdered(page.items)
+            hasLoadedOnce = true
             nextPageRequest = page.nextRequest
         } catch CustomerNotificationRepositoryError.cancelled {
             return

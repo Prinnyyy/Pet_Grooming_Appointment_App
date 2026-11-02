@@ -10,6 +10,7 @@ final class CustomerMarketplaceSession {
     let discoveryRepository: any CustomerGroomerDiscoveryRepository
     var createRequest: (() -> Void)?
     var requestOptions: () -> [CustomerGroomingRequest] = { [] }
+    var areRequestOptionsKnown: () -> Bool = { false }
     var refreshRequestOptions: (() async -> String?)?
     private(set) var avatarData: [UUID: Data] = [:]
     private var avatarPaths: [UUID: String] = [:]
@@ -17,6 +18,8 @@ final class CustomerMarketplaceSession {
     private let images: any PrivateImageLoading
     private let sessionIsCurrent: () -> Bool
     private var generation = UUID()
+    @ObservationIgnored private var profileStores: [UUID: CustomerGroomerProfileStore] = [:]
+    @ObservationIgnored private var profileStoreOrder: [UUID] = []
 
     #if DEBUG
     init(sandboxCustomerID: UUID, requestRepository: any CustomerRequestRepository,
@@ -43,11 +46,20 @@ final class CustomerMarketplaceSession {
     }
 
     func profileStore(groomerID: UUID) -> CustomerGroomerProfileStore {
+        if let cached = profileStores[groomerID] {
+            profileStoreOrder.removeAll { $0 == groomerID }
+            profileStoreOrder.append(groomerID)
+            return cached
+        }
         let expectedGeneration = generation
-        return CustomerGroomerProfileStore(groomerID: groomerID, repository: discoveryRepository, images: images) { [weak self] in
+        let store = CustomerGroomerProfileStore(groomerID: groomerID, repository: discoveryRepository, images: images) { [weak self] in
             guard let self else { return false }
             return self.generation == expectedGeneration && self.sessionIsCurrent()
         }
+        profileStores[groomerID] = store
+        profileStoreOrder.append(groomerID)
+        if profileStoreOrder.count > 20 { profileStores[profileStoreOrder.removeFirst()] = nil }
+        return store
     }
 
     func loadAvatar(_ profile: MarketplaceGroomerSummary) async {
@@ -77,6 +89,8 @@ final class CustomerMarketplaceSession {
 
     func clearSession() {
         generation = UUID()
+        profileStores.values.forEach { $0.invalidate() }
+        profileStores = [:]; profileStoreOrder = []
         favorites.clearSession(); distribution.clearSession()
         avatarData = [:]; avatarPaths = [:]; loadingAvatars = [:]
     }

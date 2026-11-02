@@ -37,9 +37,13 @@ struct CustomerFavoriteGroomersView: View {
     var body: some View {
         DesignPage(rhythm: .list, cascades: false) {
             if onSend == nil, !favorites.isEmpty {
-                // Standalone page: the requests to pick from, then the groomers to send to. The page does not start until its
-                // requests are known (`isReady`), so a person with a request never sees "New request" flash first.
-                requestStrip.disabled(isSending).beckonEntrance(0)
+                // Request selection waits locally; saved groomers remain available to browse.
+                DesignReveal(isLoading: !requestsLoaded && !marketplace.areRequestOptionsKnown() && sendableRequests.isEmpty && requestError == nil) {
+                    requestStrip.disabled(isSending)
+                } placeholder: {
+                    DesignSkeletonLine(width: 0.65).frame(minHeight: DesignTokens.Metrics.minimumTouchTarget)
+                        .designSkeleton(label: "Loading your requests")
+                }.beckonEntrance(0)
                 // Not "Saved groomers": that is the title of the page, a line above.
                 BeckonLedgeHeading(title: "Your groomers", systemImage: "heart.fill",
                     count: marketplace.favorites.nextCursor == nil ? favorites.count : nil)
@@ -77,7 +81,7 @@ struct CustomerFavoriteGroomersView: View {
                         .transition(.opacity)
                 }
             }
-            if !isReady || marketplace.favorites.isLoading { ProgressView().frame(maxWidth: .infinity) }
+            if !isReady { ProgressView().frame(maxWidth: .infinity) }
             if marketplace.favorites.nextCursor != nil {
                 Button { Task { await marketplace.favorites.loadMore() } } label: {
                     DesignQuietAction(title: "Load more", systemImage: "arrow.down")
@@ -130,11 +134,10 @@ struct CustomerFavoriteGroomersView: View {
 
     private var isEmptyList: Bool { marketplace.favorites.hasLoaded && favorites.isEmpty }
 
-    /// The groomers are in (or the list failed, or is empty) and the requests are known. A visit after the first finds all of it
-    /// already, so the page is ready on its first frame; the first visit waits for it.
+    /// Browsing depends only on the saved list. Request-selection readiness belongs to its own strip.
     private var isReady: Bool {
         let groomersKnown = marketplace.favorites.hasLoaded || !favorites.isEmpty || marketplace.favorites.error != nil
-        return groomersKnown && (onSend != nil || requestsLoaded || !sendableRequests.isEmpty)
+        return groomersKnown
     }
 
     /// Count and what the page can do for the person right now: the one thing the old page left them to guess.

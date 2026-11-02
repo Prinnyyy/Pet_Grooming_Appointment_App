@@ -24,7 +24,7 @@ struct GroomerFitSignalsEditorView: View {
         )
 
         DesignPage {
-            if !store.canEditFitSignals {
+            if !store.hasLoadedFitClaims || (!store.isLoadingOptionalMetadata && !store.canEditFitSignals) {
                 if store.isLoadingOptionalMetadata {
                     HStack(spacing: DesignTokens.Spacing.md) {
                         ProgressView().tint(DesignTokens.Colors.customerDeep)
@@ -163,7 +163,7 @@ struct GroomerEvidenceDashboardView: View {
         DesignPage {
             if summaries.isEmpty {
                 // Nothing is "no evidence yet" only once the read is over: before it, and when it failed, the page says so.
-                if store.isLoadingOptionalMetadata || (!store.hasLoadedFitClaims && store.optionalLoadError == nil) {
+                if !store.hasLoadedPetFitEvidence && (store.isLoadingOptionalMetadata || store.optionalLoadError == nil) {
                     HStack(spacing: DesignTokens.Spacing.md) {
                         ProgressView().tint(DesignTokens.Colors.customerDeep)
                         Text("Loading evidence…").designSupportingText()

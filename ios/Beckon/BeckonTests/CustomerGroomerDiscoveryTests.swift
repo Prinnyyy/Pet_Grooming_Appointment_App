@@ -285,10 +285,12 @@ struct CustomerGroomerDiscoveryTests {
 final class DiscoveryImageFake: PrivateImageLoading {
     var calls = 0
     var onLoad: (() async -> Void)?
+    var failingPaths: Set<String> = []
     func loadData(bucketID: String, storagePath: String) async throws -> Data {
         calls += 1
         let result = Data([UInt8(calls)])
         await onLoad?()
+        if failingPaths.contains(storagePath) { throw RequestDiscoveryError.networkUnavailable }
         return result
     }
     func refreshData(bucketID: String, storagePath: String) async throws -> Data {
@@ -300,6 +302,15 @@ final class DiscoveryImageFake: PrivateImageLoading {
 
 @MainActor
 final class DiscoveryRepositoryFake: CustomerGroomerDiscoveryRepository {
+    var publicProfileResult: Result<CustomerGroomerProfile, RequestDiscoveryError> = .failure(.unavailable)
+    var onPublicProfileRead: (() async -> Void)?
+    private(set) var publicProfileReadCount = 0
+    func publicProfile(groomerID: UUID) async throws -> CustomerGroomerProfile {
+        publicProfileReadCount += 1
+        let result = publicProfileResult
+        await onPublicProfileRead?()
+        return try result.get()
+    }
     var pages: [Result<RankedPage<DiscoveredGroomer>, RequestDiscoveryError>] = []
     var reads: [RankedPageRequest<GroomerDiscoverySort>] = []
     var onRead: (() async -> Void)?

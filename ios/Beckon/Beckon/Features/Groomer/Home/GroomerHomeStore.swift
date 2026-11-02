@@ -59,6 +59,7 @@ final class GroomerHomeStore {
     private(set) var availabilityWindows: [GroomerAvailabilityWindow] = []
     private(set) var issues: [GroomerHomeLoadIssue] = []
     private(set) var isLoading = false
+    private(set) var hasLoadedOnce = false
 
     let greetingName: String
 
@@ -125,21 +126,17 @@ final class GroomerHomeStore {
 
         let startedAt = Date()
         isLoading = true
-        issues = []
-        newMatchCount = nil
-        pendingOfferCount = nil
-        hasMoreMatches = false
-        hasMoreOffers = false
-        profileIsCurrent = false
-        availabilityIsCurrent = false
         defer { isLoading = false }
         record("start", startedAt: startedAt)
 
-        await loadProfile()
-        await loadAvailability()
-        await loadRequests()
-        await loadOffers()
-        await loadBookings()
+        async let profileRead: Void = loadProfile()
+        async let availabilityRead: Void = loadAvailability()
+        async let requestRead: Void = loadRequests()
+        async let offerRead: Void = loadOffers()
+        async let bookingRead: Void = loadBookings()
+        _ = await (profileRead, availabilityRead, requestRead, offerRead, bookingRead)
+        guard !Task.isCancelled else { return }
+        hasLoadedOnce = true
         await loadNextBookingPhoto()
 
         record(
@@ -157,6 +154,8 @@ final class GroomerHomeStore {
     private func loadProfile() async {
         do {
             let loadedProfile = try await profileRepository.profile(groomerID: groomerID)
+            try Task.checkCancellation()
+            issues.removeAll { $0.section == .profile }
             profile = loadedProfile
             profileIsCurrent = true
             businessName = Self.normalized(loadedProfile.businessName) ?? businessName
@@ -206,9 +205,10 @@ final class GroomerHomeStore {
 
     private func loadAvailability() async {
         do {
-            availabilityWindows = try await profileRepository.availabilityWindows(
-                groomerID: groomerID
-            )
+            let windows = try await profileRepository.availabilityWindows(groomerID: groomerID)
+            try Task.checkCancellation()
+            availabilityWindows = windows
+            issues.removeAll { $0.section == .availability }
             availabilityIsCurrent = true
         } catch GroomerProfileRepositoryError.cancelled {
             return
@@ -237,6 +237,8 @@ final class GroomerHomeStore {
                 groomerID: groomerID,
                 page: .first
             )
+            try Task.checkCancellation()
+            issues.removeAll { $0.section == .requests }
             newMatchCount = page.items.filter { matchedRequest in
                 matchedRequest.request.status.isOpenForOffers
                     && (matchedRequest.match.status == .visible
@@ -270,6 +272,8 @@ final class GroomerHomeStore {
                 groomerID: groomerID,
                 page: .first
             )
+            try Task.checkCancellation()
+            issues.removeAll { $0.section == .offers }
             pendingOfferCount = page.items.filter { $0.offer.status == .pending }.count
             hasMoreOffers = page.hasMore
         } catch GroomerRequestRepositoryError.cancelled {
@@ -298,6 +302,7 @@ final class GroomerHomeStore {
             let upcoming = try await bookingRepository.upcomingBookings(participantID: groomerID, role: .groomer, now: now(), limit: 4)
             try Task.checkCancellation()
             guard upcoming.allSatisfy({ $0.groomerID == groomerID }) else { throw BookingRepositoryError.notAllowed }
+            issues.removeAll { $0.section == .bookings }
             bookings = upcoming
             bookingsVerifiedAt = now()
         } catch BookingRepositoryError.cancelled {
@@ -356,6 +361,12 @@ final class GroomerHomeStore {
         message: String,
         error: E
     ) {
+        if section == .profile { profileIsCurrent = false }
+        if section == .availability { availabilityIsCurrent = false }
+        if let failure = error as? GroomerRequestRepositoryError, failure == .notAllowed {
+            if section == .requests { newMatchCount = nil; hasMoreMatches = false }
+            if section == .offers { pendingOfferCount = nil; hasMoreOffers = false }
+        }
         issues.removeAll { $0.section == section }
         issues.append(
             GroomerHomeLoadIssue(

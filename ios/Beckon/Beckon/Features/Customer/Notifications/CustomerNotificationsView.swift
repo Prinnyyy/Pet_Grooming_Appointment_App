@@ -73,7 +73,7 @@ private struct CustomerNotificationListContent: View {
 
     var body: some View {
         DesignPage(rhythm: .list, cascades: false) {
-            if store.isLoading && store.notifications.isEmpty {
+            if store.isLoading && !store.hasLoadedOnce && store.notifications.isEmpty {
                 BeckonLoadingView(title: "Loading notifications...", message: "Checking your latest Beckon updates.",
                     accent: .customer)
             } else if store.notifications.isEmpty, let message = store.errorMessage {

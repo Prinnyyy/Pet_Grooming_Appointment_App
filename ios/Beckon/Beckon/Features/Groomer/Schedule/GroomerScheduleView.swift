@@ -106,7 +106,7 @@ struct GroomerScheduleView: View {
 
     @ViewBuilder
     private var content: some View {
-        DesignReveal(isLoading: !isSettled) {
+        DesignReveal(isLoading: !isSettled && presentation == nil) {
             if let calendar = store.scheduleCalendar {
                 loaded(calendar: calendar)
             } else {

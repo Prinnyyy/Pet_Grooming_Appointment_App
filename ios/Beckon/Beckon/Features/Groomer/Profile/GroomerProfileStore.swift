@@ -20,6 +20,7 @@ final class GroomerProfileStore {
     private(set) var optionalLoadError: String?
     private(set) var hasLoadedFitClaims = false
     private(set) var hasLoadedPortfolioTags = false
+    private(set) var hasLoadedPetFitEvidence = false
     private var fitClaimsLoadFailed = false
     private var portfolioMetadataLoadFailed = false
 
@@ -268,7 +269,10 @@ final class GroomerProfileStore {
             if tags != nil && photos != nil { hasLoadedPortfolioTags = true }
             fitClaimsLoadFailed = claims == nil
             portfolioMetadataLoadFailed = tags == nil || photos == nil
-            if let evidence { populatePetFitEvidenceSummary(with: evidence) }
+            if let evidence {
+                populatePetFitEvidenceSummary(with: evidence)
+                hasLoadedPetFitEvidence = true
+            }
             if photos == nil || tags == nil || claims == nil || evidence == nil {
                 optionalLoadError = "Some portfolio or fit details could not be refreshed. Retry before editing those details."
             }

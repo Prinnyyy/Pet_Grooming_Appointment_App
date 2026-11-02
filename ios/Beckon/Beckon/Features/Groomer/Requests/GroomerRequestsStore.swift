@@ -15,6 +15,7 @@ final class GroomerRequestsStore {
     private(set) var requestPhotosByRequestID: [UUID: [GroomingRequestPhoto]] = [:]
     private(set) var requestPhotoDataByID: [UUID: Data] = [:]
     private(set) var isLoading = false
+    private(set) var hasLoadedOnce = false
     private(set) var isLoadingMore = false
     private(set) var isDismissing = false
     private(set) var isSubmittingOffer = false
@@ -87,6 +88,7 @@ final class GroomerRequestsStore {
         loadMoreErrorMessage = nil
         listGeneration = UUID()
         matchedRequests = []
+        hasLoadedOnce = false
         rankedPage = nil
         requestPhotosByRequestID = [:]
         requestPhotoDataByID = [:]
@@ -195,6 +197,7 @@ final class GroomerRequestsStore {
             try Task.checkCancellation()
             guard listGeneration == generation, sessionIsCurrent() else { return }
             matchedRequests = page.items
+            hasLoadedOnce = true
             rankedPage = page
             listNeedsRefresh = false
             await refreshDetail()

@@ -140,7 +140,7 @@ struct CustomerGroomingView: View {
     private var listContent: some View {
         // Until the first load is over the page is one card as bars; its errors, retries and cards take that place, in the same
         // place, so nothing above them moves. History does not wait for anything, so it is there from the first frame.
-        DesignReveal(isLoading: !isSettled) {
+        DesignReveal(isLoading: !isSettled && activeEntries.isEmpty) {
             VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionSpacing) {
                 if case .error(let message) = GroomingCollectionPresentation(activeCardCount: activeEntries.count,
                     closedRequestCount: requestStore.requests.count + bookingsStore.bookings.count,

@@ -140,6 +140,7 @@ final class CustomerSandboxSession {
                 participantID: customerID, role: .customer)
         }
         marketplace.requestOptions = { [weak self] in self?.requests.activeRequests ?? [] }
+        marketplace.areRequestOptionsKnown = { [weak self] in self?.requests.hasLoadedOnce ?? false }
         marketplace.refreshRequestOptions = { [weak self] in await self?.requests.load(); return self?.requests.errorMessage }
         marketplace.createRequest = { [weak self] in self?.requests.startCreate() }
         boundary.state = state

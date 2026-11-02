@@ -147,7 +147,7 @@ struct GroomerRequestsView: View {
     }
 
     private var matchCount: Int? {
-        requests.isLoading || requests.loadErrorMessage != nil || !matchesSettled ? nil : toAnswer.count
+        requests.hasLoadedOnce ? toAnswer.count : nil
     }
 
     /// The matches still waiting for an answer. Once the groomer has made an offer the request is an offer and lives in Offers
@@ -159,7 +159,7 @@ struct GroomerRequestsView: View {
     }
 
     private var offerCount: Int? {
-        offers.isLoading || offers.loadErrorMessage != nil || !offersSettled ? nil : offers.offers.count
+        offers.hasLoadedOnce ? offers.offers.count : nil
     }
 
     // MARK: Content
@@ -173,7 +173,7 @@ struct GroomerRequestsView: View {
     }
 
     private var matchesContent: some View {
-        DesignReveal(isLoading: !matchesSettled) {
+        DesignReveal(isLoading: !matchesSettled && !requests.hasLoadedOnce) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 notes
                 if toAnswer.isEmpty {
@@ -241,7 +241,7 @@ struct GroomerRequestsView: View {
     }
 
     private var offersContent: some View {
-        DesignReveal(isLoading: !offersSettled) {
+        DesignReveal(isLoading: !offersSettled && !offers.hasLoadedOnce) {
             let groups = GroomerOfferGroups(offers.offers, now: now)
             VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionSpacing) {
                 if offers.offers.isEmpty {

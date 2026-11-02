@@ -3,6 +3,20 @@ import Testing
 @testable import Beckon
 
 struct ForegroundRefreshGateTests {
+    @Test @MainActor func cancelledInitialReadCanRetryImmediately() async {
+        let gate = ForegroundRefreshGate()
+        let cancelled = Task { @MainActor in
+            await gate.refresh(reason: .initialLoad) {
+                withUnsafeCurrentTask { $0?.cancel() }
+            }
+        }
+        await cancelled.value
+        #expect(gate.lastRefreshAt == nil)
+        var reads = 0
+        await gate.refresh(reason: .initialLoad) { reads += 1 }
+        #expect(reads == 1)
+    }
+
     @Test @MainActor func periodicAndDeadlineReadsShareTheGateWithoutReloadingMedia() async {
         let gate = ForegroundRefreshGate()
         var full = 0, light = 0

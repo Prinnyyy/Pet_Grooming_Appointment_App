@@ -11,6 +11,15 @@ struct CustomerGroomerDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var current: DiscoveredGroomer?
     @State private var error: RequestDiscoveryError?
+    @State private var isVerifying = true
+    @State private var verificationID = UUID()
+
+    init(candidate: DiscoveredGroomer, flow: CustomerRequestDiscoveryFlow, requests: CustomerRequestsStore,
+         marketplace: CustomerMarketplaceSession, selection: Binding<GroomerSelection>? = nil) {
+        self.candidate = candidate; self.flow = flow; self.requests = requests; self.marketplace = marketplace
+        self.selection = selection
+        _current = State(initialValue: candidate)
+    }
 
     var body: some View {
         // The profile is its own page, dealt in once it is there; the loading and failure states are a page of their own, shown at once.
@@ -20,11 +29,12 @@ struct CustomerGroomerDetailView: View {
                 // of the invitation); the heart is the page's own.
                 CustomerGroomerProfilePage(groomerID: current.id, marketplace: marketplace,
                     context: context(for: current), isFavorite: isFavorite(current), onFavorite: { toggleFavorite(current) },
-                    onClose: { dismiss() }) {
+                    onClose: { dismiss() }, onRefresh: { await load() }) {
                     BeckonPinnedBar {
                         CustomerGroomerCandidateView(candidate: current, flow: flow, requests: requests,
                             marketplace: marketplace, compact: false, onDetails: {}, selection: selection,
                             showsSummary: false, showsFavorite: false)
+                            .disabled(isVerifying || error != nil)
                     }
                 }
                 .task(id: current.profile.avatarPath) { await marketplace.loadAvatar(current.profile) }
@@ -44,6 +54,12 @@ struct CustomerGroomerDetailView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .background {
+            BeckonGlobalFeedbackForwarder(error: current != nil ? error.map {
+                BeckonGlobalFeedbackError(scope: .page("customer.groomer-detail"), sourceKey: "customer.groomer-detail.refresh",
+                    title: "Request details not updated", message: $0.message + " Pull to refresh before sending.")
+            } : nil)
+        }
         .task { await load() }
     }
 
@@ -64,15 +80,25 @@ struct CustomerGroomerDetailView: View {
     }
 
     private func load() async {
-        current = nil; error = nil
+        let operation = UUID()
+        verificationID = operation
+        error = nil
+        isVerifying = true
+        defer { if verificationID == operation { isVerifying = false } }
         let epoch = marketplace.favorites.readEpoch
         do {
             let profile = try await flow.store.detail(for: candidate.id)
+            guard verificationID == operation, !Task.isCancelled else { return }
             marketplace.favorites.merge([profile.id: profile.favoriteState], since: epoch)
             current = profile
         } catch {
-            marketplace.revokeAvatar(candidate.id)
-            self.error = (error as? RequestDiscoveryError) ?? .unavailable
+            guard verificationID == operation, !Task.isCancelled else { return }
+            let failure = (error as? RequestDiscoveryError) ?? .unavailable
+            if failure == .notAllowed || failure == .groomerUnavailable {
+                current = nil
+                marketplace.revokeAvatar(candidate.id)
+            }
+            self.error = failure
         }
     }
 }

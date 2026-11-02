@@ -303,7 +303,7 @@ struct GroomerPortfolioPhotoView: View {
                 detail: "\(chosen) of \(GroomerPortfolioFitTag.maximumTagsPerPhoto)")
             Text("Connect this work sample to the skills it demonstrates.").designSupportingText()
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                if !store.canEditPortfolioTags {
+                if !store.hasLoadedPortfolioTags || (!store.isLoadingOptionalMetadata && !store.canEditPortfolioTags) {
                     if store.isLoadingOptionalMetadata {
                         HStack(spacing: DesignTokens.Spacing.md) {
                             ProgressView().tint(DesignTokens.Colors.customerDeep)
@@ -396,7 +396,7 @@ private struct GroomerPortfolioFitNotesEditorSection: View {
         ) {
             BeckonGroupedSurface {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    if !store.canEditPortfolioTags {
+                    if !store.hasLoadedPortfolioTags || (!store.isLoadingOptionalMetadata && !store.canEditPortfolioTags) {
                         if store.isLoadingOptionalMetadata { ProgressView("Loading fit notes...") }
                         else {
                             Text("Fit notes could not be refreshed.").font(DesignTokens.Typography.supporting)

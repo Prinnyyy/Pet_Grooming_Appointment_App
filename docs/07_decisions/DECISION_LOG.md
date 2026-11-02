@@ -18,6 +18,16 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-070
+Date: 2026-11-02
+Task: T-437
+Decision: Preserve confirmed content during background refresh, remove refresh-only rows from summary cards and keep settled content on ordinary tab returns. Keep first entrance and explicit Replay.
+Context: User reports counters replaced by Checking, additional refresh lines changing module height, and repeated visible refresh throughout the app. This updates the automatic-return entrance behavior of the adopted handoff while preserving its layout and first entrance.
+Consequences: Unknown differs from confirmed empty, transient failure retains previous display, explicit access loss still revokes it. Session-scoped profile reuse and photo-only retry reuse existing Stores/image loading; no new disk cache, remote change, offline write or suppression of business checks. T-428 retains its separate persistence scope.
+Linked files: docs/01_product/LIVELY_UI_SPEC.md, docs/superpowers/plans/2026-11-02-refresh-continuity.md.
+```
+
+```text
 Decision ID: D-069
 Date: 2026-11-01
 Task: T-430

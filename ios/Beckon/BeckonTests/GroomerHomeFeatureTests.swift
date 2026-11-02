@@ -4,6 +4,40 @@ import Testing
 
 struct GroomerHomeFeatureTests {
     @Test @MainActor
+    func refreshKeepsKnownCountersAndAvailabilityWhileWaitingAndAfterTransientFailure() async throws {
+        let owner = UUID()
+        let profiles = GroomerProfileRepositoryFake(profileResult: .success(makeProfile(groomerID: owner)),
+            availabilityResult: .success([GroomerProfileStoreTests.availability(groomerID: owner)]))
+        let requests = GroomerRequestRepositoryFake(matchedRequestsResult: .success([makeMatchedRequest(groomerID: owner, status: .visible)]))
+        let store = GroomerHomeStore(groomerID: owner, displayName: "Taylor", profileRepository: profiles,
+            requestRepository: requests, bookingRepository: GroomerHomeBookingRepositoryFake(bookingsResult: .success([])),
+            profileSnapshotCache: GroomerHomeProfileSnapshotCache())
+        await store.load()
+        #expect(store.newMatchCount == 1 && store.pendingOfferCount == 0)
+        var release: CheckedContinuation<Void, Never>?
+        profiles.onRead = { name in
+            if name == "profile" { await withCheckedContinuation { release = $0 } }
+        }
+        requests.matchedRequestsResult = .failure(.networkUnavailable)
+        requests.offersResult = .failure(.networkUnavailable)
+        let refresh = Task { await store.load() }
+        for _ in 0..<100 where release == nil { await Task.yield() }
+        #expect(release != nil)
+        #expect(store.isLoading)
+        #expect(store.newMatchCount == 1 && store.pendingOfferCount == 0)
+        #expect(store.availabilityState == .available)
+        release?.resume(); release = nil
+        await refresh.value
+        #expect(store.newMatchCount == 1 && store.pendingOfferCount == 0)
+        #expect(store.issues.contains { $0.section == .requests })
+        profiles.onRead = nil
+        requests.matchedRequestsResult = .failure(.notAllowed)
+        requests.offersResult = .failure(.notAllowed)
+        await store.load()
+        #expect(store.newMatchCount == nil && store.pendingOfferCount == nil)
+    }
+
+    @Test @MainActor
     func failedAndCancelledCountsAreUnknownRatherThanEmpty() async {
         for error: GroomerRequestRepositoryError in [.networkUnavailable, .cancelled] {
             let owner = UUID()

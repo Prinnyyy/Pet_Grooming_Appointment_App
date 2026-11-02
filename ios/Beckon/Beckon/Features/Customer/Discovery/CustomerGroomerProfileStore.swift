@@ -19,27 +19,66 @@ final class CustomerGroomerProfileStore {
     }
 
     func load() async {
-        let read = UUID(); operation = read
-        profile = nil; error = nil; unavailablePhotoIDs = []
         guard sessionIsCurrent(), !Task.isCancelled else { return }
+        let read = UUID(); operation = read
+        error = nil
         do {
-            let result = try await repository.publicProfile(groomerID: groomerID)
-            guard operation == read, sessionIsCurrent(), !Task.isCancelled else { return }
+            var result = try await repository.publicProfile(groomerID: groomerID)
+            guard isCurrent(read) else { return }
             guard result.profile.id == groomerID else { throw RequestDiscoveryError.notAllowed }
-            profile = result
-            for work in result.content.works {
-                let data: Data?
-                do { data = try await images.loadData(bucketID: work.photo.storageBucket, storagePath: work.photo.storagePath) }
-                catch { data = nil }
-                guard operation == read, sessionIsCurrent(), !Task.isCancelled else { return }
-                if let index = profile?.content.works.firstIndex(where: { $0.id == work.id }) {
-                    profile?.content.works[index].image = data
-                    if data == nil { unavailablePhotoIDs.insert(work.id) }
-                }
+            // Only retain bytes for the same returned asset, never for an omitted or replaced photo.
+            for index in result.content.works.indices {
+                let work = result.content.works[index]
+                result.content.works[index].image = work.image ?? profile?.content.works.first {
+                    $0.id == work.id && $0.photo.storageBucket == work.photo.storageBucket
+                        && $0.photo.storagePath == work.photo.storagePath
+                }?.image
             }
+            profile = result
+            unavailablePhotoIDs.formIntersection(Set(result.content.works.map(\.id)))
+            for work in result.content.works { await loadPhoto(work, read: read) }
         } catch {
-            guard operation == read, sessionIsCurrent(), !Task.isCancelled else { return }
-            self.error = (error as? RequestDiscoveryError) ?? .unavailable
+            guard isCurrent(read) else { return }
+            let failure = (error as? RequestDiscoveryError) ?? .unavailable
+            if failure == .notAllowed || failure == .groomerUnavailable {
+                profile = nil; unavailablePhotoIDs = []
+            }
+            self.error = failure
+        }
+    }
+
+    func retryUnavailablePhotos() async {
+        guard sessionIsCurrent(), let profile else { return }
+        let read = operation
+        for work in profile.content.works where unavailablePhotoIDs.contains(work.id) {
+            await loadPhoto(work, read: read, refreshing: true)
+        }
+    }
+
+    func invalidate() {
+        operation = UUID()
+        profile = nil; error = nil; unavailablePhotoIDs = []
+    }
+
+    private func isCurrent(_ read: UUID) -> Bool {
+        operation == read && sessionIsCurrent() && !Task.isCancelled
+    }
+
+    private func loadPhoto(_ work: GroomerWork, read: UUID, refreshing: Bool = false) async {
+        guard isCurrent(read) else { return }
+        do {
+            let data: Data
+            if refreshing {
+                data = try await images.refreshData(bucketID: work.photo.storageBucket, storagePath: work.photo.storagePath)
+            } else {
+                data = try await images.loadData(bucketID: work.photo.storageBucket, storagePath: work.photo.storagePath)
+            }
+            guard isCurrent(read), let index = profile?.content.works.firstIndex(where: { $0.id == work.id }) else { return }
+            profile?.content.works[index].image = data
+            unavailablePhotoIDs.remove(work.id)
+        } catch {
+            guard isCurrent(read) else { return }
+            unavailablePhotoIDs.insert(work.id)
         }
     }
 }

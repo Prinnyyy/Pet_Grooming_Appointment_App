@@ -61,7 +61,7 @@ struct CustomerRequestOffersView: View {
             if store.rankedOfferPages[request.id]?.effectiveMode == "time_fallback" {
                 BeckonLedgeNote(systemImage: "clock", text: "Recommendation unavailable. Showing earliest appointments.")
             }
-            if store.isLoadingOffers(for: request), offers.isEmpty {
+            if store.isLoadingOffers(for: request), store.offerReviewsByRequestID[request.id] == nil, offers.isEmpty {
                 BeckonLoadingView(title: "Loading offers…", message: "Checking for groomer responses.", accent: .customer)
                     .accessibilityIdentifier("customer.offers.loading")
             } else if offers.isEmpty, let message = store.offerError(for: request) {

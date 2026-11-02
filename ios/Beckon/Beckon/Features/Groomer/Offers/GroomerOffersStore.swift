@@ -9,6 +9,7 @@ final class GroomerOffersStore {
 
     private(set) var offers: [GroomerOfferListItem] = []
     private(set) var isLoading = false
+    private(set) var hasLoadedOnce = false
     private(set) var isLoadingMore = false
     private(set) var nextPageRequest: ListPageRequest?
 
@@ -56,7 +57,9 @@ final class GroomerOffersStore {
                 groomerID: groomerID,
                 page: .first
             )
+            try Task.checkCancellation()
             offers = Self.displayOrdered(page.items)
+            hasLoadedOnce = true
             nextPageRequest = page.nextRequest
         } catch GroomerRequestRepositoryError.cancelled {
             return

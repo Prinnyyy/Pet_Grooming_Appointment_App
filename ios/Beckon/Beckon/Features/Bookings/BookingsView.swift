@@ -151,7 +151,7 @@ struct BookingsView: View {
                 appointmentReminderNotice
                     .beckonEntrance(1)
 
-                if store.isLoading, store.bookings.isEmpty {
+                if store.isLoading, !store.hasLoadedOnce, store.bookings.isEmpty {
                     BeckonLoadingView(
                         title: "Loading bookings...",
                         message: "Fetching confirmed appointments for your account.",

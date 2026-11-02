@@ -246,7 +246,7 @@ struct CustomerGroomerDiscoveryView: View {
 
     @ViewBuilder
     private var content: some View {
-        if flow.store.isLoading && flow.store.candidates.isEmpty {
+        if flow.store.isLoading && flow.store.page == nil && flow.store.candidates.isEmpty {
             BeckonLoadingView(title: "Finding groomers…", message: "Checking who fits your request.", accent: .customer)
         } else if flow.store.candidates.isEmpty {
             if flow.store.error == nil { emptyState }

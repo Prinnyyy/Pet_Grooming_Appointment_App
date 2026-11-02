@@ -5,6 +5,32 @@ import UIKit
 
 extension GroomerProfileStoreTests {
     @Test @MainActor
+    func successfulEmptyEvidenceStaysKnownDuringFailedRefreshIndependentlyOfClaims() async {
+        let groomerID = UUID()
+        let repository = GroomerProfileRepositoryFake(
+            profileResult: .success(Self.profile(groomerID: groomerID)),
+            fitClaimsResult: .failure(.unavailable),
+            petFitEvidenceSummaryResult: .success([]))
+        let store = GroomerProfileStore(groomerID: groomerID, repository: repository)
+        #expect(!store.hasLoadedPetFitEvidence)
+        await store.load()
+        #expect(store.hasLoadedPetFitEvidence)
+        #expect(!store.hasLoadedFitClaims)
+
+        repository.petFitEvidenceSummaryResult = .failure(.unavailable)
+        repository.onRead = { name in
+            guard name == "evidence" else { return }
+            #expect(store.isLoadingOptionalMetadata)
+            #expect(store.hasLoadedPetFitEvidence)
+            #expect(!store.canEditFitSignals && !store.canEditPortfolioTags)
+        }
+        await store.load()
+        #expect(store.hasLoadedPetFitEvidence)
+        #expect(store.petFitEvidenceSummary.isEmpty)
+        #expect(store.optionalLoadError != nil)
+    }
+
+    @Test @MainActor
     func loadRetainsCanonicalVerifiedEvidenceAndRejectsForeignOrForgedSignals() async throws {
         let groomerID = UUID()
         let keys = [

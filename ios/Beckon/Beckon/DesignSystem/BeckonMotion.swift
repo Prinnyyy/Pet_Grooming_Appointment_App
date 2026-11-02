@@ -73,8 +73,7 @@ private struct BeckonRevealsInPlaceKey: EnvironmentKey {
 
 
 extension EnvironmentValues {
-    /// False while the page a block sits in is not the one on screen (the other tabs). Its blocks wait hidden and arrive again
-    /// the moment it becomes true, so a tab root is dealt in every time it is selected, not only the first time.
+    /// False while the page a block sits in is not the one on screen (the other tabs). Its unfinished first entrance waits for activation; already visible content stays settled on ordinary returns.
     var beckonEntranceActive: Bool {
         get { self[BeckonEntranceActiveKey.self] }
         set { self[BeckonEntranceActiveKey.self] = newValue }
@@ -108,8 +107,8 @@ extension EnvironmentValues {
 
 /// A block arriving: it starts small, a little turned and away from its place, then springs in with overshoot, one beat after
 /// the block above it. Order 0 is the leader (more bounce); a negative order is a late arrival that lands at once. Plays once
-/// per view identity, again when the replay counter changes, and again each time its page becomes the active one after being
-/// away (the tab roots): it hides while its page is inactive, so the return is a fresh arrival with no flash of the old state.
+/// per view identity, and again only when the explicit replay counter changes. Ordinary tab departure and return
+/// preserve settled content; an unfinished first entrance waits for activation.
 /// Reduce Motion becomes a short fade.
 private struct BeckonEntranceModifier: ViewModifier {
     let order: Int
@@ -150,11 +149,8 @@ private struct BeckonEntranceModifier: ViewModifier {
             }
             .onChange(of: pageIsActive) { _, isActive in
                 guard playedReplay != nil else { return }
-                wantsArrival = true
-                if isActive {
+                if isActive, !arrived {
                     arriveIfReady(profile: profile, isLeader: isLeader, isLate: isLate)
-                } else {
-                    hide()
                 }
             }
             .task(id: replay) {
@@ -216,7 +212,7 @@ extension ContainerValues {
 
 /// Marks the moment a page opened. A second later its descendants are told the page has settled, so blocks that appear after
 /// that land at once. Cascades and `DesignPage` carry one; a page numbering its blocks by hand adds it to its root.
-/// A page that goes inactive (another tab) starts the second again when it returns, so its blocks are dealt in beat by beat.
+/// An inactive page pauses its first settling task; a settled page stays settled on ordinary return.
 private struct BeckonEntranceClockModifier: ViewModifier {
     @Environment(\.beckonEntranceActive) private var pageIsActive
     @State private var isSettled = false
@@ -225,8 +221,7 @@ private struct BeckonEntranceClockModifier: ViewModifier {
         content
             .environment(\.beckonEntranceSettled, isSettled)
             .task(id: pageIsActive) {
-                isSettled = false
-                guard pageIsActive else { return }
+                guard pageIsActive, !isSettled else { return }
                 try? await Task.sleep(for: .seconds(1))
                 guard !Task.isCancelled else { return }
                 isSettled = true

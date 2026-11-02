@@ -50,6 +50,7 @@ final class ForegroundRefreshGate {
         } else {
             await operation()
         }
+        guard !Task.isCancelled else { return }
         lastRefreshAt = now
     }
 

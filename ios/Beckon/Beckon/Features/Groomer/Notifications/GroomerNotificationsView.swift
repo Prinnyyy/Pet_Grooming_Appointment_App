@@ -32,7 +32,7 @@ struct GroomerNotificationsView: View {
 
     var body: some View {
         DesignPage(rhythm: .list, cascades: false) {
-            if store.isLoading && store.notifications.isEmpty {
+            if store.isLoading && !store.hasLoadedOnce && store.notifications.isEmpty {
                 BeckonLoadingView(title: "Loading updates…", message: "Checking for news about your requests and bookings.",
                     accent: .groomer)
             } else if store.notifications.isEmpty, let message = store.errorMessage {

@@ -131,6 +131,7 @@ struct CustomerTabView: View {
         }
         .onAppear {
             marketplace?.requestOptions = { [weak requestStore] in requestStore?.activeRequests ?? [] }
+            marketplace?.areRequestOptionsKnown = { [weak requestStore] in requestStore?.hasLoadedOnce ?? false }
             marketplace?.refreshRequestOptions = { [weak requestStore] in
                 await requestStore?.load()
                 return requestStore?.errorMessage

@@ -32,7 +32,7 @@ struct GroomerHomeView: View {
     /// `GroomerProfileRoute` has no route straight to it, only `.availability`).
     let accountAction: () -> Void
     /// The first load is over (design): until then each place shows its own shape in bars, never an empty state.
-    @State private var isSettled = false
+    private var isSettled: Bool { home.hasLoadedOnce }
     @State private var isShowingNotifications = false
     /// Where the page is scrolled (design): the scene's layers and the header read it; the page itself does not.
     @State private var scrollDepth = BeckonScrollDepth()
@@ -59,7 +59,6 @@ struct GroomerHomeView: View {
     /// Coming up reads the bookings list the Schedule tab reads (the real Home store only asks for the nearest booking).
     private func load() async {
         await home.load()
-        if !Task.isCancelled { isSettled = true }
         await notifications?.load()
     }
 
@@ -170,11 +169,6 @@ struct GroomerHomeView: View {
                 }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("\(booking.appointmentServiceTitle), \(booking.scheduledTimePresentation.accessibilityLabel), \(booking.appointmentAddressSummary)")
-                if home.isLoading || home.issues.contains(where: { $0.section == .bookings }) {
-                    Text(home.isLoading ? "Refreshing appointment…" : "Appointment not refreshed. Pull to retry.")
-                        .font(DesignTokens.Typography.Expressive.chip)
-                        .foregroundStyle(DesignTokens.Colors.customerInk)
-                }
                 heroButton(title: "View booking", systemImage: "calendar", identifier: "groomer.home.next-booking.view") {
                     bookingAction(booking)
                 }
@@ -351,7 +345,7 @@ private struct GroomerHomeTiles<Content: View>: View {
 
 
 /// What needs the groomer, as a number: the whole tile opens the list it counts.
-private struct GroomerHomeTile: View {
+struct GroomerHomeTile: View {
     let title: String
     let systemImage: String
     let count: Int?
@@ -363,11 +357,6 @@ private struct GroomerHomeTile: View {
     private var countText: String {
         guard let count else { return isLoading ? "…" : "–" }
         return hasMore ? "\(count)+" : "\(count)"
-    }
-
-    /// Said only when there is no number to read: a count, once known, needs nothing under its label.
-    private var note: String? {
-        count == nil ? (isLoading ? "Checking" : "Not refreshed") : nil
     }
 
     var body: some View {
@@ -387,11 +376,6 @@ private struct GroomerHomeTile: View {
                         .font(DesignTokens.Typography.Expressive.emphasis)
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
-                    if let note {
-                        Text(note)
-                            .font(DesignTokens.Typography.Expressive.chip)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    }
                 }
             }
             .padding(DesignTokens.Spacing.md)
@@ -400,7 +384,7 @@ private struct GroomerHomeTile: View {
         .buttonStyle(BeckonLedgeButtonStyle(.card))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)
-        .accessibilityValue(count.map { "\($0)\(hasMore ? " or more" : "")" } ?? (note ?? ""))
+        .accessibilityValue(count.map { "\($0)\(hasMore ? " or more" : "")" } ?? "Not yet available")
         .accessibilityIdentifier(identifier)
     }
 }

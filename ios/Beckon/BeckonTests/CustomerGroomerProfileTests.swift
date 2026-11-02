@@ -1,5 +1,7 @@
 import Foundation
 import Testing
+import Observation
+import XCTest
 @testable import Beckon
 
 @MainActor struct CustomerGroomerProfileTests {
@@ -12,6 +14,73 @@ import Testing
         ]
         return try JSONDecoder().decode(CustomerGroomerProfileRow.self, from: JSONSerialization.data(withJSONObject: payload))
     }
+    @Test func profileFactoryBookkeepingDoesNotInvalidateItsViewConsumer() async throws {
+        let session = CustomerSandboxSession(state: .loaded)
+        defer { session.invalidate() }
+        try await session.prepare()
+        let invalidation = XCTestExpectation(description: "Internal cache bookkeeping is not view state")
+        invalidation.isInverted = true
+        withObservationTracking {
+            _ = session.marketplace.profileStore(groomerID: Self.id)
+        } onChange: { invalidation.fulfill() }
+        _ = session.marketplace.profileStore(groomerID: Self.id)
+        let result = await XCTWaiter.fulfillment(of: [invalidation], timeout: 0.02)
+        #expect(result == .completed)
+    }
+
+    @Test func refreshRetainsProfileUntilConfirmedReplacementOrAccessLoss() async throws {
+        let repository = DiscoveryRepositoryFake()
+        repository.publicProfileResult = .success(try row().profile(expectedID: Self.id))
+        let store = CustomerGroomerProfileStore(groomerID: Self.id, repository: repository,
+            images: DiscoveryImageFake(), sessionIsCurrent: { true })
+        await store.load()
+        #expect(store.profile != nil)
+        var release: CheckedContinuation<Void, Never>?
+        repository.onPublicProfileRead = { await withCheckedContinuation { release = $0 } }
+        repository.publicProfileResult = .failure(.networkUnavailable)
+        let refresh = Task { await store.load() }
+        for _ in 0..<100 where release == nil { await Task.yield() }
+        #expect(release != nil && store.profile != nil)
+        release?.resume(); release = nil
+        await refresh.value
+        #expect(store.profile != nil && store.error == .networkUnavailable)
+        repository.onPublicProfileRead = nil
+        repository.publicProfileResult = .failure(.notAllowed)
+        await store.load()
+        #expect(store.profile == nil && store.error == .notAllowed)
+    }
+
+    @Test func retryPhotosDoesNotReloadTheProfileOrSuccessfulPhotos() async throws {
+        let path = Self.id.uuidString.lowercased() + "/retry.jpg"
+        let photos: [[String: Any]] = [path, Self.id.uuidString.lowercased() + "/ready.jpg"].enumerated().map {
+            ["id": UUID().uuidString, "groomer_id": Self.id.uuidString, "storage_bucket": "groomer-portfolio",
+             "storage_path": $0.element, "sort_order": $0.offset]
+        }
+        let repository = DiscoveryRepositoryFake()
+        repository.publicProfileResult = .success(try row(photos: photos).profile(expectedID: Self.id))
+        let images = DiscoveryImageFake(); images.failingPaths = [path]
+        let store = CustomerGroomerProfileStore(groomerID: Self.id, repository: repository, images: images, sessionIsCurrent: { true })
+        await store.load()
+        #expect(images.calls == 2 && store.unavailablePhotoIDs.count == 1)
+        let successful = store.profile?.content.works.last?.image
+        images.failingPaths = []
+        await store.retryUnavailablePhotos()
+        #expect(repository.publicProfileReadCount == 1 && images.calls == 3)
+        #expect(store.unavailablePhotoIDs.isEmpty && store.profile?.content.works.last?.image == successful)
+    }
+
+    @Test func sessionReusesBoundedProfileStoresAndClearsThemOnInvalidation() async throws {
+        let session = CustomerSandboxSession(state: .loaded)
+        defer { session.invalidate() }
+        try await session.prepare()
+        let first = session.marketplace.profileStore(groomerID: Self.id)
+        #expect(first === session.marketplace.profileStore(groomerID: Self.id))
+        session.marketplace.clearSession()
+        #expect(first !== session.marketplace.profileStore(groomerID: Self.id))
+        await first.load()
+        #expect(first.profile == nil)
+    }
+
     @Test func missingPublicContentStaysMissingRatherThanBecomingSampleData() throws {
         let value = try row().profile(expectedID: Self.id)
         #expect(value.content.services.isEmpty)

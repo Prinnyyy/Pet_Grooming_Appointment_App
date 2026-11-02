@@ -67,7 +67,7 @@ Pairs the kit uses (all asserted in `ExpressiveTokenTests`):
 |---|---|---|---|
 | `BeckonLedgeButtonStyle(_:)` | Button style with ledge and press travel | L, M | Takes a `BeckonLedgeSurface`. Haptic after a settled press; travel removed under Reduce Motion |
 | `beckonLedge(_:)` | Same surface for non-button content | L, M | Notes, tiles, pills |
-| `beckonEntrance(_:)`, `BeckonCascade`, `beckonEntranceClock()` | Synchronized entrance by step/detail/list family | L, M | Replay on active tab arrival; fade under Reduce Motion |
+| `beckonEntrance(_:)`, `BeckonCascade`, `beckonEntranceClock()` | Synchronized entrance by step/detail/list family | L, M | First active arrival and explicit Replay only; ordinary tab returns stay visible; fade under Reduce Motion |
 | `beckonAnimation(_:value:)`, `beckonScrollEase()`, `beckonCarouselTilt()` | Reduce-Motion-aware animation and scroll-linked scale and tilt | L, M | Collapse or switch off under Reduce Motion |
 | `BeckonLedgeHeading` | Section title with icon tile and count | L, M | Header trait |
 | `BeckonMetaChip`, `BeckonUnreadCountBadge` | Info capsule, unread count | L, M | Not interactive; chips wrap instead of truncating |
@@ -205,3 +205,11 @@ Manual selection pops only the outgoing tab to its root and clears its pending d
 Groomer Requests is Tier M: Matches holds unanswered requests; Offers groups Needs attention, Pending, Booked and collapsed Earlier. One row and one request detail follow new → offered → booked/closed, retaining the backend's raw records for notifications/history. The row stacks at accessibility sizes, preserves the invited highlight/new mark and shares the detail's stage. The request's deadline is evaluated from the clock, including stale raw-open records: exactly at expiresAt the request closes, cannot be answered and says Expired. Accepted offers retain booking history.
 
 The merged page uses the existing offer form state, session validation, participant/eligibility checks, assessment confirmations, service wall time and operation recovery. Full reads, pagination and actions have independent error channels: page cards/counts use read errors, Load more its page error, and toasts action failures. A read failure cannot become a submit toast, nor an invalid quote a pagination error. Old offer-detail/view-request ids and pagination-error-box ids are retired; withdrawal confirms then remains on the same request with its activity record.
+
+## Refresh continuity (D-070, T-437)
+
+Background reads preserve confirmed data and confirmed empty results. Loading state must not clear counters, remove known count badges, swap an empty result for a first-load placeholder, or insert a status line into a summary card. Groomer Home's tiles contain their count and title only; the appointment card adds no refresh-status row. First unavailable values remain unknown, never invented zero. Existing read errors/retry and explicit access loss remain meaningful states.
+
+Saved groomers adds no refresh-only spinner row once its list is known. Fit signals and portfolio fit notes retain their loaded editors without inserting loading rows; their existing write controls remain disabled while verification is pending. Evidence readiness follows its own successful read, including an empty result, independently of fit claims.
+
+Entrances run on first activation or explicit Preview Replay. A normal tab return keeps settled content and its layout visible, with decorative background work still paused while inactive. Manual pull refresh retains its existing feedback; chat retains its existing recipient subtitle status. Freshness checks, real-time fallback, business deadlines and write authorization are unchanged. These are presentation rules, not authorization or cross-restart cache guarantees.
