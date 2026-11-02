@@ -69,6 +69,7 @@ struct GroomerRequestsView: View {
                 applyRouteIfAvailable()
             }
         }
+        .beckonResetsNavigation { focusedTarget = nil }
         .navigationDestination(item: $focusedTarget) { target in
             GroomerRequestDetailView(target: target, requests: requests, offers: offers, onOpenBooking: onOpenBooking)
         }

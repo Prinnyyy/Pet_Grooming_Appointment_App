@@ -40,6 +40,7 @@ struct CustomerNotificationsView: View {
             } else { destination = target }
             selectedID = nil
         }
+        .beckonResetsNavigation { destination = nil; selectedID = nil }
         .navigationDestination(item: $destination) { target in
             CustomerRouteDestination(route: route(for: target), customerID: conversationCustomerID(target),
                 notificationStore: store, requestStore: requestStore, bookingsStore: bookingStore,

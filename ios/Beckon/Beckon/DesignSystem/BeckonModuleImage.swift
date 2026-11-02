@@ -124,7 +124,6 @@ struct BeckonPetAvatar: View {
 }
 
 struct BeckonAnnotatedModule<Content: View>: View {
-    @Environment(\.beckonCustomerDesign) private var customerDesign
 
     let title: String
     let subtitle: String
@@ -144,7 +143,7 @@ struct BeckonAnnotatedModule<Content: View>: View {
     }
 
     @ViewBuilder var body: some View {
-        if customerDesign { customerBody } else { existingBody }
+        customerBody
     }
 
     private var customerBody: some View {
@@ -170,31 +169,9 @@ struct BeckonAnnotatedModule<Content: View>: View {
         }
     }
 
-    private var existingBody: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                if showsTitle {
-                    Text(title)
-                        .font(DesignTokens.Typography.headline)
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                }
-
-                Text(subtitle)
-                    .font(DesignTokens.Typography.caption)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .multilineTextAlignment(.leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            content
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
 }
 
 struct BeckonPhotoEditorCard<Preview: View, Action: View>: View {
-    @Environment(\.beckonCustomerDesign) private var customerDesign
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let title: String
@@ -221,7 +198,7 @@ struct BeckonPhotoEditorCard<Preview: View, Action: View>: View {
     }
 
     @ViewBuilder var body: some View {
-        if customerDesign { customerBody } else { existingBody }
+        customerBody
     }
 
     private var customerBody: some View {
@@ -258,41 +235,6 @@ struct BeckonPhotoEditorCard<Preview: View, Action: View>: View {
             .designBanner()
     }
 
-    private var existingBody: some View {
-        BeckonCard {
-            contentLayout {
-                ZStack(alignment: .bottomTrailing) {
-                    preview
-
-                    if showsSavedIndicator {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundStyle(DesignTokens.Colors.statusSuccessText)
-                            .background(Circle().fill(DesignTokens.Colors.surface))
-                            .accessibilityLabel(savedAccessibilityLabel)
-                    }
-                }
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text(title)
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text(statusText)
-                            .font(DesignTokens.Typography.caption)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    action
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-    }
-
     private var contentLayout: AnyLayout {
         dynamicTypeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.lg))
@@ -307,18 +249,17 @@ enum BeckonDefaultProfileAvatarTone {
 }
 
 struct BeckonDefaultProfileAvatar: View {
-    @Environment(\.beckonCustomerDesign) private var customerDesign
 
     let tone: BeckonDefaultProfileAvatarTone
     var symbolSize: CGFloat = 30
 
     var body: some View {
         ZStack {
-            customerDesign ? tileColor : DesignTokens.Colors.placeholderFill
+            tileColor
 
             Image(systemName: symbolName)
                 .font(.system(size: symbolSize, weight: .semibold))
-                .foregroundStyle(customerDesign ? glyphColor : DesignTokens.Colors.textTertiary)
+                .foregroundStyle(glyphColor)
         }
     }
 
@@ -332,7 +273,6 @@ struct BeckonDefaultProfileAvatar: View {
             "person.crop.circle.fill"
         }
     }
-
 
     private var tileColor: Color {
         switch tone {

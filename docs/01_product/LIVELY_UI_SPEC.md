@@ -22,13 +22,13 @@ Test for any new element: does it feel like a thing you can push, and does it he
 
 | Tier | Screens | Allowed |
 |---|---|---|
-| **L Lively** | Customer Home; empty states; success and celebration moments | Ledge surfaces, entrance pop, bounded idle loops, character, callouts, stage path |
-| **M Moderate** | Customer lists/details, form chrome, account/settings, notifications and dialogs | Ledge surfaces, rounded type, entrance by screen family, explicit action feedback. Input controls remain stable |
-| **C Calm** | Text entry, chat-thread content and Groomer workspaces | Stable inputs and thread scrolling; no page entrance for chat. Groomer layout stays unchanged except approved shared account actions and booking dialogs |
+| **L Lively** | Customer and Groomer Home; empty states; success and celebration moments | Ledge surfaces, entrance pop, bounded idle loops, callouts, stage path; character only at its explicitly adopted locations, never Groomer Home |
+| **M Moderate** | Both roles' lists/details, form chrome, account/settings, notifications and dialogs | Ledge surfaces, rounded type, entrance by screen family, explicit action feedback. Input controls remain stable |
+| **C Calm** | Text entry and chat-thread content | Stable inputs and thread scrolling; no page entrance for chat |
 
-- Input controls remain calm even inside expressive form chrome. A shared file may contain customer and groomer presentation; `beckonCustomerDesign` scopes the adoption.
+- Input controls remain calm even inside expressive form chrome. Both roles use the adopted shared kit; `beckonRole` supplies mint or coral, including presented content.
 - A screen's tier is recorded in `SCREEN_INVENTORY.md` and, for ledge use, in `LEDGE_TIER_PATHS` in `scripts/ui-consistency-audit-core.mjs`. Undeclared means C. Raising a tier needs a Decision Log entry.
-- Handoff 4 adopts the shared kit for both roles in packages. P1 provides coral-capable primitives; P2 owns the groomer shell and screen tier declarations. Retain `beckonCustomerDesign` and its legacy branches until the final gate confirms all runtime entry points have adopted the kit.
+- Handoff 4 (D-069, T-429–T-436) adopts the shared kit throughout both roles. The runtime adoption switch and legacy appearance branches are retired. A DEBUG-only always-true compatibility accessor remains solely for the protected prototype's old call sites; shipping views neither set nor read it.
 
 ## 3. Tokens
 

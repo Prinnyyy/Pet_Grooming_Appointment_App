@@ -65,6 +65,7 @@ struct GroomerFitSignalsEditorView: View {
                 }
             }
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("groomer.fit-signals.edit")
     }
 

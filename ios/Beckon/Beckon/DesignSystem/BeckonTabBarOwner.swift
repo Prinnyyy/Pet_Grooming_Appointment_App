@@ -149,3 +149,55 @@ private struct BeckonTabBarHider: UIViewControllerRepresentable {
         }
     }
 }
+
+// A stable tab root can contain destination-based pushes that NavigationPath does not represent.
+// Notify those bindings on departure; never recreate the root or its Stores to pop a page.
+private struct BeckonNavigationResetCountKey: EnvironmentKey {
+    static let defaultValue = 0
+}
+
+extension EnvironmentValues {
+    var beckonNavigationResetCount: Int {
+        get { self[BeckonNavigationResetCountKey.self] }
+        set { self[BeckonNavigationResetCountKey.self] = newValue }
+    }
+}
+
+private struct BeckonNavigationResetObserver: ViewModifier {
+    @Environment(\.beckonNavigationResetCount) private var count
+    @State private var observed: Int?
+    let reset: () -> Void
+
+    func body(content: Content) -> some View {
+        content.onAppear { receive(count) }.onChange(of: count) { _, value in receive(value) }
+    }
+
+    private func receive(_ value: Int) {
+        if let observed, observed != value {
+            var cut = Transaction(animation: nil)
+            cut.disablesAnimations = true
+            withTransaction(cut) { reset() }
+        }
+        observed = value
+    }
+}
+
+extension View {
+    func beckonResetsNavigation(_ reset: @escaping () -> Void) -> some View {
+        modifier(BeckonNavigationResetObserver(reset: reset))
+    }
+}
+
+/// The modern destination-based counterpart of the customer's typed link. Its binding participates
+/// in the shell's reset notification, including when the root reappears after an inactive tab.
+struct BeckonNavigationLink<Destination: View, Label: View>: View {
+    @ViewBuilder let destination: () -> Destination
+    @ViewBuilder let label: () -> Label
+    @State private var isPresented = false
+
+    var body: some View {
+        Button { isPresented = true } label: { label() }
+            .navigationDestination(isPresented: $isPresented) { destination() }
+            .beckonResetsNavigation { isPresented = false }
+    }
+}

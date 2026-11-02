@@ -364,6 +364,7 @@ private struct GroomerTimeOffFormView: View {
                 Task { await store.createTimeOff() }
             }
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("groomer.availability.time-off.form")
     }
 

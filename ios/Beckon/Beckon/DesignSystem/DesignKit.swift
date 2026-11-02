@@ -579,7 +579,7 @@ struct DesignShortcutTile<Destination: View>: View {
     var body: some View {
         Group {
             if let action { Button(action: action) { tileLabel } }
-            else { NavigationLink(destination: destination) { tileLabel } }
+            else { BeckonNavigationLink(destination: destination) { tileLabel } }
         }
         .buttonStyle(BeckonLedgeButtonStyle(.card))
     }

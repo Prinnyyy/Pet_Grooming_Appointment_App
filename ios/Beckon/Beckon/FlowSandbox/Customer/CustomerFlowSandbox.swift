@@ -75,7 +75,7 @@ struct CustomerSandboxScreenHost: View {
         .environment(\.beckonFeedbackCenter, session.feedback)
         .environment(\.customerMarketplaceSession, session.marketplace)
         .environment(\.appDebugEventRecorder, nil)
-        .environment(\.beckonCustomerDesign, true)
+
         .environment(\.sandboxRequestAdvance, session.advanceRequest)
         .environment(\.openURL, OpenURLAction { _ in
             session.feedback.showNotice("External links stay closed in this sandbox.")

@@ -817,7 +817,6 @@ extension View {
 }
 
 struct BeckonFieldGroup<Content: View>: View {
-    @Environment(\.beckonCustomerDesign) private var customerDesign
 
     let label: String
     let supportingText: String?
@@ -839,7 +838,7 @@ struct BeckonFieldGroup<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text(label)
-                .font(customerDesign ? DesignTokens.Typography.Expressive.emphasis : DesignTokens.Typography.fieldLabel)
+                .font(DesignTokens.Typography.Expressive.emphasis)
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
 
             content

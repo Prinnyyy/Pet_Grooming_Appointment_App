@@ -30,7 +30,11 @@ struct MatchEligibilityContractTests {
 final class GroomerOfferTimingRenderingTests: XCTestCase {
     func testReturningWhileCancelledInitializationIsPendingStartsFreshRead() async throws {
         let owner = UUID()
-        let base = GroomerRequestsStoreTests.matchedRequest(groomerID: owner)
+        let start = Date().addingTimeInterval(86400)
+        let base = GroomerRequestsStoreTests.matchedRequest(groomerID: owner,
+            expiresAt: GroomingRequestDateFormatting.serverString(from: start.addingTimeInterval(3600)),
+            preferredStart: GroomingRequestDateFormatting.serverString(from: start),
+            preferredEnd: GroomingRequestDateFormatting.serverString(from: start.addingTimeInterval(10800)))
         var request = base.request
         request.preferenceTimeZoneIdentifier = "America/New_York"
         let matched = GroomerMatchedRequest(match: base.match, request: request, offer: nil)
@@ -135,7 +139,9 @@ final class GroomerOfferTimingRenderingTests: XCTestCase {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         let start = expectedInteractiveStart == nil ? Date().addingTimeInterval(86400)
             : try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-11-01T05:00:00Z"))
+        // This test needs a live offerable request. The helper's fixed historical expiry exercises closed states elsewhere.
         let base = GroomerRequestsStoreTests.matchedRequest(groomerID: owner,
+            expiresAt: GroomingRequestDateFormatting.serverString(from: Date().addingTimeInterval(172800)),
             locationMode: destinationFailure ? .customerComesToGroomer : .groomerComesToCustomer,
             preferredStart: GroomingRequestDateFormatting.serverString(from: start),
             preferredEnd: GroomingRequestDateFormatting.serverString(from: start.addingTimeInterval(10800)),

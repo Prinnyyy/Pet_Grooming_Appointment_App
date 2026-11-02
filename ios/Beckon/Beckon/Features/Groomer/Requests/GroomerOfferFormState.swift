@@ -11,6 +11,7 @@ final class GroomerOfferFormState {
     var selectedOccurrence: Date?
     var timeZoneError: String?
     private var activeTimeZoneLoadID: UUID?
+    private var initialStart: (wall: Date, instant: Date, zone: String)?
     var proposedStart = Date().addingTimeInterval(24 * 60 * 60)
     var durationMinutesText = ""
     var priceEstimateText = ""
@@ -46,11 +47,21 @@ final class GroomerOfferFormState {
 
     var resolvedProposedStart: Date? {
         switch proposedStartResolution {
-        case let .unique(date): return date
+        case let .unique(date): return preservingInitialPrecision(date)
         case let .ambiguous(first, last):
-            return selectedOccurrence == first || selectedOccurrence == last ? selectedOccurrence : nil
+            guard let selectedOccurrence, selectedOccurrence == first || selectedOccurrence == last else { return nil }
+            return preservingInitialPrecision(selectedOccurrence)
         case .nonexistent, nil: return nil
         }
+    }
+
+    // DatePicker edits minutes; an untouched server/window instant may also contain seconds.
+    // Preserve that precision only within the chosen occurrence, never across a wall-time edit.
+    private func preservingInitialPrecision(_ date: Date) -> Date {
+        guard let initialStart, initialStart.wall == proposedStart,
+              initialStart.zone == serviceTimeZone?.identifier,
+              initialStart.instant >= date, initialStart.instant.timeIntervalSince(date) < 60 else { return date }
+        return initialStart.instant
     }
 
     var isInitializingOfferForm: Bool { activeInitializationID != nil }
@@ -67,8 +78,9 @@ final class GroomerOfferFormState {
             let zone = try await store.serviceTimeZoneForOffer(for: matchedRequest.request)
             guard !Task.isCancelled, activeTimeZoneLoadID == loadID else { return }
             if serviceTimeZone == nil, let zone {
-                proposedStart = try GroomingServiceTiming.wallInput(for: proposedStart,
-                    timeZoneIdentifier: zone.identifier)
+                let instant = proposedStart
+                proposedStart = try GroomingServiceTiming.wallInput(for: instant, timeZoneIdentifier: zone.identifier)
+                initialStart = (proposedStart, instant, zone.identifier)
             }
             serviceTimeZone = zone
         } catch {
@@ -97,6 +109,7 @@ final class GroomerOfferFormState {
             durationMinutes: service?.durationMinutes
         )
         serviceTimeZone = nil
+        initialStart = nil
         selectedOccurrence = nil
         proposedStart = range?.start ?? max(
             GroomingRequestDateFormatting.parsedDate(from: matchedRequest.request.preferredStart) ?? Date(),

@@ -84,6 +84,7 @@ struct GroomingDetailView: View {
         }
         .navigationTitle("Details")
         .navigationBarTitleDisplayMode(.inline)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier(booking != nil ? "bookings.detail" : "customer.requests.detail")
         .task(id: target) {
             isResolving = true

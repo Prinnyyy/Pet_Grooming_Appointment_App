@@ -53,7 +53,7 @@ struct AuthenticationView: View {
                     .transition(.opacity)
             }
         }
-        .environment(\.beckonCustomerDesign, true)
+
         .beckonEntranceRhythm(.step, travel: travel)
         .beckonAnimation(DesignTokens.Motion.reduced, value: surface)
         .onChange(of: pageIsActive, initial: true) { _, active in

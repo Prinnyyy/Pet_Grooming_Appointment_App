@@ -7,7 +7,7 @@ For isolated interactive Preview work, [Sandbox Workflow](../05_workflow/SWIFTUI
 - Project: `ios/Beckon/Beckon.xcodeproj`
 - Shared scheme: `Beckon`
 - Build destination: `generic/platform=iOS Simulator`
-- Test destination: auto-discovered concrete iPhone simulator from the current Xcode installation
+- Test destination: auto-discovered concrete iPhone simulator from the current Xcode installation. The test script runs serially: this suite includes UIKit-hosted rendering/keyboard tests, and parallel cloned runners have failed to load their test bundles locally. Use existing passing evidence and rerun only failed or unexecuted groups when recovering a run.
 - Minimum deployment target: iOS 18.0
 - Swift language mode: Swift 6
 

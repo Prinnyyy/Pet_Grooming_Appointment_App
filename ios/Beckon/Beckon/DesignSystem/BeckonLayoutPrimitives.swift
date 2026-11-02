@@ -105,7 +105,6 @@ extension View {
 }
 
 struct BeckonPageTitle: View {
-    @Environment(\.beckonCustomerDesign) private var customerDesign
 
     private let title: String
 
@@ -114,7 +113,7 @@ struct BeckonPageTitle: View {
     }
 
     @ViewBuilder var body: some View {
-        if customerDesign { customerBody } else { existingBody }
+        customerBody
     }
 
     private var customerBody: some View {
@@ -125,13 +124,6 @@ struct BeckonPageTitle: View {
             .accessibilityAddTraits(.isHeader)
     }
 
-    private var existingBody: some View {
-        Text(title)
-            .font(DesignTokens.Typography.pageTitle)
-            .foregroundStyle(DesignTokens.Colors.textPrimary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityAddTraits(.isHeader)
-    }
 }
 
 struct BeckonSection<Content: View, Trailing: View>: View {
@@ -176,7 +168,6 @@ extension BeckonSection where Trailing == EmptyView {
 }
 
 struct BeckonGroupedSurface<Content: View>: View {
-    @Environment(\.beckonCustomerDesign) private var customerDesign
 
     private let content: Content
 
@@ -185,7 +176,7 @@ struct BeckonGroupedSurface<Content: View>: View {
     }
 
     @ViewBuilder var body: some View {
-        if customerDesign { customerBody } else { existingBody }
+        customerBody
     }
 
     private var customerBody: some View {
@@ -199,23 +190,6 @@ struct BeckonGroupedSurface<Content: View>: View {
             .beckonLedge(.card)
     }
 
-    private var existingBody: some View {
-        content
-            .background(DesignTokens.Colors.surface)
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius: DesignTokens.CornerRadius.card,
-                    style: .continuous
-                )
-            )
-            .overlay {
-                RoundedRectangle(
-                    cornerRadius: DesignTokens.CornerRadius.card,
-                    style: .continuous
-                )
-                .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
-            }
-    }
 }
 
 struct BeckonGroupedDivider: View {
@@ -229,7 +203,6 @@ struct BeckonGroupedDivider: View {
 }
 
 struct BeckonAccountIdentityHeader<Avatar: View>: View {
-    @Environment(\.beckonCustomerDesign) private var customerDesign
 
     let displayName: String
     let detailText: String
@@ -255,7 +228,7 @@ struct BeckonAccountIdentityHeader<Avatar: View>: View {
     }
 
     @ViewBuilder var body: some View {
-        if customerDesign { customerBody } else { existingBody }
+        customerBody
     }
 
     private var customerBody: some View {
@@ -291,35 +264,6 @@ struct BeckonAccountIdentityHeader<Avatar: View>: View {
         .accessibilityElement(children: .combine)
     }
 
-    private var existingBody: some View {
-        HStack(spacing: DesignTokens.Spacing.lg) {
-            avatar
-                .frame(
-                    width: BeckonAccountLayoutPolicy.identityAvatarSize,
-                    height: BeckonAccountLayoutPolicy.identityAvatarSize
-                )
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(displayName)
-                    .font(DesignTokens.Typography.sectionTitle)
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(detailText)
-                    .font(DesignTokens.Typography.supporting)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                BeckonRoleBadge(
-                    title: roleTitle,
-                    systemImage: roleSystemImage,
-                    accent: roleAccent
-                )
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .accessibilityElement(children: .combine)
-    }
 }
 
 /// The Account banner while the profile is on its way (design): the real banner (the mint, its lip, the white ring of the avatar) with
@@ -355,7 +299,6 @@ struct BeckonAccountIdentitySkeleton: View {
     }
 }
 
-
 /// A settings row as bars: the icon as a disc, the title (and a summary) as lines, in the real row's padding and least height.
 struct BeckonSettingsRowSkeleton: View {
     var hasSummary = false
@@ -379,7 +322,6 @@ struct BeckonSettingsRowSkeleton: View {
         .frame(minHeight: DesignTokens.Metrics.minimumTouchTarget)
     }
 }
-
 
 /// A titled section of grouped rows as bars: the heading as a line on the page, the real grouped card (and its dividers) with a
 /// skeleton row for each entry. `summaries` says which rows have a second line.
@@ -407,9 +349,7 @@ struct BeckonSettingsSectionSkeleton: View {
     }
 }
 
-
 struct BeckonSettingsRowLabel: View {
-    @Environment(\.beckonCustomerDesign) private var customerDesign
 
     let title: String
     let summary: String?
@@ -432,7 +372,7 @@ struct BeckonSettingsRowLabel: View {
     }
 
     @ViewBuilder var body: some View {
-        if customerDesign { customerBody } else { existingBody }
+        customerBody
     }
 
     private var customerBody: some View {
@@ -468,37 +408,6 @@ struct BeckonSettingsRowLabel: View {
         .contentShape(Rectangle())
     }
 
-    private var existingBody: some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
-            Image(systemName: systemImage)
-                .font(DesignTokens.Typography.cardTitle)
-                .foregroundStyle(accent.darkColor)
-                .frame(width: DesignTokens.Metrics.settingsIconSlot)
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(title)
-                    .font(DesignTokens.Typography.action)
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                if let summary {
-                    Text(summary)
-                        .font(DesignTokens.Typography.supporting)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            Image(systemName: trailingSystemImage)
-                .font(DesignTokens.Typography.status)
-                .foregroundStyle(DesignTokens.Colors.textTertiary)
-                .accessibilityHidden(true)
-        }
-        .padding(.horizontal, DesignTokens.Layout.rowHorizontalInset)
-        .padding(.vertical, DesignTokens.Layout.rowVerticalInset)
-        .frame(minHeight: DesignTokens.Metrics.minimumTouchTarget)
-        .contentShape(Rectangle())
-    }
 }
 
 struct BeckonSettingsNavigationRow<Destination: View>: View {
@@ -528,7 +437,7 @@ struct BeckonSettingsNavigationRow<Destination: View>: View {
     var body: some View {
         Group {
             if let action { Button(action: action) { rowLabel } }
-            else { NavigationLink(destination: destination) { rowLabel } }
+            else { BeckonNavigationLink(destination: destination) { rowLabel } }
         }
         .buttonStyle(BeckonGuardedPlainButtonStyle())
     }
@@ -544,7 +453,6 @@ struct BeckonSettingsNavigationRow<Destination: View>: View {
 }
 
 struct BeckonSectionHeading<Trailing: View>: View {
-    @Environment(\.beckonCustomerDesign) private var customerDesign
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let title: String
@@ -562,7 +470,7 @@ struct BeckonSectionHeading<Trailing: View>: View {
     }
 
     @ViewBuilder var body: some View {
-        if customerDesign { customerBody } else { existingBody }
+        customerBody
     }
 
     private var customerBody: some View {
@@ -576,28 +484,6 @@ struct BeckonSectionHeading<Trailing: View>: View {
                 if let subtitle {
                     Text(subtitle)
                         .font(DesignTokens.Typography.Expressive.supporting)
-                        .foregroundStyle(DesignTokens.Colors.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            trailing
-        }
-        .accessibilityElement(children: .contain)
-    }
-
-    private var existingBody: some View {
-        headingLayout {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(title)
-                    .font(DesignTokens.Typography.sectionTitle)
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .accessibilityAddTraits(.isHeader)
-
-                if let subtitle {
-                    Text(subtitle)
-                        .font(DesignTokens.Typography.supporting)
                         .foregroundStyle(DesignTokens.Colors.textTertiary)
                         .fixedSize(horizontal: false, vertical: true)
                 }

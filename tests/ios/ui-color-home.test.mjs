@@ -33,14 +33,11 @@ test("Groomer Home follows the approved coral scene, count tiles and exceptional
   assert.doesNotMatch(home, /let tint: Color|Colors\.groomerInk/);
 });
 
-test("adopted customer message colors remain scoped away from groomer message surfaces", () => {
+test("both roles use the adopted message surfaces with a role-derived accent", () => {
   const row = read("Features/Chat/ChatView.swift").split("private struct ChatMessageRow: View {")[1].split("private struct ChatBookingDetailDestination:")[0];
-  assert.match(row, /if customerDesign \{ customerTextRow \} else \{ groomerTextRow \}/);
-  const customer = row.split("private var customerTextRow:")[1]?.split("private var groomerTextRow:")[0] ?? row.split("private func groomerBody")[0];
-  assert.match(customer, /Colors\.customerFill/);
-  const groomer = row.split("private var groomerTextRow:")[1] ?? "";
-  assert.match(groomer, /isOutgoing \? DesignTokens\.Colors\.iconTileFill/);
-  assert.doesNotMatch(groomer, /Colors\.(?:customer|groomer)(?:Tint|Fill|Ink)/);
+  assert.match(row, /Colors\.customerFill/);
+  assert.doesNotMatch(row, /customerDesign|groomerTextRow/);
+  assert.match(read("DesignSystem/BeckonRole.swift"), /UITraitBridgedEnvironmentKey/);
 });
 
 test("Groomer sign out uses the adopted Account access action", () => {

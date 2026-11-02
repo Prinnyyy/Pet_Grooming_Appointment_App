@@ -44,6 +44,7 @@ struct GroomerAccountView: View {
         }
         .onChange(of: requestedRoute) { _, _ in activateRequestedRouteIfReady() }
         .background { GroomerProfileStatusView(store: store) }
+        .beckonResetsNavigation { activeRoute = nil }
         .navigationDestination(item: $activeRoute) { route in
             switch route {
             case .availability: GroomerAvailabilityEditorView(store: store)

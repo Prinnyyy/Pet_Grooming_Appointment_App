@@ -116,7 +116,7 @@ final class CustomerDiscoveryInteractionTests: XCTestCase {
                 }
             }
             .environment(\.dynamicTypeSize, session.config.largeText ? .accessibility5 : .large)
-            .environment(\.beckonCustomerDesign, true)
+
         }
     }
 }

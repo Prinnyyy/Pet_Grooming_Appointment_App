@@ -88,7 +88,7 @@ final class RoleKitTests: XCTestCase {
     }
 
     private func height(_ view: some View, role: BeckonRole, size: DynamicTypeSize) -> CGFloat {
-        UIHostingController(rootView: view.environment(\.beckonCustomerDesign, true)
+        UIHostingController(rootView: view
             .environment(\.beckonRole, role).environment(\.dynamicTypeSize, size))
             .sizeThatFits(in: CGSize(width: 343, height: 10_000)).height
     }

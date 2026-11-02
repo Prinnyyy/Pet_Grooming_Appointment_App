@@ -12,11 +12,14 @@ import Testing
         navigation.requestedProfileRoute = .availability
         navigation.select(.account)
         #expect(navigation.paths[.messages]?.isEmpty == true)
+        #expect(navigation.resetCounts[.messages] == 1)
+        #expect(navigation.resetCounts[.account] == nil)
         #expect(navigation.focusedConversationBookingID == nil)
         #expect(navigation.paths[.account]?.count == 1)
         #expect(navigation.requestedProfileRoute == .availability)
         navigation.select(.home)
         #expect(navigation.paths[.account]?.isEmpty == true)
+        #expect(navigation.resetCounts[.account] == 1)
         #expect(navigation.requestedProfileRoute == nil)
     }
 
@@ -28,6 +31,7 @@ import Testing
         navigation.paths[.requests] = NavigationPath([UUID()])
         navigation.select(.requests)
         #expect(navigation.paths[.requests]?.count == 1)
+        #expect(navigation.resetCounts[.requests] == nil)
         navigation.select(.home)
         #expect(navigation.requestsRoute == .matches)
     }

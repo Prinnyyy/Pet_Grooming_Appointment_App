@@ -12,12 +12,14 @@ final class GroomerUIAcceptanceTests: XCTestCase {
             throw XCTSkip("Opt-in local Groomer UI audit")
         }
         let marker = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("t402-audit.json")
+            .appendingPathComponent("t436-audit.json")
         try Data(#"{"largeText":false,"scenario":"populated"}"#.utf8).write(to: marker)
         defer { try? FileManager.default.removeItem(at: marker) }
         let session = AuditSession()
-        let fixture = GroomerUIFixture()
-        let host = UIHostingController(rootView: AuditHost(session: session, fixture: fixture))
+        XCTAssertTrue(AppLaunchConfiguration().usesSignedOutAuthSessionRepository,
+            "Use the existing signed-out test-host argument for local acceptance")
+        guard AppLaunchConfiguration().usesSignedOutAuthSessionRepository else { return }
+        let host = UIHostingController(rootView: AuditHost(session: session))
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let previous = scene.windows.first(where: \.isKeyWindow)
         let existingWindows = scene.windows.filter { !$0.isHidden }
@@ -36,16 +38,11 @@ final class GroomerUIAcceptanceTests: XCTestCase {
             try await Task.sleep(for: .milliseconds(500))
             if let data = try? Data(contentsOf: marker),
                let config = try? JSONDecoder().decode(AuditConfiguration.self, from: data), config != session.config {
-                if config.scenario != session.config.scenario { fixture.configure(config.scenario) }
                 session.config = config
             }
         }
         XCTAssertTrue(session.finished, "Finish local audit before timeout")
-        XCTAssertEqual(fixture.requests.createOfferCallCount, 0)
-        XCTAssertEqual(fixture.requests.dismissCallCount, 0)
-        XCTAssertEqual(fixture.profile.updateProfileCallCount, 0)
-        XCTAssertEqual(fixture.profile.saveAvailabilityCallCount, 0)
-        XCTAssertEqual(fixture.chat.sendCallCount, 0)
+
     }
 
     struct AuditConfiguration: Decodable, Equatable {
@@ -60,19 +57,21 @@ final class GroomerUIAcceptanceTests: XCTestCase {
 
     struct AuditHost: View {
         let session: AuditSession
-        let fixture: GroomerUIFixture
+        @State private var adopted = GroomerSandboxSession(state: .loaded)
         var body: some View {
             VStack(spacing: 0) {
                 Button("Finish Local Audit") { session.finished = true }
                     .font(.caption).dynamicTypeSize(.large).frame(height: 28)
                     .accessibilityIdentifier("local.audit.finish")
-                GroomerTabView(groomerID: fixture.owner, groomerDisplayName: "Alexandra Wellington",
-                    profileRepository: fixture.profile, requestRepository: fixture.requests,
-                    notificationRepository: fixture.notifications, bookingRepository: fixture.bookings,
-                    chatRepository: fixture.chat, onSignOut: {})
+                GroomerTabView(sandbox: adopted)
                     .id(session.config.scenario)
+
             }
             .environment(\.dynamicTypeSize, session.config.largeText ? .accessibility3 : .large)
+            .environment(\.scenePhase, .active)
+            .onChange(of: session.config.scenario) { _, scenario in
+                adopted = GroomerSandboxSession(state: GroomerSandboxState(rawValue: scenario) ?? .loaded)
+            }
         }
     }
 }

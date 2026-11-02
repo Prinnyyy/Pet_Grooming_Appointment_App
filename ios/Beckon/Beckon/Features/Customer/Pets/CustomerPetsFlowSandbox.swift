@@ -46,7 +46,7 @@ struct CustomerPetsFlowSandbox: View {
             BeckonGlobalFeedbackOverlay(center: session.feedbackCenter,
                 bottomPadding: BeckonGlobalFeedbackOverlay.sheetBottomClearance)
         }
-        .environment(\.beckonCustomerDesign, true)
+
         .tint(DesignTokens.Colors.customerDeep)
         .preferredColorScheme(.light)
         .task { await store.load() }

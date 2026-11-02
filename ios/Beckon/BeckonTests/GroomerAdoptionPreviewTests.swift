@@ -3,6 +3,19 @@ import XCTest
 @testable import Beckon
 
 @MainActor final class GroomerAdoptionPreviewTests: XCTestCase {
+    func testLocalAvailabilityUsesCurrentTimingContractAndCanSave() async {
+        let session = GroomerSandboxSession(state: .loaded)
+        await session.account.load()
+        session.account.maxAppointmentsPerDay = 3
+        await session.account.saveAvailability()
+        XCTAssertNil(session.account.actionErrorMessage)
+        XCTAssertEqual(session.account.noticeMessage, "Availability saved.")
+        let snapshot = try? await session.profileRepository.availabilitySnapshot(groomerID: session.groomerID)
+        XCTAssertEqual(snapshot?.timingVersion, 1)
+        XCTAssertEqual(snapshot?.preferences.maxAppointmentsPerDay, 3)
+        XCTAssertEqual(snapshot?.preferences.timingBuffers, .serviceOnly)
+    }
+
     func testHomeReadsFourChronologicalBookingsAndUsesLocalPreviewDependencies() async {
         let session = GroomerSandboxSession(state: .busyDay)
         await session.home.load()
@@ -23,7 +36,7 @@ import XCTest
                     isActiveTab: false, unreadMessageCount: 0, requestsAction: {}, offersAction: {}, bookingAction: { _ in },
                     messagesAction: {}, availabilityAction: {}, scheduleAction: {}, accountAction: {})
                 let host = UIHostingController(rootView: view.environment(\.beckonRole, .groomer)
-                    .environment(\.beckonCustomerDesign, true).environment(\.dynamicTypeSize, size))
+                    .environment(\.dynamicTypeSize, size))
                 let frame = host.sizeThatFits(in: CGSize(width: 375, height: 900))
                 XCTAssertLessThanOrEqual(frame.width, 375.5)
                 XCTAssertGreaterThan(frame.height, 0)

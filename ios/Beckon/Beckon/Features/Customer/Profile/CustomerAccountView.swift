@@ -164,6 +164,10 @@ struct CustomerAccountView: View {
                 .beckonTracksScroll()
         }
         .task { await store.load() }
+        .beckonResetsNavigation {
+            showsProfileSettings = false
+            showsDebugConsole = false
+        }
         .navigationDestination(isPresented: $showsProfileSettings) { CustomerProfileSettingsView(store: store) }
         #if DEBUG
         .navigationDestination(isPresented: $showsDebugConsole) {
@@ -177,7 +181,7 @@ struct CustomerAccountView: View {
         .background {
             CustomerProfileStatusView(store: store)
         }
-        .environment(\.beckonCustomerDesign, true)
+
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("customer.account")

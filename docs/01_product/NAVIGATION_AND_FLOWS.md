@@ -66,3 +66,5 @@ Offer creation uses `create_groomer_offer`; dismissals use `dismiss_request_matc
 - Signed-in users without profiles stay in onboarding.
 - Permission/conflict errors explain the outcome and refresh authoritative state when useful.
 - Production routes must not be selected from fixtures or launch arguments.
+
+Handoff 4 D3: leaving a tab resets its navigation without replacing the root or Stores. Shells clear typed paths/deep links and advance the outgoing tab's `beckonNavigationResetCount`; local `navigationDestination` bindings observe it with `beckonResetsNavigation`. Destination-based rows use `BeckonNavigationLink`, including the shared Settings row and customer typed-link fallback. This covers pushes that are not represented by `NavigationPath`. The observer also reconciles on reappearance; view identity, caches and root state remain. Avoid `.id` resets and UIKit stack manipulation.

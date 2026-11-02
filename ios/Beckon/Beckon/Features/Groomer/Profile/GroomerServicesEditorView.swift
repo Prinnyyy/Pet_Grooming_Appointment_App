@@ -41,6 +41,7 @@ struct GroomerServicesEditorView: View {
                 Task { await store.deleteService(service) }
             }
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("groomer.services.edit")
     }
 
@@ -169,6 +170,7 @@ struct GroomerServiceFormView: View {
                 Task { await store.saveService() }
             }
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("groomer.services.form")
     }
 

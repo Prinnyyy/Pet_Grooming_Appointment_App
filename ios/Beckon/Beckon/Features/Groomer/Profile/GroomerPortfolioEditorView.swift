@@ -42,7 +42,7 @@ struct GroomerPortfolioEditorView: View {
                         alignment: .leading, spacing: DesignTokens.Spacing.md) {
                         addTile(disabled: presentation.isAddDisabled)
                         ForEach(photos) { photo in
-                            NavigationLink {
+                            BeckonNavigationLink {
                                 GroomerPortfolioPhotoView(photo: photo, store: store)
                             } label: {
                                 GroomerPortfolioTile(photo: photo, store: store)
@@ -62,6 +62,7 @@ struct GroomerPortfolioEditorView: View {
             guard let item else { return }
             Task { await upload(item) }
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("groomer.portfolio.edit")
     }
 
@@ -285,6 +286,7 @@ struct GroomerPortfolioPhotoView: View {
                 }
             }
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("groomer.portfolio.detail")
     }
 

@@ -601,7 +601,7 @@ struct BookingDetailView: View {
             GroomingDetailView(target: .booking(bookingID), requestStore: customerRequestStore, bookingsStore: store,
                 onOpenChat: onOpenChat ?? shellOpenChat,
                 onCreateNewRequestFromBooking: onCreateNewRequestFromCancelledBooking)
-                .environment(\.beckonCustomerDesign, true)
+
         } else {
             GroomerBookingDetailView(bookingID: bookingID, store: store, onOpenChat: onOpenChat ?? shellOpenChat)
         }

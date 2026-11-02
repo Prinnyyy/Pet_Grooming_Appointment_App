@@ -55,7 +55,7 @@ struct CustomerHomeFlowSandbox: View {
             .background(DesignTokens.Colors.surface)
         }
         .environment(\.beckonFeedbackCenter, session.pets.feedbackCenter)
-        .environment(\.beckonCustomerDesign, true)
+
         .environment(\.sandboxRequestAdvance, session.advanceRequestPreview)
         .environment(\.beckonEntranceReplay, replay)
         .overlay(alignment: .bottom) {

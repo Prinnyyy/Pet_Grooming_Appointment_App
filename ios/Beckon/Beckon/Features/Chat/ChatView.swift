@@ -16,7 +16,6 @@ nonisolated struct ChatConversationListPresentation: Equatable, Sendable {
 }
 
 struct ChatConversationsView: View {
-    @Environment(\.beckonCustomerDesign) private var customerDesign
 
     @Environment(\.scenePhase) private var scenePhase
     private let participantID: UUID
@@ -53,12 +52,7 @@ struct ChatConversationsView: View {
 
     var body: some View {
         ZStack {
-            if customerDesign {
-                BeckonExpressiveBackdrop()
-            } else {
-                DesignTokens.Colors.appBackground.ignoresSafeArea()
-            }
-
+            BeckonExpressiveBackdrop()
             conversationsContent
         }
         .navigationTitle("")
@@ -66,6 +60,7 @@ struct ChatConversationsView: View {
         .background {
             ChatStatusView(store: store, role: role)
         }
+        .beckonResetsNavigation { focusedConversation = nil }
         .navigationDestination(item: $focusedConversation) { conversation in
             ChatThreadView(
                 participantID: participantID,
@@ -104,7 +99,7 @@ struct ChatConversationsView: View {
 
     @ViewBuilder
     private var conversationsContent: some View {
-        if customerDesign { customerConversationsContent } else { groomerConversationsContent }
+        customerConversationsContent
     }
 
     private var customerConversationsContent: some View {
@@ -140,44 +135,9 @@ struct ChatConversationsView: View {
         .accessibilityIdentifier("chat.conversations.list")
     }
 
-    @ViewBuilder private var groomerConversationsContent: some View {
-        if store.isLoadingConversations, store.conversations.isEmpty {
-            ScrollView {
-                BeckonLoadingView(
-                    title: "Loading conversations…",
-                    message: "Checking accepted bookings for participant chats.",
-                    accent: role.beckonLoadingAccent
-                )
-                .accessibilityIdentifier("chat.conversations.loading")
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                .padding(.vertical, DesignTokens.Spacing.xl)
-            }
-        } else {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    conversationWorkspace
-
-                    if store.canLoadMoreConversations || store.isLoadingMoreConversations {
-                        BeckonLoadMoreButton(
-                            isLoading: store.isLoadingMoreConversations,
-                            accent: role.beckonSecondaryAccent,
-                            accessibilityIdentifier: "chat.conversations.load-more"
-                        ) {
-                            await store.loadNextConversationsPage()
-                        }
-                    }
-                }
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                .padding(.top, DesignTokens.Spacing.xl)
-                .padding(.bottom, DesignTokens.Spacing.xl + DesignTokens.Spacing.xl)
-            }
-            .accessibilityIdentifier("chat.conversations.list")
-        }
-    }
-
     @ViewBuilder
     private var conversationWorkspace: some View {
-        if customerDesign { customerConversationWorkspace } else { groomerConversationWorkspace }
+        customerConversationWorkspace
     }
 
     @ViewBuilder private var customerConversationWorkspace: some View {
@@ -194,23 +154,9 @@ struct ChatConversationsView: View {
         }
     }
 
-    @ViewBuilder private var groomerConversationWorkspace: some View {
-        ChatMessagesTitle(presentation.title)
-
-        if store.conversations.isEmpty {
-            emptyConversationsState
-        } else {
-            LazyVStack(spacing: DesignTokens.Spacing.md) {
-                ForEach(store.conversations) { conversation in
-                    conversationLink(conversation)
-                }
-            }
-        }
-    }
-
     @ViewBuilder
     private var emptyConversationsState: some View {
-        if customerDesign { customerEmptyConversationsState } else { groomerEmptyConversationsState }
+        customerEmptyConversationsState
     }
 
     private var customerEmptyConversationsState: some View {
@@ -225,19 +171,9 @@ struct ChatConversationsView: View {
         .accessibilityIdentifier("chat.conversations.empty")
     }
 
-    @ViewBuilder private var groomerEmptyConversationsState: some View {
-        BeckonEmptyState(
-            title: "No conversations yet",
-            message: "Accepted bookings create participant conversations.",
-            systemImage: "message",
-            accent: role.beckonEmptyAccent
-        )
-        .accessibilityIdentifier("chat.conversations.empty")
-    }
-
     @ViewBuilder
     private func conversationLink(_ conversation: ChatConversation) -> some View {
-        if customerDesign { customerConversationLink(conversation) } else { groomerConversationLink(conversation) }
+        customerConversationLink(conversation)
     }
 
     @ViewBuilder private func customerConversationLink(_ conversation: ChatConversation) -> some View {
@@ -261,27 +197,6 @@ struct ChatConversationsView: View {
         )
     }
 
-    @ViewBuilder private func groomerConversationLink(_ conversation: ChatConversation) -> some View {
-        NavigationLink {
-            ChatThreadView(
-                participantID: participantID,
-                role: role,
-                conversation: conversation,
-                store: store
-            )
-        } label: {
-            ChatConversationRow(
-                conversation: conversation,
-                role: role,
-                store: store
-            )
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier(
-            conversationAccessibilityIdentifier(conversation)
-        )
-    }
-
     private func conversationAccessibilityIdentifier(
         _ conversation: ChatConversation
     ) -> String {
@@ -300,7 +215,6 @@ struct ChatConversationsView: View {
 }
 
 private struct ChatConversationRow: View {
-    @Environment(\.beckonCustomerDesign) private var customerDesign
 
     let conversation: ChatConversation
     let role: UserRole
@@ -308,7 +222,7 @@ private struct ChatConversationRow: View {
 
     @ViewBuilder
     var body: some View {
-        if customerDesign { customerBody } else { groomerBody }
+        customerBody
     }
 
     @ViewBuilder private var customerBody: some View {
@@ -319,17 +233,9 @@ private struct ChatConversationRow: View {
             .accessibilityValue(store.hasUnreadMessages(in: conversation) ? "Unread" : "Read")
     }
 
-    @ViewBuilder private var groomerBody: some View {
-        BeckonCard {
-            rowContent
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityValue(store.hasUnreadMessages(in: conversation) ? "Unread" : "Read")
-    }
-
     @ViewBuilder
     private var rowContent: some View {
-        if customerDesign { customerRowContent } else { groomerRowContent }
+        customerRowContent
     }
 
     @ViewBuilder private var customerRowContent: some View {
@@ -389,75 +295,12 @@ private struct ChatConversationRow: View {
         }
     }
 
-    @ViewBuilder private var groomerRowContent: some View {
-        HStack(
-            alignment: .center,
-            spacing: DesignTokens.Spacing.lg
-        ) {
-            BeckonProfileAvatar(
-                data: conversation.counterpartAvatarPhotoData,
-                tone: role == .customer ? .groomer : .customer,
-                size: presentation.avatarSize,
-                cornerRadius: 18,
-                placeholderSize: 24
-            )
-
-            VStack(
-                alignment: .leading,
-                spacing: DesignTokens.Spacing.sm
-            ) {
-                Text(conversation.listTitle(for: role))
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.82)
-
-                Text(store.previewText(for: conversation))
-                    .font(DesignTokens.Typography.body)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .lineLimit(presentation.previewLineLimit)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            VStack(
-                alignment: .trailing,
-                spacing: DesignTokens.Spacing.sm
-            ) {
-                if store.hasUnreadMessages(in: conversation) {
-                    Circle()
-                        .fill(DesignTokens.Colors.unreadDot)
-                        .frame(width: 10, height: 10)
-                        .accessibilityHidden(true)
-                }
-
-                Text(ChatDateFormatting.relativeSummary(from: conversation.updatedAt))
-                    .font(DesignTokens.Typography.caption)
-                    .foregroundStyle(DesignTokens.Colors.textTertiary)
-
-                if conversation.isReadOnly() {
-                    Text("Read-only")
-                        .font(DesignTokens.Typography.caption.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .padding(.horizontal, DesignTokens.Spacing.sm)
-                        .padding(.vertical, DesignTokens.Spacing.xs)
-                        .background {
-                            Capsule()
-                                .fill(DesignTokens.Colors.iconTileFill)
-                        }
-                }
-            }
-
-        }
-    }
-
     private var presentation: ChatConversationListPresentation {
         role == .groomer ? .groomer : .customer
     }
 }
 
 private struct ChatMessagesTitle: View {
-    @Environment(\.beckonCustomerDesign) private var customerDesign
 
     let title: String
 
@@ -467,7 +310,7 @@ private struct ChatMessagesTitle: View {
 
     @ViewBuilder
     var body: some View {
-        if customerDesign { customerBody } else { groomerBody }
+        customerBody
     }
 
     @ViewBuilder private var customerBody: some View {
@@ -479,13 +322,6 @@ private struct ChatMessagesTitle: View {
             .accessibilityAddTraits(.isHeader)
     }
 
-    @ViewBuilder private var groomerBody: some View {
-        Text(title)
-            .font(.system(size: 36, weight: .bold))
-            .foregroundStyle(DesignTokens.Colors.textPrimary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, DesignTokens.Spacing.sm)
-    }
 }
 
 nonisolated enum ChatThreadScrollPolicy {
@@ -728,7 +564,6 @@ struct ChatThreadLoadingView: View {
 }
 
 private struct ChatThreadHeader: View {
-    @Environment(\.beckonCustomerDesign) private var customerDesign
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let title: String
@@ -740,7 +575,7 @@ private struct ChatThreadHeader: View {
 
     @ViewBuilder
     var body: some View {
-        if customerDesign { customerBody } else { groomerBody }
+        customerBody
     }
 
     @ViewBuilder private var customerBody: some View {
@@ -797,64 +632,9 @@ private struct ChatThreadHeader: View {
         .accessibilityIdentifier("chat.thread")
     }
 
-    @ViewBuilder private var groomerBody: some View {
-        HStack(spacing: DesignTokens.Spacing.lg) {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Back")
-
-            if !dynamicTypeSize.isAccessibilitySize {
-              BeckonProfileAvatar(
-                data: avatarPhotoData,
-                tone: role == .customer ? .groomer : .customer,
-                size: 64,
-                cornerRadius: 18
-            )
-              .accessibilityHidden(true)
-            }
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(title)
-                    .font(DesignTokens.Typography.headline)
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .lineLimit(isComposing && dynamicTypeSize.isAccessibilitySize ? 1 : nil)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
-
-                if !isComposing || !dynamicTypeSize.isAccessibilitySize {
-                    HStack(spacing: DesignTokens.Spacing.xs) {
-                        Circle()
-                            .fill(DesignTokens.Colors.textTertiary)
-                            .frame(width: 9, height: 9)
-                            .accessibilityHidden(true)
-
-                        Text(subtitle)
-                            .font(DesignTokens.Typography.supporting.weight(.semibold))
-                            .foregroundStyle(DesignTokens.Colors.textTertiary)
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-        .padding(.top, DesignTokens.Spacing.lg)
-        .padding(.bottom, DesignTokens.Spacing.md)
-        .background(DesignTokens.Colors.surface)
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("chat.thread")
-    }
 }
 
 private struct ChatMessageRow: View {
-    @Environment(\.beckonCustomerDesign) private var customerDesign
 
     let message: ChatMessage
     let isOutgoing: Bool
@@ -872,7 +652,7 @@ private struct ChatMessageRow: View {
 
     @ViewBuilder
     private var textRow: some View {
-        if customerDesign { customerTextRow } else { groomerTextRow }
+        customerTextRow
     }
 
     @ViewBuilder private var customerTextRow: some View {
@@ -906,40 +686,9 @@ private struct ChatMessageRow: View {
         }
     }
 
-    @ViewBuilder private var groomerTextRow: some View {
-        HStack(alignment: .bottom) {
-            if isOutgoing {
-                Spacer(minLength: 82)
-            }
-
-            VStack(alignment: isOutgoing ? .trailing : .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(message.body ?? "")
-                    .font(.body.weight(.medium))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .padding(.vertical, DesignTokens.Spacing.md)
-                    .background {
-                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.messageBubble, style: .continuous)
-                            .fill(isOutgoing ? DesignTokens.Colors.iconTileFill : DesignTokens.Colors.surfaceRaised)
-                    }
-                    .overlay {
-                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.messageBubble, style: .continuous)
-                            .stroke(isOutgoing ? Color.clear : DesignTokens.Colors.borderSoft, lineWidth: 1)
-                    }
-                    .beckonShadow(DesignTokens.Shadows.smallCard, isVisible: !isOutgoing)
-            }
-            .frame(maxWidth: 330, alignment: isOutgoing ? .trailing : .leading)
-            .accessibilityElement(children: .combine)
-
-            if !isOutgoing {
-                Spacer(minLength: 82)
-            }
-        }
-    }
-
     @ViewBuilder
     private var bookingCardRow: some View {
-        if customerDesign { customerBookingCardRow } else { groomerBookingCardRow }
+        customerBookingCardRow
     }
 
     @ViewBuilder private var customerBookingCardRow: some View {
@@ -966,29 +715,6 @@ private struct ChatMessageRow: View {
         }
     }
 
-    @ViewBuilder private var groomerBookingCardRow: some View {
-        if let booking = message.booking,
-           let bookingStore {
-            NavigationLink {
-                ChatBookingDetailDestination(
-                    bookingID: booking.id,
-                    role: role,
-                    store: bookingStore
-                )
-            } label: {
-                ChatBookingMessageCard(
-                    booking: bookingStore.booking(withID: booking.id) ?? booking,
-                    role: role
-                )
-            }
-            .buttonStyle(BeckonLedgeButtonStyle(.card))
-            .accessibilityIdentifier(
-                "chat.message.booking.\(booking.id.uuidString.lowercased())"
-            )
-        } else {
-            ChatBookingUnavailableCard()
-        }
-    }
 }
 
 private struct ChatBookingDetailDestination: View {
@@ -1008,7 +734,6 @@ private struct ChatBookingDetailDestination: View {
 }
 
 private struct ChatComposerBar: View {
-    @Environment(\.beckonCustomerDesign) private var customerDesign
 
     @Binding var draft: String
     @FocusState.Binding var isFocused: Bool
@@ -1023,7 +748,7 @@ private struct ChatComposerBar: View {
 
     @ViewBuilder
     var body: some View {
-        if customerDesign { customerBody } else { groomerBody }
+        customerBody
     }
 
     @ViewBuilder private var customerBody: some View {
@@ -1100,82 +825,6 @@ private struct ChatComposerBar: View {
         }
     }
 
-    @ViewBuilder private var groomerBody: some View {
-        Group {
-            if isReadOnly {
-                HStack(alignment: .top, spacing: DesignTokens.Spacing.sm) {
-                    Image(systemName: "lock.fill")
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .padding(.top, DesignTokens.Layout.messageGlyphTopInset)
-                        .accessibilityHidden(true)
-
-                    Text(readOnlyMessage)
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, DesignTokens.Spacing.lg)
-                .padding(.vertical, DesignTokens.Spacing.md)
-                .background {
-                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
-                        .fill(DesignTokens.Colors.iconTileFill)
-                }
-                .accessibilityIdentifier("chat.message.read-only")
-            } else {
-                HStack(alignment: .bottom, spacing: DesignTokens.Spacing.md) {
-                    TextField(placeholder, text: $draft, axis: .vertical)
-                        .focused($isFocused)
-                        .font(DesignTokens.Typography.body)
-                        .lineLimit(1...4)
-                        .padding(.horizontal, DesignTokens.Spacing.lg)
-                        .padding(.vertical, DesignTokens.Spacing.md)
-                        .background(DesignTokens.Colors.iconTileFill)
-                        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous))
-                        .accessibilityIdentifier("chat.message.body")
-                        .accessibilityLabel("Message")
-
-                    Button {
-                        Task {
-                            await send()
-                        }
-                    } label: {
-                        ZStack {
-                            Circle()
-                                .fill(hasDraft || isSending ? accent.color : DesignTokens.Colors.iconTileFill)
-                                .frame(width: 56, height: 56)
-
-                            if isSending {
-                                ProgressView()
-                                    .tint(accent.ink)
-                            } else {
-                                Image(systemName: "paperplane.fill")
-                                    .font(DesignTokens.Typography.cardTitle)
-                                    .foregroundStyle(hasDraft ? accent.ink : DesignTokens.Colors.textTertiary)
-                                    .offset(x: -1, y: 1)
-                            }
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isSending || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    .accessibilityIdentifier("chat.message.send")
-                    .accessibilityLabel(isSending ? "Sending message" : "Send message")
-                }
-            }
-        }
-        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-        .padding(.vertical, DesignTokens.Spacing.md)
-        .background {
-            DesignTokens.Colors.appBackground
-                .ignoresSafeArea(edges: .bottom)
-        }
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill(DesignTokens.Colors.borderSoft)
-                .frame(height: 1)
-        }
-    }
 }
 
 private struct ChatReadOnlyBanner: View {

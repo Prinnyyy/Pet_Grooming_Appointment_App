@@ -327,7 +327,7 @@ final class GroomerSandboxProfileRepository: GroomerProfileRepository {
             service(.deShedding, "De-shedding", "Undercoat release and a blow-out.", 80, 75, isActive: false),
         ]
         storedBookingPreferences = GroomerBookingPreferences(groomerID: GroomerSandboxFixtures.groomerID, maxAppointmentsPerDay: 4,
-            minimumAdvanceNoticeDays: 0, autoAcceptBookings: false, timingBuffers: nil)
+            minimumAdvanceNoticeDays: 0, autoAcceptBookings: false, timingBuffers: .serviceOnly)
         storedAvailability = GroomerSandboxFixtures.weekWindows
         guard !isNew else { return }
         storedPhotos = [
@@ -474,7 +474,7 @@ final class GroomerSandboxProfileRepository: GroomerProfileRepository {
 
     func availabilitySnapshot(groomerID: UUID) async throws -> GroomerAvailabilitySnapshot {
         GroomerAvailabilitySnapshot(revision: "prototype", windows: storedAvailability, preferences: storedBookingPreferences,
-            timeOff: storedTimeOff)
+            timeOff: storedTimeOff, timingVersion: 1)
     }
 
     func saveAvailability(groomerID: UUID, expectedRevision: String, windows: [GroomerAvailabilityDraft],

@@ -136,6 +136,7 @@ struct CustomerHomeView: View {
                 requestStore.suspendWizardForPet()
             }
         }
+        .beckonResetsNavigation { isShowingNotifications = false }
         .navigationDestination(isPresented: $isShowingNotifications) {
             CustomerNotificationsView(store: notificationStore, requestStore: requestStore,
                 bookingStore: bookingStore, chatStore: chatStore)
@@ -145,7 +146,7 @@ struct CustomerHomeView: View {
             await loadHome()
         }
         .accessibilityIdentifier("customer.home")
-        .environment(\.beckonCustomerDesign, true)
+
         .onDisappear { refreshTask?.cancel(); refreshTask = nil; scrollDepth.isRefreshing = false }
     }
 

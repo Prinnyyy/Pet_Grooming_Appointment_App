@@ -81,6 +81,7 @@ struct GroomerNotificationsView: View {
             destination = target
             selectedID = nil
         }
+        .beckonResetsNavigation { destination = nil }
         .navigationDestination(item: $destination) { target in
             switch target {
             case let .request(id):

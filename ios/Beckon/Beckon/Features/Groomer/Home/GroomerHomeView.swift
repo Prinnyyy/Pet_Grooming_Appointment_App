@@ -47,6 +47,7 @@ struct GroomerHomeView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
 
+        .beckonResetsNavigation { isShowingNotifications = false }
         .navigationDestination(isPresented: $isShowingNotifications) {
             if let notifications { GroomerNotificationsView(store: notifications, requestStore: requests, offerStore: offers, bookingStore: bookings,
                 chatStore: chat, onOpenBooking: bookingAction) }

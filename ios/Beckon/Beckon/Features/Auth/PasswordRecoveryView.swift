@@ -52,7 +52,7 @@ struct PasswordRecoveryView: View {
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) { decisionBar }
-        .environment(\.beckonCustomerDesign, true)
+
         .interactiveDismissDisabled(store.isRecovering)
         .designSheetStyle()
         .beckonEntranceRhythm(.detail)

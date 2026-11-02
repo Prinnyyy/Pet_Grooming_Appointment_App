@@ -193,6 +193,7 @@ struct GroomingDetailsCard: View {
             }
             .designCardBody()
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("customer.grooming.detail.details")
     }
 

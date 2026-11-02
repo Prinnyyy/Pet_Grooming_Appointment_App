@@ -158,6 +158,7 @@ struct GroomerRequestDetailView: View {
         }
         .navigationTitle("Request")
         .navigationBarTitleDisplayMode(.inline)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("groomer.requests.detail")
         .task(id: stage.canAnswer) {
             if stage.canAnswer, let matched = subject.matched { await form.initializeOfferFormIfNeeded(for: matched) }
@@ -309,6 +310,7 @@ struct GroomerRequestDetailView: View {
             GroomerOfferForm(matched: matched, form: form, focusedTarget: $focusedTarget)
         }
         .disabled(!form.didInitializeOfferForm)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("groomer.requests.offer-form")
     }
 

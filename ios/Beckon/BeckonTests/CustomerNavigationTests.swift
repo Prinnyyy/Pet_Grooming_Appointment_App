@@ -12,6 +12,9 @@ struct CustomerNavigationTests {
         navigation.selectManually(.home)
         #expect(navigation.home.isEmpty)
         #expect(navigation.account.isEmpty)
+        #expect(navigation.resetCounts[.home] == 1 && navigation.resetCounts[.account] == 1)
+        navigation.selectManually(.home)
+        #expect(navigation.resetCounts[.home] == 1)
         let id = UUID()
         navigation.grooming = [.history]
         navigation.open(.grooming(.booking(id)))

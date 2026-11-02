@@ -27,6 +27,7 @@ final class CustomerNavigation {
     var messages: [CustomerDestination] = []
     var account: [CustomerDestination] = []
     var focusedGroomingID: UUID?
+    private(set) var resetCounts: [CustomerTab: Int] = [:]
     private(set) var handoffGeneration = 0
 
     subscript(tab: CustomerTab) -> [CustomerDestination] {
@@ -69,6 +70,7 @@ final class CustomerNavigation {
     func selectManually(_ tab: CustomerTab) {
         guard selection != tab else { return }
         self[selection] = []
+        resetCounts[selection, default: 0] += 1
         if selection == .requests || selection == .bookings { focusedGroomingID = nil }
         selection = tab
     }
@@ -80,6 +82,7 @@ final class CustomerNavigation {
         transaction.disablesAnimations = true
         withTransaction(transaction) {
             self[selection] = []
+            resetCounts[selection, default: 0] += 1
             handoffGeneration &+= 1
             update()
             selection = tab
@@ -131,7 +134,7 @@ struct CustomerNavigationLink<Destination: View, Label: View>: View {
         if let navigation {
             Button { navigation.open(route) } label: { label() }
         } else {
-            NavigationLink(destination: destination, label: label)
+            BeckonNavigationLink(destination: destination, label: label)
         }
     }
 }

@@ -111,6 +111,7 @@ struct GroomerBookingAppointment: View {
             }
             .designCardBody()
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("groomer.booking.details")
     }
 

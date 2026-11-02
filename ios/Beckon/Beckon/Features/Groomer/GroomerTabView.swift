@@ -100,6 +100,7 @@ struct GroomerTabView: View {
                 }
                 }
                 .beckonEntranceActive(selection == tab)
+                .environment(\.beckonNavigationResetCount, navigation.resetCounts[tab, default: 0])
                 .tabItem {
                     Label { Text(tab.title) } icon: { BeckonTabIcons.image(tab.icon, isSelected: selection == tab) }
                         .accessibilityIdentifier(tab.accessibilityIdentifier)
@@ -119,7 +120,7 @@ struct GroomerTabView: View {
         .toolbarBackground(DesignTokens.Colors.surface, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
         .environment(\.beckonRole, .groomer)
-        .environment(\.beckonCustomerDesign, true)
+
         .environment(\.beckonFeedbackCenter, feedbackCenter)
         .environment(\.openBookingChat, openBookingChat)
         .overlay(alignment: .bottom) {
@@ -304,11 +305,11 @@ private extension GroomerTab {
 
 #if DEBUG
 extension GroomerTabView {
-    init(sandbox: GroomerSandboxSession, initialTab: GroomerTab = .home, initialRoute: GroomerRequestsRoute = .matches) {
+    init(sandbox: GroomerSandboxSession, initialTab: GroomerTab = .home, initialRoute: GroomerRequestsRoute = .matches, onSignOut: (() -> Void)? = nil) {
         self.init(groomerID: sandbox.groomerID, groomerDisplayName: sandbox.groomerName,
             profileRepository: sandbox.profileRepository, requestRepository: sandbox.requestRepository,
             notificationRepository: sandbox.notificationRepository, bookingRepository: sandbox.bookingRepository,
-            chatRepository: sandbox.chatRepository)
+            chatRepository: sandbox.chatRepository, onSignOut: onSignOut)
         _homeStore = State(initialValue: sandbox.home); _requestsStore = State(initialValue: sandbox.requests)
         _offersStore = State(initialValue: sandbox.offers); _bookingsStore = State(initialValue: sandbox.bookings)
         _profileStore = State(initialValue: sandbox.account); _notificationStore = State(initialValue: sandbox.notifications)

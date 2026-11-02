@@ -6,6 +6,7 @@ import Observation
 final class GroomerNavigation {
     private(set) var selection: GroomerTab
     var paths: [GroomerTab: NavigationPath] = [:]
+    private(set) var resetCounts: [GroomerTab: Int] = [:]
     var focusedBooking: Booking?
     var focusedConversationBookingID: UUID?
     var requestedProfileRoute: GroomerProfileRoute?
@@ -19,6 +20,7 @@ final class GroomerNavigation {
         var cut = Transaction(animation: nil); cut.disablesAnimations = true
         withTransaction(cut) {
             paths[outgoing] = NavigationPath()
+            resetCounts[outgoing, default: 0] += 1
             switch outgoing {
             case .home: break
             case .requests: requestsRoute = .matches

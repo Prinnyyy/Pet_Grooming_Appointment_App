@@ -120,7 +120,7 @@ struct CustomerTabView: View {
         .toolbarBackground(DesignTokens.Colors.surface, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
         .environment(\.beckonFeedbackCenter, feedbackCenter)
-        .environment(\.beckonCustomerDesign, true)
+
         .environment(\.openBookingChat, openBookingChat)
         .environment(\.bookingConfirmed, confirmBooking)
         .environment(\.customerGroomingRequestStore, requestStore)
@@ -179,6 +179,7 @@ struct CustomerTabView: View {
             ForEach(CustomerTab.allCases) { tab in
                 navigationRoot(for: tab)
                 .beckonEntranceActive(selection == tab)
+                .environment(\.beckonNavigationResetCount, navigation.resetCounts[tab, default: 0])
                 .foregroundRefreshable(
                     isEnabled: tab == .requests && selection == .requests
                         && requestStore?.isShowingWizard == false && requestStore?.discoveryFlow == nil,

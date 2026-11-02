@@ -1,14 +1,12 @@
+#if DEBUG
 import SwiftUI
 
-/// Customer adoption is scoped at its entry points. Shared primitives keep the
-/// existing appearance for groomer screens until that role adopts a new design.
-private struct BeckonCustomerDesignKey: EnvironmentKey {
-    static let defaultValue = false
-}
-
+// Source compatibility for the user-owned editable prototypes. Runtime adoption is complete:
+// there is no environment key, stored flag or appearance branch in the shipping app.
 extension EnvironmentValues {
     var beckonCustomerDesign: Bool {
-        get { self[BeckonCustomerDesignKey.self] }
-        set { self[BeckonCustomerDesignKey.self] = newValue }
+        get { true }
+        set { }
     }
 }
+#endif

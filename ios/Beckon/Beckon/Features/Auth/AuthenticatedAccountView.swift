@@ -69,7 +69,7 @@ struct AuthenticatedAccountView: View {
                 .beckonPageInsets()
             }
         }
-        .environment(\.beckonCustomerDesign, true)
+
         .beckonEntranceRhythm(.list)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)

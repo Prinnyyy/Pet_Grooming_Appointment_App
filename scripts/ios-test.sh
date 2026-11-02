@@ -36,6 +36,7 @@ if xcodebuild \
   -project "$project" \
   -scheme "$scheme" \
   -destination "$destination" \
+  -parallel-testing-enabled NO \
   test > "$log_file" 2>&1; then
   echo "TEST SUCCEEDED"
   grep -E "Test Suite|Executed .* tests" "$log_file" | tail -n 10 || true

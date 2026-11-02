@@ -39,9 +39,7 @@ private struct BeckonLedgeFace: ViewModifier {
     }
 }
 
-
 struct BeckonPrimaryButtonStyle: ButtonStyle {
-    @Environment(\.beckonCustomerDesign) private var usesCustomerDesign
 
     enum Accent {
         case customer
@@ -72,7 +70,7 @@ struct BeckonPrimaryButtonStyle: ButtonStyle {
     }
 
     @ViewBuilder func makeBody(configuration: Configuration) -> some View {
-        if usesCustomerDesign { customerBody(configuration: configuration) } else { legacyBody(configuration: configuration) }
+        customerBody(configuration: configuration)
     }
 
     private func customerBody(configuration: Configuration) -> some View {
@@ -93,30 +91,9 @@ struct BeckonPrimaryButtonStyle: ButtonStyle {
                 isPressed: configuration.isPressed && availability.rendersEnabled))
     }
 
-    private func legacyBody(configuration: Configuration) -> some View {
-        let availability = BeckonPrimaryActionAvailability(
-            isEnvironmentEnabled: isEnabled,
-            isVisuallyEnabled: isVisuallyEnabled
-        )
-
-        return configuration.label
-            .font(DesignTokens.Typography.action)
-            .foregroundStyle(availability.rendersEnabled ? accent.foreground : DesignTokens.Colors.textTertiary)
-            .frame(maxWidth: isFullWidth ? .infinity : nil, minHeight: DesignTokens.Metrics.actionHeight)
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .background {
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                    .fill(availability.rendersEnabled
-                        ? (configuration.isPressed ? accent.fillPressed : accent.fill)
-                        : DesignTokens.Colors.iconTileFill)
-            }
-            .scaleEffect(configuration.isPressed && availability.rendersEnabled ? 0.98 : 1)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-    }
 }
 
 struct BeckonSecondaryButtonStyle: ButtonStyle {
-    @Environment(\.beckonCustomerDesign) private var usesCustomerDesign
 
     enum Accent {
         case customer
@@ -161,7 +138,7 @@ struct BeckonSecondaryButtonStyle: ButtonStyle {
     }
 
     @ViewBuilder func makeBody(configuration: Configuration) -> some View {
-        if usesCustomerDesign { customerBody(configuration: configuration) } else { legacyBody(configuration: configuration) }
+        customerBody(configuration: configuration)
     }
 
     private func customerBody(configuration: Configuration) -> some View {
@@ -178,33 +155,15 @@ struct BeckonSecondaryButtonStyle: ButtonStyle {
                 isPressed: configuration.isPressed && isEnabled))
     }
 
-    private func legacyBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(font)
-            .foregroundStyle(isEnabled ? accent.foreground : DesignTokens.Colors.textTertiary)
-            .frame(maxWidth: isFullWidth ? .infinity : nil, minHeight: DesignTokens.Metrics.actionHeight)
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .background {
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                    .fill(isEnabled && configuration.isPressed ? accent.pressedBackground : DesignTokens.Colors.surface)
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                    .stroke(isSelected && isEnabled ? accent.foreground : DesignTokens.Colors.border, lineWidth: 1)
-            }
-            .scaleEffect(configuration.isPressed && isEnabled ? 0.98 : 1)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-    }
 }
 
 struct BeckonTertiaryButtonStyle: ButtonStyle {
-    @Environment(\.beckonCustomerDesign) private var usesCustomerDesign
 
     @Environment(\.isEnabled) private var isEnabled
     var accent: BeckonRoleAccent = .customer
 
     @ViewBuilder func makeBody(configuration: Configuration) -> some View {
-        if usesCustomerDesign { customerBody(configuration: configuration) } else { legacyBody(configuration: configuration) }
+        customerBody(configuration: configuration)
     }
 
     private func customerBody(configuration: Configuration) -> some View {
@@ -219,14 +178,6 @@ struct BeckonTertiaryButtonStyle: ButtonStyle {
         }
     }
 
-    private func legacyBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(DesignTokens.Typography.action)
-            .foregroundStyle(isEnabled ? accent.deep : DesignTokens.Colors.textTertiary)
-            .frame(minWidth: DesignTokens.Metrics.minimumTouchTarget, minHeight: DesignTokens.Metrics.minimumTouchTarget)
-            .contentShape(Rectangle())
-            .background(isEnabled && configuration.isPressed ? accent.tint : .clear)
-    }
 }
 
 struct BeckonDestructiveButtonStyle: ButtonStyle {
@@ -323,7 +274,6 @@ struct BeckonLoadMoreButton: View {
 }
 
 struct BeckonCard<Content: View>: View {
-    @Environment(\.beckonCustomerDesign) private var usesCustomerDesign
 
     private let isSelected: Bool
     private let padding: CGFloat
@@ -340,7 +290,7 @@ struct BeckonCard<Content: View>: View {
     }
 
     @ViewBuilder var body: some View {
-        if usesCustomerDesign { customerBody } else { legacyBody }
+        customerBody
     }
 
     private var customerBody: some View {
@@ -354,21 +304,6 @@ struct BeckonCard<Content: View>: View {
                 }
             }
             .beckonLedge(.card)
-    }
-
-    private var legacyBody: some View {
-        content
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(padding)
-            .background {
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
-                    .fill(DesignTokens.Colors.surfaceRaised)
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
-                    .stroke(borderColor, lineWidth: isSelected ? 1.5 : 1)
-            }
-            .beckonShadow(DesignTokens.Shadows.softCard)
     }
 
     private var borderColor: Color {
@@ -478,8 +413,6 @@ private struct BeckonShadowModifier: ViewModifier {
     }
 }
 
-
-
 /// What a scrolling page is doing right now, so a tap that is really the end of a scroll can be ignored. One instance per
 /// scroll view, handed down through the environment by `beckonTracksScroll()`; a scroll view inside another one
 /// (a carousel in a page) also answers to the outer one.
@@ -500,11 +433,9 @@ final class BeckonScrollActivity {
     }
 }
 
-
 private struct BeckonScrollActivityKey: EnvironmentKey {
     static let defaultValue: BeckonScrollActivity? = nil
 }
-
 
 extension EnvironmentValues {
     var beckonScrollActivity: BeckonScrollActivity? {
@@ -512,7 +443,6 @@ extension EnvironmentValues {
         set { self[BeckonScrollActivityKey.self] = newValue }
     }
 }
-
 
 private struct BeckonTracksScrollModifier: ViewModifier {
     @Environment(\.beckonScrollActivity) private var outer
@@ -530,12 +460,10 @@ private struct BeckonTracksScrollModifier: ViewModifier {
     }
 }
 
-
 extension View {
     /// Put on a `ScrollView`: the buttons and links inside (guarded styles) stop acting while it moves.
     func beckonTracksScroll() -> some View { modifier(BeckonTracksScrollModifier()) }
 }
-
 
 /// Remembers whether a control has been on the move. Not a gesture: it only looks at where the control is on screen.
 final class BeckonTapGuard {
@@ -556,7 +484,6 @@ final class BeckonTapGuard {
     }
 }
 
-
 private struct BeckonObservesMotionModifier: ViewModifier {
     let tapGuard: BeckonTapGuard
 
@@ -568,7 +495,6 @@ private struct BeckonObservesMotionModifier: ViewModifier {
         }
     }
 }
-
 
 /// The one place that decides whether a lift is a tap. The platform cancels a tap when the touch turns into a scroll; this
 /// repeats that rule explicitly for every ledge and plain button and link, because a drag that starts on a big card and ends
@@ -592,7 +518,6 @@ struct BeckonGuardedButtonBody<Style: ButtonStyle>: View {
     }
 }
 
-
 /// `.plain` made scroll-friendly: no chrome, a light dim while pressed, and the dim waits for the touch to settle like every
 /// other press, so scrolling over a row does not flash it.
 struct BeckonBarePressStyle: ButtonStyle {
@@ -605,7 +530,6 @@ struct BeckonBarePressStyle: ButtonStyle {
         }
     }
 }
-
 
 /// `.plain` for cards and rows that are links or buttons in a scrolling page, with the same drag-is-not-a-tap rule.
 struct BeckonGuardedPlainButtonStyle: PrimitiveButtonStyle {
