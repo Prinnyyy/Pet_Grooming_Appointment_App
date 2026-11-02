@@ -7,7 +7,12 @@ final class GroomerOffersStore {
     private let groomerID: UUID
     private let repository: any GroomerRequestRepository
 
-    private(set) var offers: [GroomerOfferListItem] = []
+    private(set) var offers: [GroomerOfferListItem] = [] {
+        didSet { persistOfferCount() }
+    }
+    private let countCache: GroomerRequestCountCache?
+    private let sessionIsCurrent: @MainActor () -> Bool
+    private var cachedOfferCount: Int?
     private(set) var isLoading = false
     private(set) var hasLoadedOnce = false
     private(set) var isLoadingMore = false
@@ -37,10 +42,26 @@ final class GroomerOffersStore {
 
     init(
         groomerID: UUID,
-        repository: any GroomerRequestRepository
+        repository: any GroomerRequestRepository,
+        countCache: GroomerRequestCountCache? = nil,
+        sessionIsCurrent: @escaping @MainActor () -> Bool = { true }
     ) {
         self.groomerID = groomerID
         self.repository = repository
+        self.countCache = countCache
+        self.sessionIsCurrent = sessionIsCurrent
+        self.cachedOfferCount = countCache?.count(groomerID: groomerID, kind: .offers)
+    }
+
+    var displayedOfferCount: Int? {
+        guard sessionIsCurrent() else { return nil }
+        return hasLoadedOnce ? offers.count : cachedOfferCount
+    }
+
+    private func persistOfferCount() {
+        guard hasLoadedOnce, sessionIsCurrent(), let countCache else { return }
+        cachedOfferCount = offers.count
+        countCache.save(offers.count, groomerID: groomerID, kind: .offers)
     }
 
     func load() async {
@@ -60,6 +81,7 @@ final class GroomerOffersStore {
             try Task.checkCancellation()
             offers = Self.displayOrdered(page.items)
             hasLoadedOnce = true
+            persistOfferCount()
             nextPageRequest = page.nextRequest
         } catch GroomerRequestRepositoryError.cancelled {
             return

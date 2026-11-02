@@ -10,10 +10,11 @@ struct BeckonApp: App {
     private let launch: AppLaunchConfiguration
     @State private var composition: AppComposition?
     @State private var pendingAuthURL: URL?
+    @State private var introFinished = false
 
     init() {
         launch = AppLaunchConfiguration()
-        // First mount the lightweight launch scene. Build services after SwiftUI gets a turn to present it.
+        // Only the lightweight launch scene mounts first; its full intro releases service creation.
         UIScrollView.appearance().showsVerticalScrollIndicator = false
     }
 
@@ -55,8 +56,11 @@ struct BeckonApp: App {
                         transaction.animation = nil
                     }
                 }
-                .task {
-                    guard composition == nil else { return }
+                .onPreferenceChange(LaunchIntroFinishedKey.self) { finished in
+                    if finished { introFinished = true }
+                }
+                .task(id: introFinished) {
+                    guard introFinished, composition == nil else { return }
                     await Task.yield()
                     guard !Task.isCancelled else { return }
                     let services = AppComposition(launchConfiguration: launch)
@@ -68,7 +72,8 @@ struct BeckonApp: App {
                     }
                 }
                 .onChange(of: scenePhase) { _, newPhase in
-                    composition?.operationalEventRecorder.recordScenePhase(newPhase)
+                    guard let composition else { return }
+                    composition.operationalEventRecorder.recordScenePhase(newPhase)
                     if newPhase == .active {
                         Task { _ = await AppointmentReminderScheduler.shared.refresh() }
                     }

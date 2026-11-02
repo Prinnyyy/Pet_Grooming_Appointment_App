@@ -18,6 +18,7 @@ struct AuthenticationLanding: View {
     var showsBackdrop = true
     var brandIsExcited = false
     var playsArrivalReaction = true
+    var onArrivalReactionFinished: () -> Void = {}
     var brandOffset: CGFloat = 0
     /// The pup perks up while the primary button is held, as the Home hero's does.
     @State private var isGetStartedPressed = false
@@ -66,7 +67,8 @@ struct AuthenticationLanding: View {
     private var hero: some View {
         BeckonLockup(hasEntered: isInsideLaunchGate || hasEntered, isExcited: isGetStartedPressed || brandIsExcited,
             dealsInWords: showsActions && !isInsideLaunchGate, showsWords: showsWords,
-            playsArrivalReaction: playsArrivalReaction && !isInsideLaunchGate)
+            playsArrivalReaction: playsArrivalReaction && !isInsideLaunchGate,
+            onArrivalReactionFinished: onArrivalReactionFinished)
             .offset(y: brandOffset)
             // Reserve identical geometry; the launch gate keeps the one visible animated lockup.
             .opacity(isInsideLaunchGate ? 0 : 1)

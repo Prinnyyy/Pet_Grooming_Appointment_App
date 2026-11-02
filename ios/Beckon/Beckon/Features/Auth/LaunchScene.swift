@@ -13,11 +13,13 @@ struct LaunchScene: View {
     @State private var orbEntered = false
     @State private var wordsEntered = false
     @State private var started = false
+    @State private var completion = LaunchIntroCompletionState()
 
     var body: some View {
         AuthenticationLanding(hasEntered: !playsIntro || orbEntered, isBusy: true,
             onGetStarted: {}, onSignIn: {}, showsActions: false, showsWords: !playsIntro || wordsEntered,
             showsBackdrop: !isLanding, brandIsExcited: isExcited, playsArrivalReaction: playsIntro || started,
+            onArrivalReactionFinished: { completion.arrivalFinished = true },
             brandOffset: -scrollOffset)
         .background {
             if !isLanding { DesignTokens.Colors.appBackground.ignoresSafeArea() }
@@ -31,39 +33,63 @@ struct LaunchScene: View {
             if reduceMotion {
                 orbEntered = true
                 wordsEntered = true
-                onIntroFinished()
+                completion.wordsFinished = true
+                completion.arrivalFinished = true
             } else {
                 withAnimation(DesignTokens.Motion.brandArrival, completionCriteria: .logicallyComplete) {
                     orbEntered = true
                 } completion: {
-                    withAnimation(DesignTokens.Motion.brandWords, completionCriteria: .logicallyComplete) {
+                    withAnimation(DesignTokens.Motion.brandWords, completionCriteria: .removed) {
                         wordsEntered = true
-                    } completion: { onIntroFinished() }
+                    } completion: { completion.wordsFinished = true }
                 }
+            }
+        }
+        .onChange(of: completion.isFinished) { _, finished in
+            if finished { onIntroFinished() }
+        }
+        .onChange(of: reduceMotion) { _, reduced in
+            if reduced && started {
+                orbEntered = true
+                wordsEntered = true
+                completion.wordsFinished = true
+                completion.arrivalFinished = true
             }
         }
     }
 }
 
+struct LaunchIntroCompletionState {
+    var wordsFinished = false
+    var arrivalFinished = false
+    var isFinished: Bool { wordsFinished && arrivalFinished }
+}
 
-/// The page under the scene is built at once (so its own loading starts and its bars are ready), and the scene leaves with a fade
-/// when the app is ready and has been up for at least a moment (a quick start never shows a scene that blinks).
+/// Keep page construction and loading out of the intro. After the full intro, mount the page behind the same scene,
+/// then reveal it when ready; a slow load or an authentication transition cannot restart the intro.
 struct LaunchGate<Content: View>: View {
     let isReady: Bool
-    @ViewBuilder let content: Content
+    private let content: () -> Content
     @State private var presentation = LaunchPresentationState()
     @State private var landingBrand: AuthenticationLandingBrand?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var isOver: Bool { presentation.hasDismissed }
 
+    init(isReady: Bool, @ViewBuilder content: @escaping () -> Content) {
+        self.isReady = isReady
+        self.content = content
+    }
+
     var body: some View {
         ZStack {
-            content
+            if presentation.introFinished {
+                content()
                 .environment(\.isInsideLaunchGate, true)
                 .environment(\.beckonEntranceActive, isOver)
                 .accessibilityHidden(!isOver)
                 .allowsHitTesting(isOver)
+            }
             if !isOver || landingBrand != nil {
                 // Keep this exact instance through the welcome handoff so the pup's reaction
                 // and idle timeline finish continuously. Only its background leaves.
@@ -80,6 +106,7 @@ struct LaunchGate<Content: View>: View {
                     .zIndex(1)
             }
         }
+        .preference(key: LaunchIntroFinishedKey.self, value: presentation.introFinished)
         .onPreferenceChange(AuthenticationLandingBrandKey.self) { value in
             if (landingBrand == nil) != (value == nil) {
                 withAnimation(DesignTokens.Motion.reduced) { landingBrand = value }
@@ -97,6 +124,10 @@ struct LaunchGate<Content: View>: View {
     }
 }
 
+struct LaunchIntroFinishedKey: PreferenceKey {
+    static let defaultValue = false
+    static func reduce(value: inout Bool, nextValue: () -> Bool) { value = value || nextValue() }
+}
 
 
 /// A launch is one event. Signing in, recovery or a profile refresh cannot resurrect it.

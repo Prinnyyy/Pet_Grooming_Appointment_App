@@ -98,7 +98,8 @@ struct AuthenticatedEntryView: View {
                         guard !authenticationStore.isSubmitting,
                               case let .signedIn(current) = authenticationStore.rootState else { return false }
                         return current.userID == profile.userID
-                    }
+                    },
+                    requestCountCache: .shared
                 )
 
             case let .failure(message):

@@ -151,19 +151,17 @@ struct GroomerRequestsView: View {
     }
 
     private var matchCount: Int? {
-        requests.hasLoadedOnce ? toAnswer.count : nil
+        requests.displayedMatchCount(at: now)
     }
 
     /// The matches still waiting for an answer. Once the groomer has made an offer the request is an offer and lives in Offers
     /// (the store keeps it as a match, which is how a notification still finds it).
     private var toAnswer: [GroomerMatchedRequest] {
-        requests.matchedRequests.filter {
-            GroomerRequestStage(GroomerRequestSubject(matched: $0, item: nil, history: []), now: now).kind == .new
-        }
+        requests.matchesToAnswer(at: now)
     }
 
     private var offerCount: Int? {
-        offers.hasLoadedOnce ? offers.offers.count : nil
+        offers.displayedOfferCount
     }
 
     // MARK: Content

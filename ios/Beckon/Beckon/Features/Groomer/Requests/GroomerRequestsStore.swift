@@ -11,7 +11,11 @@ final class GroomerRequestsStore {
     private let profileRepository: (any GroomerProfileRepository)?
     private let debugRecorder: AppDebugEventRecorder?
 
-    private(set) var matchedRequests: [GroomerMatchedRequest] = []
+    private(set) var matchedRequests: [GroomerMatchedRequest] = [] {
+        didSet { persistMatchCount() }
+    }
+    private let countCache: GroomerRequestCountCache?
+    private var cachedMatchCount: Int?
     private(set) var requestPhotosByRequestID: [UUID: [GroomingRequestPhoto]] = [:]
     private(set) var requestPhotoDataByID: [UUID: Data] = [:]
     private(set) var isLoading = false
@@ -68,7 +72,8 @@ final class GroomerRequestsStore {
         repository: any GroomerRequestRepository,
         profileRepository: (any GroomerProfileRepository)? = nil,
         debugRecorder: AppDebugEventRecorder? = nil,
-        sortPreferences: MatchSortPreferenceStore = MatchSortPreferenceStore()
+        sortPreferences: MatchSortPreferenceStore = MatchSortPreferenceStore(),
+        countCache: GroomerRequestCountCache? = nil
     ) {
         self.groomerID = groomerID
         self.repository = repository
@@ -76,6 +81,24 @@ final class GroomerRequestsStore {
         self.debugRecorder = debugRecorder
         self.sortPreferences = sortPreferences
         self.sort = sortPreferences.groomerSort(accountID: groomerID)
+        self.countCache = countCache
+        self.cachedMatchCount = countCache?.count(groomerID: groomerID, kind: .matches)
+    }
+
+    func matchesToAnswer(at now: Date) -> [GroomerMatchedRequest] {
+        matchedRequests.filter { GroomerRequestStage(GroomerRequestSubject(matched: $0, item: nil, history: []), now: now).kind == .new }
+    }
+
+    func displayedMatchCount(at now: Date) -> Int? {
+        guard sessionIsCurrent() else { return nil }
+        return hasLoadedOnce ? matchesToAnswer(at: now).count : cachedMatchCount
+    }
+
+    private func persistMatchCount() {
+        guard hasLoadedOnce, sessionIsCurrent(), let countCache else { return }
+        let count = matchesToAnswer(at: Date()).count
+        cachedMatchCount = count
+        countCache.save(count, groomerID: groomerID, kind: .matches)
     }
 
     func setSessionValidation(_ validation: @escaping @MainActor () -> Bool) {
@@ -87,8 +110,9 @@ final class GroomerRequestsStore {
         actionErrorMessage = nil
         loadMoreErrorMessage = nil
         listGeneration = UUID()
-        matchedRequests = []
         hasLoadedOnce = false
+        cachedMatchCount = nil
+        matchedRequests = []
         rankedPage = nil
         requestPhotosByRequestID = [:]
         requestPhotoDataByID = [:]
@@ -198,6 +222,7 @@ final class GroomerRequestsStore {
             guard listGeneration == generation, sessionIsCurrent() else { return }
             matchedRequests = page.items
             hasLoadedOnce = true
+            persistMatchCount()
             rankedPage = page
             listNeedsRefresh = false
             await refreshDetail()

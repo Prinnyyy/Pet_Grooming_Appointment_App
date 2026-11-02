@@ -53,7 +53,8 @@ struct GroomerTabView: View {
         chatRepository: (any ChatRepository)? = nil,
         accountContent: AnyView? = nil,
         onSignOut: (() -> Void)? = nil,
-        sessionIsCurrent: @escaping @MainActor () -> Bool = { true }
+        sessionIsCurrent: @escaping @MainActor () -> Bool = { true },
+        requestCountCache: GroomerRequestCountCache? = nil
     ) {
         self.groomerID = groomerID
         self.groomerDisplayName = groomerDisplayName
@@ -69,8 +70,9 @@ struct GroomerTabView: View {
             _homeStore = State(initialValue: GroomerHomeStore(groomerID: groomerID, displayName: groomerDisplayName,
                 profileRepository: profileRepository, requestRepository: requestRepository, bookingRepository: bookingRepository))
             _requestsStore = State(initialValue: GroomerRequestsStore(groomerID: groomerID, repository: requestRepository,
-                profileRepository: profileRepository))
-            _offersStore = State(initialValue: GroomerOffersStore(groomerID: groomerID, repository: requestRepository))
+                profileRepository: profileRepository, countCache: requestCountCache))
+            _offersStore = State(initialValue: GroomerOffersStore(groomerID: groomerID, repository: requestRepository,
+                countCache: requestCountCache, sessionIsCurrent: sessionIsCurrent))
             _bookingsStore = State(initialValue: BookingsStore(participantID: groomerID, role: .groomer,
                 repository: bookingRepository, groomerProfileRepository: profileRepository))
             _profileStore = State(initialValue: GroomerProfileStore(groomerID: groomerID, repository: profileRepository))

@@ -4,7 +4,7 @@ Only dynamic task and recovery facts. Git owns branch, worktree and completion h
 
 ```json
 {
-  "next_task_id": "T-441",
+  "next_task_id": "T-442",
   "task": null,
   "pending_tasks": [
     {
@@ -12,7 +12,7 @@ Only dynamic task and recovery facts. Git owns branch, worktree and completion h
       "status": "planned",
       "goal": "Unify cache-first display and background refresh, including bounded account-scoped local snapshots across app restarts",
       "plan": "docs/superpowers/plans/2026-10-30-cache-first-display-and-refresh.md",
-      "next_action": "Reuse T-437 WP-1 refresh/readiness/session-profile work, T-438 Schedule/skeleton continuity, and T-440 read-only Groomer Account summary snapshots plus their acceptance evidence, then check remaining WP-1 gaps and execute WP-2 through WP-5 for account-scoped cross-restart snapshots, entry points and cleanup. User owns visual inspection; keep verification bounded."
+      "next_action": "Reuse T-437 WP-1 refresh/readiness/session-profile work, T-438 Schedule/skeleton continuity, and T-440 read-only Groomer Account summary snapshots and T-441 cached Requests header counts plus their acceptance evidence, then check remaining WP-1 gaps and execute WP-2 through WP-5 for account-scoped cross-restart snapshots, entry points and cleanup. User owns visual inspection; keep verification bounded."
     },
     {
       "id": "T-157",
@@ -26,7 +26,7 @@ Only dynamic task and recovery facts. Git owns branch, worktree and completion h
     }
   ],
   "last_completed": {
-    "id": "T-440"
+    "id": "T-441"
   }
 }
 ```

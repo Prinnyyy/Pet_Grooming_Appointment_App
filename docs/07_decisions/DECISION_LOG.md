@@ -18,6 +18,16 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-071
+Date: 2026-11-02
+Task: T-441
+Decision: Finish the launch artwork reaction and word animation before constructing routed pages or application services. Show last known Requests header counts from account-scoped local storage immediately, then refresh them.
+Context: Eager service/page construction competes with the intro; reserving badge geometry alone does not display its previously known number and surface.
+Consequences: Completion signals, not an added fixed delay, release startup. Keep the same artwork through the welcome handoff and honor Reduce Motion. Cache only two display counts; never infer list readiness, eligibility or mutation permission from them. Preview Stores opt out, obsolete sessions cannot write counts, and account cleanup removes them. T-428 retains full list/detail snapshot scope.
+Linked files: ios/Beckon/Beckon/Features/Auth/LaunchScene.swift; ios/Beckon/Beckon/App/BeckonApp.swift; ios/Beckon/Beckon/Core/Infrastructure/GroomerRequestCountCache.swift.
+```
+
+```text
 Decision ID: D-070
 Date: 2026-11-02
 Task: T-437

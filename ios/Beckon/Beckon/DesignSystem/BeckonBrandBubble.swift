@@ -13,6 +13,7 @@ struct BeckonLockup: View {
     var dealsInWords = false
     var showsWords = true
     var playsArrivalReaction = true
+    var onArrivalReactionFinished: () -> Void = {}
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.beckonEntranceActive) private var pageIsActive
@@ -21,7 +22,7 @@ struct BeckonLockup: View {
         VStack(spacing: DesignTokens.Spacing.lg) {
             BeckonBrandBubble(isMotionEnabled: pageIsActive && !reduceMotion && scenePhase == .active,
                 hasEntered: hasEntered || reduceMotion, isExcited: isExcited,
-                playsArrivalReaction: playsArrivalReaction)
+                playsArrivalReaction: playsArrivalReaction, onArrivalReactionFinished: onArrivalReactionFinished)
 
             words.modifier(LockupEntrance(deals: dealsInWords))
                 .opacity(showsWords ? 1 : 0)
@@ -69,8 +70,9 @@ struct BeckonBrandBubble: View {
     /// The pup flings its ears: while the call to action is pressed, and for a beat when the orb lands.
     var isExcited = false
     var playsArrivalReaction = true
+    var onArrivalReactionFinished: () -> Void = {}
     @State private var hasLanded = false
-    @State private var didReactToArrival = false
+    @State private var didFinishArrival = false
 
     private let diameter: CGFloat = 176
     private let lip: CGFloat = 8
@@ -97,14 +99,15 @@ struct BeckonBrandBubble: View {
         .allowsHitTesting(false)
         .task(id: hasEntered && isMotionEnabled && playsArrivalReaction) {
             hasLanded = false
-            guard hasEntered, isMotionEnabled, playsArrivalReaction, !didReactToArrival else { return }
+            guard hasEntered, isMotionEnabled, playsArrivalReaction, !didFinishArrival else { return }
             // Visibility/scene changes resume floating; they do not represent another landing.
-            didReactToArrival = true
             do {
                 try await Task.sleep(for: .milliseconds(420))
                 hasLanded = true
                 try await Task.sleep(for: .milliseconds(850))
                 hasLanded = false
+                didFinishArrival = true
+                onArrivalReactionFinished()
             } catch { hasLanded = false }
         }
     }
