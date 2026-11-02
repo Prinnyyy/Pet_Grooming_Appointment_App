@@ -184,17 +184,10 @@ struct GroomerTabView: View {
                 store: chatStore,
                 focusedBookingID: Binding(get: { focusedConversationBookingID }, set: { focusedConversationBookingID = $0 })
             )
-        } else if tab == .account,
-           let groomerID,
-           let profileRepository {
-            GroomerProfileManagementView(
-                groomerID: groomerID,
-                repository: profileRepository,
-                debugRecorder: debugRecorder,
+        } else if tab == .account, let profileStore {
+            GroomerAccountView(store: profileStore,
                 requestedRoute: Binding(get: { requestedProfileRoute }, set: { requestedProfileRoute = $0 }),
-                accountContent: accountContent,
-                onSignOut: onSignOut
-            )
+                onSignOut: { onSignOut?() })
         } else if tab == .account, let accountContent {
             accountContent
         } else {

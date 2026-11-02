@@ -16,7 +16,7 @@ struct GroomerProfileStatusView: View {
     }
 
     private var errorPrompt: BeckonGlobalFeedbackError? {
-        guard let errorMessage = store.errorMessage,
+        guard let errorMessage = store.actionErrorMessage,
               !store.isShowingServiceForm else { return nil }
         return BeckonGlobalFeedbackError(
             scope: .page("groomer.profile"),

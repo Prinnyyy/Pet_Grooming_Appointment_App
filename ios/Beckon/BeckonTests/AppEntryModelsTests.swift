@@ -929,7 +929,7 @@ struct AuthenticatedEntryStoreTests {
         store.selectedRole = nil
         await store.submit()
         #expect(
-            store.errorMessage == "Choose Customer or Groomer to continue."
+            store.errorMessage == "Choose pet owner or groomer to continue."
         )
 
         store.displayName = String(repeating: "a", count: 81)

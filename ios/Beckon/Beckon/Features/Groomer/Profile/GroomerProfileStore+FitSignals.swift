@@ -34,6 +34,7 @@ extension GroomerProfileStore {
 
     func toggleFitClaim(_ signal: PetFitSignal) {
         errorMessage = nil
+        actionErrorMessage = errorMessage
         noticeMessage = nil
 
         if selectedFitClaimIDs.contains(signal.id) {
@@ -44,6 +45,7 @@ extension GroomerProfileStore {
         guard signal.group == .sizeBand
                 || selectedCoreFitClaimCount < GroomerFitClaim.maximumActiveClaims else {
             errorMessage = Self.fitClaimLimitMessage
+            actionErrorMessage = errorMessage
             return
         }
 
@@ -54,14 +56,17 @@ extension GroomerProfileStore {
         guard !isSaving else { return nil }
         guard canEditFitSignals else {
             errorMessage = "Refresh fit signals before saving."
+            actionErrorMessage = errorMessage
             return nil
         }
 
         errorMessage = nil
+        actionErrorMessage = errorMessage
         noticeMessage = nil
 
         guard selectedCoreFitClaimCount <= GroomerFitClaim.maximumActiveClaims else {
             errorMessage = Self.fitClaimLimitMessage
+            actionErrorMessage = errorMessage
             return nil
         }
 
@@ -82,8 +87,10 @@ extension GroomerProfileStore {
             return successMessage
         } catch let error as GroomerProfileRepositoryError {
             errorMessage = message(for: error, action: "save fit signals")
+            actionErrorMessage = errorMessage
         } catch {
             errorMessage = message(for: .unavailable, action: "save fit signals")
+            actionErrorMessage = errorMessage
         }
         return nil
     }
@@ -130,6 +137,7 @@ extension GroomerProfileStore {
     ) {
         if clearsNotice {
             errorMessage = nil
+            actionErrorMessage = errorMessage
             noticeMessage = nil
         }
 

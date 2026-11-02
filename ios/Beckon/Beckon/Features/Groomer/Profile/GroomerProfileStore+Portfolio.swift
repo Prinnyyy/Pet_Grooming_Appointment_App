@@ -54,12 +54,14 @@ extension GroomerProfileStore {
 
         guard data.count <= Self.maximumPhotoBytes else {
             errorMessage = "Choose a portfolio photo smaller than 10 MB."
+            actionErrorMessage = errorMessage
             return
         }
 
         isUploading = true
         profileMutationRevision += 1
         errorMessage = nil
+        actionErrorMessage = errorMessage
         noticeMessage = nil
         defer { isUploading = false }
 
@@ -76,8 +78,10 @@ extension GroomerProfileStore {
             noticeMessage = "Portfolio photo was uploaded."
         } catch let error as GroomerProfileRepositoryError {
             errorMessage = message(for: error, action: "upload")
+            actionErrorMessage = errorMessage
         } catch {
             errorMessage = message(for: .unavailable, action: "upload")
+            actionErrorMessage = errorMessage
         }
     }
 
@@ -87,6 +91,7 @@ extension GroomerProfileStore {
         isUploading = true
         profileMutationRevision += 1
         errorMessage = nil
+        actionErrorMessage = errorMessage
         noticeMessage = nil
         defer { isUploading = false }
 
@@ -99,8 +104,10 @@ extension GroomerProfileStore {
             noticeMessage = "Portfolio photo was deleted."
         } catch let error as GroomerProfileRepositoryError {
             errorMessage = message(for: error, action: "delete photo")
+            actionErrorMessage = errorMessage
         } catch {
             errorMessage = message(for: .unavailable, action: "delete photo")
+            actionErrorMessage = errorMessage
         }
     }
 
@@ -120,6 +127,7 @@ extension GroomerProfileStore {
         for photo: GroomerPortfolioPhoto
     ) {
         errorMessage = nil
+        actionErrorMessage = errorMessage
         noticeMessage = nil
 
         var selectedIDs = selectedPortfolioFitTagIDsByPhotoID[photo.id] ?? []
@@ -135,6 +143,7 @@ extension GroomerProfileStore {
 
         guard selectedIDs.count < GroomerPortfolioFitTag.maximumTagsPerPhoto else {
             errorMessage = "Choose up to \(GroomerPortfolioFitTag.maximumTagsPerPhoto) tags for each portfolio photo."
+            actionErrorMessage = errorMessage
             return
         }
 
@@ -146,20 +155,24 @@ extension GroomerProfileStore {
         guard !isSaving else { return }
         guard canEditPortfolioTags else {
             errorMessage = "Refresh portfolio details before saving tags."
+            actionErrorMessage = errorMessage
             return
         }
 
         errorMessage = nil
+        actionErrorMessage = errorMessage
         noticeMessage = nil
 
         guard portfolioPhotos.contains(where: { $0.id == photo.id }) else {
             errorMessage = "We could not save tags for that portfolio photo."
+            actionErrorMessage = errorMessage
             return
         }
 
         let selectedIDs = selectedPortfolioFitTagIDsByPhotoID[photo.id] ?? []
         guard selectedIDs.count <= GroomerPortfolioFitTag.maximumTagsPerPhoto else {
             errorMessage = "Choose up to \(GroomerPortfolioFitTag.maximumTagsPerPhoto) tags for each portfolio photo."
+            actionErrorMessage = errorMessage
             return
         }
 
@@ -179,8 +192,10 @@ extension GroomerProfileStore {
             noticeMessage = "Portfolio tags saved."
         } catch let error as GroomerProfileRepositoryError {
             errorMessage = message(for: error, action: "save portfolio tags")
+            actionErrorMessage = errorMessage
         } catch {
             errorMessage = message(for: .unavailable, action: "save portfolio tags")
+            actionErrorMessage = errorMessage
         }
     }
 

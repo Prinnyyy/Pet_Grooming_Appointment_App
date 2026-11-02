@@ -48,6 +48,8 @@ final class GroomerProfileStore {
     var isSaving = false
     var isUploading = false
 
+    var actionErrorMessage: String?
+    private(set) var loadErrorMessage: String?
     var errorMessage: String?
     var noticeMessage: String?
 
@@ -223,6 +225,8 @@ final class GroomerProfileStore {
         isLoadingOptionalMetadata = true
         optionalLoadError = nil
         errorMessage = nil
+        actionErrorMessage = nil
+        loadErrorMessage = nil
         populateCachedProfileSnapshot()
         defer {
             if profileLoadID == loadID {
@@ -315,6 +319,7 @@ final class GroomerProfileStore {
         } catch let error as GroomerProfileRepositoryError {
             guard isCurrentProfileLoad(loadID, revision: loadRevision) else { return }
             errorMessage = message(for: error, action: "load")
+            loadErrorMessage = errorMessage
             recordStoreFailure(
                 "load",
                 error: error,
@@ -327,6 +332,7 @@ final class GroomerProfileStore {
         } catch {
             guard isCurrentProfileLoad(loadID, revision: loadRevision) else { return }
             errorMessage = message(for: .unavailable, action: "load")
+            loadErrorMessage = errorMessage
             recordStoreFailure(
                 "load",
                 error: error,

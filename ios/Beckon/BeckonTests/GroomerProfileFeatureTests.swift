@@ -309,6 +309,24 @@ struct GroomerFitEvidencePortfolioPresentationTests {
 
 struct GroomerProfileStoreTests {
     @Test @MainActor
+    func accountReadErrorDoesNotBecomeASaveToast() async {
+        let store = GroomerProfileStore(groomerID: UUID(),
+            repository: GroomerProfileRepositoryFake(profileResult: .failure(.networkUnavailable)))
+        await store.load()
+        #expect(store.loadErrorMessage != nil)
+        #expect(store.actionErrorMessage == nil)
+    }
+
+    @Test @MainActor
+    func profileValidationFailureDoesNotBecomeALoadCard() async {
+        let store = GroomerProfileStore(groomerID: UUID(), repository: GroomerProfileRepositoryFake())
+        store.isActive = true
+        await store.saveProfile()
+        #expect(store.actionErrorMessage != nil)
+        #expect(store.loadErrorMessage == nil)
+    }
+
+    @Test @MainActor
     func loadPopulatesProfileServicesAndPortfolio() async {
         let groomerID = UUID()
         let profile = Self.profile(groomerID: groomerID)

@@ -17,113 +17,15 @@ nonisolated enum GroomerProfileRoute: String, Hashable, Identifiable, Sendable {
 struct GroomerProfileManagementView: View {
     @State private var store: GroomerProfileStore
     @Binding private var requestedRoute: GroomerProfileRoute?
-    @State private var activeRoute: GroomerProfileRoute?
-    let accountContent: AnyView?
     let onSignOut: (() -> Void)?
-
-    init(
-        groomerID: UUID,
-        repository: any GroomerProfileRepository,
-        debugRecorder: AppDebugEventRecorder? = nil,
-        requestedRoute: Binding<GroomerProfileRoute?> = .constant(nil),
-        accountContent: AnyView? = nil,
-        onSignOut: (() -> Void)? = nil
-    ) {
-        _store = State(
-            initialValue: GroomerProfileStore(
-                groomerID: groomerID,
-                repository: repository,
-                debugRecorder: debugRecorder
-            )
-        )
+    init(groomerID: UUID, repository: any GroomerProfileRepository, debugRecorder: AppDebugEventRecorder? = nil,
+         requestedRoute: Binding<GroomerProfileRoute?> = .constant(nil), accountContent: AnyView? = nil,
+         onSignOut: (() -> Void)? = nil) {
+        _store = State(initialValue: GroomerProfileStore(groomerID: groomerID, repository: repository, debugRecorder: debugRecorder))
         _requestedRoute = requestedRoute
-        self.accountContent = accountContent
         self.onSignOut = onSignOut
     }
-
     var body: some View {
-        @Bindable var store = store
-
-        ZStack {
-            DesignTokens.Colors.appBackground
-                .ignoresSafeArea()
-
-            if store.shouldShowInitialLoading {
-                BeckonLoadingView(
-                    title: "Loading groomer profile…",
-                    message: "We are preparing your profile, services, and portfolio settings.",
-                    accent: .groomer
-                )
-                .accessibilityIdentifier("groomer.profile.loading")
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-            } else if store.profile == nil, let error = store.errorMessage {
-                ScrollView {
-                    BeckonErrorBanner(title: "Account unavailable", message: error) {
-                        Button("Try again", systemImage: "arrow.clockwise") { Task { await store.load() } }
-                            .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
-                            .disabled(store.isBusy)
-                        if let onSignOut {
-                            Button("Sign out", role: .destructive, action: onSignOut)
-                                .buttonStyle(BeckonDestructiveButtonStyle())
-                        }
-                    }
-                    .beckonPageInsets()
-                }
-                .accessibilityIdentifier("groomer.account.error")
-            } else {
-                ScrollView {
-                    if let error = store.optionalLoadError {
-                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                            Text(error).font(DesignTokens.Typography.supporting)
-                                .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            Button("Retry Details", systemImage: "arrow.clockwise") { Task { await store.load() } }
-                                .disabled(store.isLoadingOptionalMetadata)
-                        }
-                        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                    }
-                    GroomerAccountHomeView(
-                        store: store,
-                        accountContent: accountContent,
-                        onSignOut: onSignOut
-                    )
-                    .beckonPageInsets(bottom: 120)
-                }
-                .accessibilityIdentifier("groomer.account.home")
-            }
-        }
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
-        .background {
-            GroomerProfileStatusView(store: store)
-        }
-        .beckonSheet(isPresented: $store.isShowingServiceForm) {
-            GroomerServiceFormView(store: store)
-        }
-        .navigationDestination(item: $activeRoute) { route in
-            switch route {
-            case .availability:
-                GroomerAvailabilityEditorView(store: store)
-                    .beckonHidesTabBar()
-            }
-        }
-        .task {
-            await store.load()
-            activateRequestedRouteIfReady()
-        }
-        .onChange(of: requestedRoute) { _, _ in
-            activateRequestedRouteIfReady()
-        }
-    }
-
-    private func activateRequestedRouteIfReady() {
-        guard let route = GroomerProfileRoute.activatedRoute(
-            requested: requestedRoute,
-            isProfileLoaded: store.profile != nil
-        ) else {
-            return
-        }
-
-        requestedRoute = nil
-        activeRoute = route
+        GroomerAccountView(store: store, requestedRoute: $requestedRoute, onSignOut: { onSignOut?() })
     }
 }

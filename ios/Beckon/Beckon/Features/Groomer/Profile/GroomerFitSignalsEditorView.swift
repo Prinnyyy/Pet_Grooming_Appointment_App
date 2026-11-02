@@ -1,7 +1,19 @@
+// The groomer's fit signals and evidence, in the customer prototype's language (design) and laid out from what they are for (design).
+// Same job as GroomerFitSignalsEditorView and GroomerEvidenceDashboardView in Features/Groomer/Profile/GroomerFitSignalsEditorView.swift:
+// choose the skills that guide matching (coat, handling, services; up to eight core ones) and the sizes of pet the groomer is
+// comfortable with, save them; and read what completed bookings and reviews say about each skill. The store, the limits, the size-range
+// rules and the ids are the real ones.
+// Fit signals is the groomer's claim, and its limit is the point of the page, so the page opens on the slots: a coral banner with how
+// many of the eight are used, in pips, and what to do when all are (the skills left over are dimmed). Evidence is the proof: one row
+// per skill, built alike (the skill, how much evidence there is, how its completed jobs were answered as one bar), and a negative
+// answer is a note along the foot of its card, not a chip. The two pages and the portfolio speak of skills in the same words
+// (`PetFitSignal.Group.beckonTitle`).
 import SwiftUI
+
 
 struct GroomerFitSignalsEditorView: View {
     @Bindable var store: GroomerProfileStore
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         let presentation = GroomerFitSignalsWorkspacePresentation(
@@ -11,514 +23,262 @@ struct GroomerFitSignalsEditorView: View {
             isBusy: store.isBusy || !store.canEditFitSignals
         )
 
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                if !store.canEditFitSignals {
-                    if store.isLoadingOptionalMetadata { ProgressView("Loading fit signals...") }
-                    else {
-                        Text("Fit signals could not be refreshed.").font(DesignTokens.Typography.supporting)
-                        Button("Retry", systemImage: "arrow.clockwise") { Task { await store.load() } }
+        DesignPage {
+            if !store.canEditFitSignals {
+                if store.isLoadingOptionalMetadata {
+                    HStack(spacing: DesignTokens.Spacing.md) {
+                        ProgressView().tint(DesignTokens.Colors.customerDeep)
+                        Text("Loading fit signals…").designSupportingText()
+                    }
+                } else {
+                    BeckonErrorBanner(title: "Fit signals could not be refreshed", message: "Try again to edit them.") {
+                        Button { Task { await store.load() } } label: {
+                            DesignQuietAction(title: "Retry", systemImage: "arrow.clockwise")
+                        }
+                        .buttonStyle(BeckonGuardedPlainButtonStyle())
                     }
                 }
-                if store.hasLoadedFitClaims {
-                GroomerFitSignalsSelectionBalanceSection(
-                    store: store,
-                    presentation: presentation
-                )
-                .disabled(!store.canEditFitSignals)
-
-                ForEach(Self.visibleGroups) { group in
-                    GroomerFitSignalGroupSection(
-                        group: group,
-                        signals: signals(for: group),
-                        store: store
-                    )
-                    .disabled(!store.canEditFitSignals)
-                }
-                }
             }
-            .beckonPageInsets()
+            if store.hasLoadedFitClaims {
+                slots
+                sizes.disabled(!store.canEditFitSignals)
+                ForEach(Self.groups) { group in
+                    section(group).disabled(!store.canEditFitSignals)
+                }
+                GroomerBarClearance()
+            }
         }
-        .accessibilityIdentifier("groomer.fit-signals.edit")
-        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .navigationTitle("Fit signals")
         .navigationBarTitleDisplayMode(.inline)
         .beckonHidesTabBar()
-        .onAppear {
-            if store.canEditFitSignals { store.ensureSizeBandFitClaimRange() }
-        }
+        .onAppear { if store.canEditFitSignals { store.ensureSizeBandFitClaimRange() } }
         .onChange(of: store.canEditFitSignals) { _, ready in
             if ready { store.ensureSizeBandFitClaimRange() }
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        .background { GroomerProfileStatusView(store: store) }
+        .beckonStationaryPageAction {
             if store.hasLoadedFitClaims {
-            GroomerFitSignalsSaveBar(
-                store: store,
-                presentation: presentation
-            )
+                GroomerSaveBar(title: "Save fit signals", isSaving: store.isSaving, isDisabled: presentation.isSaveDisabled,
+                    identifier: "groomer.fit-signals.save",
+                    summary: "\(presentation.selectionSummary) · \(store.sizeBandFitClaimRangeTitle)") {
+                    Task { await store.saveFitClaims() }
+                }
             }
+        }
+        .accessibilityIdentifier("groomer.fit-signals.edit")
+    }
+
+    // MARK: Slots
+
+    private var isFull: Bool { store.selectedCoreFitClaimCount >= GroomerFitClaim.maximumActiveClaims }
+
+    /// How many of the eight core slots are used. With all of them used it says what to do, and the chips left over are dimmed.
+    private var slots: some View {
+        let used = store.selectedCoreFitClaimCount
+        let limit = GroomerFitClaim.maximumActiveClaims
+        return VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            (typeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.xs))
+                : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm))) {
+                Text("\(used)").font(DesignTokens.Typography.Expressive.display)
+                Text("of \(limit) core skills").font(DesignTokens.Typography.Expressive.headline)
+            }
+            .foregroundStyle(DesignTokens.Colors.customerInk)
+            GroomerPips(filled: used, total: limit, onBanner: true)
+            Text(isFull ? "Every slot is used. Remove a skill to choose another."
+                : "Coat, handling, and service strengths guide matching.")
+                .font(DesignTokens.Typography.Expressive.supporting)
+                .foregroundStyle(DesignTokens.Colors.customerInk)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .designBanner()
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("groomer.fit-signals.balance")
+    }
+
+    // MARK: Sizes
+
+    private var sizes: some View {
+        let options = CustomerPetSizeCode.allCases
+        return DesignSection(title: PetFitSignal.Group.sizeBand.beckonTitle, systemImage: PetFitSignal.Group.sizeBand.beckonSymbol,
+            spacing: DesignTokens.Spacing.md) {
+            Text("Set the full range you are comfortable grooming.").designSupportingText()
+            Text(store.sizeBandFitClaimRangeTitle)
+                .font(DesignTokens.Typography.Expressive.title)
+                .foregroundStyle(DesignTokens.Colors.customerDeep)
+                .accessibilityIdentifier("groomer.fit-signals.size-range-title")
+            GroomerSizeRangeSlider(
+                lowerIndex: Binding(get: { store.selectedSizeBandRange.lowerBound }, set: {
+                    store.setSizeBandFitClaimRange(lowerIndex: $0, upperIndex: store.selectedSizeBandRange.upperBound)
+                }),
+                upperIndex: Binding(get: { store.selectedSizeBandRange.upperBound }, set: {
+                    store.setSizeBandFitClaimRange(lowerIndex: store.selectedSizeBandRange.lowerBound, upperIndex: $0)
+                }),
+                optionCount: options.count, rangeTitle: store.sizeBandFitClaimRangeTitle)
+            GroomerSizeRangeLegend(titles: options.map(\.title))
         }
     }
 
-    private static var visibleGroups: [PetFitSignal.Group] {
+    // MARK: Skills
+
+    private func section(_ group: PetFitSignal.Group) -> some View {
+        let signals = GroomerFitClaim.availableSignals.filter { $0.group == group }
+        let selected = store.selectedFitClaimCount(in: group)
+        return VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
+            BeckonLedgeHeading(title: group.beckonTitle, systemImage: group.beckonSymbol, count: selected)
+            Text(group.beckonSubtitle).designSupportingText()
+            BeckonFlowLayout(spacing: DesignTokens.Spacing.sm, rowSpacing: DesignTokens.Spacing.sm) {
+                ForEach(signals) { signal in
+                    let isSelected = store.isFitClaimSelected(signal)
+                    DesignChoiceChip(title: signal.title, isSelected: isSelected) {
+                        store.toggleFitClaim(signal)
+                    }
+                    .disabled(isFull && !isSelected)
+                    .accessibilityLabel("\(signal.title) fit signal")
+                    .accessibilityValue(isSelected ? "Selected" : "Not selected")
+                }
+            }
+            .designCardBody()
+        }
+    }
+
+    private static var groups: [PetFitSignal.Group] {
         [.coatType, .careFlag, .serviceFit].filter { group in
             GroomerFitClaim.availableSignals.contains { $0.group == group }
         }
     }
-
-    private func signals(for group: PetFitSignal.Group) -> [PetFitSignal] {
-        GroomerFitClaim.availableSignals.filter { $0.group == group }
-    }
 }
 
-private struct GroomerFitSignalsSelectionBalanceSection: View {
-    @Bindable var store: GroomerProfileStore
-    let presentation: GroomerFitSignalsWorkspacePresentation
 
-    var body: some View {
-        BeckonSection(
-            "Selection balance",
-            subtitle: "Keep your strongest matching signals focused and current."
-        ) {
-            BeckonGroupedSurface {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                                Text("Core skills")
-                                    .font(DesignTokens.Typography.body.weight(.semibold))
-                                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+// MARK: Evidence
 
-                                Text("Coat, handling, and service strengths guide matching.")
-                                    .font(DesignTokens.Typography.caption)
-                                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                            Text(presentation.selectionSummary)
-                                .font(DesignTokens.Typography.caption.weight(.semibold))
-                                .foregroundStyle(DesignTokens.Colors.groomerInk)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-
-                        ProgressView(
-                            value: Double(store.selectedCoreFitClaimCount),
-                            total: Double(GroomerFitClaim.maximumActiveClaims)
-                        )
-                        .tint(DesignTokens.Colors.groomerDeep)
-                    }
-
-                    BeckonGroupedDivider()
-
-                    GroomerSizeExperienceRangeControl(store: store)
-                }
-                .padding(DesignTokens.Spacing.lg)
-            }
-        }
-    }
-}
-
-private struct GroomerSizeExperienceRangeControl: View {
-    @Bindable var store: GroomerProfileStore
-
-    private let sizeCodes = CustomerPetSizeCode.allCases
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text("Size experience")
-                        .font(DesignTokens.Typography.body.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                    Text("Set the full range you are comfortable grooming.")
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Text(store.sizeBandFitClaimRangeTitle)
-                    .font(DesignTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.groomerInk)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityIdentifier("groomer.fit-signals.size-range-title")
-            }
-
-            GroomerSizeRangeSlider(
-                lowerIndex: Binding(
-                    get: { store.selectedSizeBandRange.lowerBound },
-                    set: { newValue in
-                        store.setSizeBandFitClaimRange(
-                            lowerIndex: newValue,
-                            upperIndex: store.selectedSizeBandRange.upperBound
-                        )
-                    }
-                ),
-                upperIndex: Binding(
-                    get: { store.selectedSizeBandRange.upperBound },
-                    set: { newValue in
-                        store.setSizeBandFitClaimRange(
-                            lowerIndex: store.selectedSizeBandRange.lowerBound,
-                            upperIndex: newValue
-                        )
-                    }
-                ),
-                optionCount: sizeCodes.count,
-                rangeTitle: store.sizeBandFitClaimRangeTitle
-            )
-
-            GroomerSizeRangeLegend(titles: sizeCodes.map(\.title))
-        }
-    }
-}
-
+/// What completed bookings and structured reviews say about each skill: one row per skill, the best evidence first.
 struct GroomerEvidenceDashboardView: View {
     @Bindable var store: GroomerProfileStore
 
-    private var summaries: [GroomerPetFitEvidenceSummary] {
-        store.sortedPetFitEvidenceSummary()
-    }
+    private var summaries: [GroomerPetFitEvidenceSummary] { store.sortedPetFitEvidenceSummary() }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                if summaries.isEmpty {
-                    GroomerEvidenceEmptyState()
-                        .accessibilityIdentifier("groomer.evidence.empty")
-                } else {
-                    GroomerEvidenceOverviewSection(summaries: summaries)
-
-                    BeckonSection(
-                        "Evidence by signal",
-                        subtitle: "Verified service feedback"
-                    ) {
-                        BeckonGroupedSurface {
-                            VStack(spacing: 0) {
-                                ForEach(Array(summaries.enumerated()), id: \.element.id) { index, summary in
-                                    GroomerEvidenceSummaryRow(summary: summary)
-
-                                    if index < summaries.count - 1 {
-                                        BeckonGroupedDivider(leadingInset: 56)
-                                    }
-                                }
-                            }
+        DesignPage {
+            if summaries.isEmpty {
+                // Nothing is "no evidence yet" only once the read is over: before it, and when it failed, the page says so.
+                if store.isLoadingOptionalMetadata || (!store.hasLoadedFitClaims && store.optionalLoadError == nil) {
+                    HStack(spacing: DesignTokens.Spacing.md) {
+                        ProgressView().tint(DesignTokens.Colors.customerDeep)
+                        Text("Loading evidence…").designSupportingText()
+                    }
+                } else if store.optionalLoadError != nil {
+                    BeckonErrorBanner(title: "Evidence could not be refreshed", message: "Try again to read it.") {
+                        Button { Task { await store.load() } } label: {
+                            DesignQuietAction(title: "Retry", systemImage: "arrow.clockwise")
                         }
+                        .buttonStyle(BeckonGuardedPlainButtonStyle())
+                    }
+                } else {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        Text("No evidence yet")
+                            .font(DesignTokens.Typography.Expressive.title)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        Text("Evidence appears after completed bookings and structured reviews.").designSupportingText()
+                    }
+                    .designCardBody()
+                    .accessibilityIdentifier("groomer.evidence.empty")
+                }
+            } else {
+                VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
+                    BeckonLedgeHeading(title: "Customer proof", systemImage: "checkmark.seal.fill", count: summaries.count)
+                    Text("Confidence grows with completed bookings and customer answers.").designSupportingText()
+                    VStack(spacing: DesignTokens.Spacing.md) {
+                        ForEach(summaries) { summary in GroomerEvidenceRow(summary: summary) }
+                    }
+                    if let updated {
+                        Text("Evidence updated \(updated)")
+                            .font(DesignTokens.Typography.Expressive.chip)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
                     }
                 }
             }
-            .beckonPageInsets()
         }
-        .accessibilityIdentifier("groomer.evidence.dashboard")
-        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .navigationTitle("Evidence")
         .navigationBarTitleDisplayMode(.inline)
         .beckonHidesTabBar()
+        .accessibilityIdentifier("groomer.evidence.dashboard")
+    }
+
+    /// When the evidence was last brought up to date (the newest of the skills'), as a day. There are no totals across the skills: one
+    /// booking is counted once for each skill it proves, so their sum would count it more than once.
+    private var updated: String? {
+        summaries.compactMap(\.evidenceUpdatedAt).max()
+            .flatMap(GroomingRequestDateFormatting.parsedDate(from:))?.formatted(date: .abbreviated, time: .omitted)
     }
 }
 
-private struct GroomerEvidenceOverviewSection: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    let summaries: [GroomerPetFitEvidenceSummary]
 
-    var body: some View {
-        BeckonSection(
-            "Evidence overview",
-            subtitle: "A summary of outcomes connected to your matching signals."
-        ) {
-            BeckonGroupedSurface {
-                metricLayout {
-                    GroomerEvidenceMetric(
-                        summary: String(summaries.count),
-                        label: "Service details"
-                    )
-                    GroomerEvidenceMetric(
-                        summary: String(summaries.reduce(0) { $0 + $1.positiveReviewOutcomeCount }),
-                        label: "Positive answers"
-                    )
-                    GroomerEvidenceMetric(
-                        summary: String(summaries.reduce(0) { $0 + $1.negativeReviewOutcomeCount }),
-                        label: "Negative answers"
-                    )
-                }
-                .padding(DesignTokens.Spacing.lg)
-            }
-            .accessibilityElement(children: .combine)
-        }
-    }
-
-    private var metricLayout: AnyLayout {
-        dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
-            : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.md))
-    }
-}
-
-private struct GroomerEvidenceMetric: View {
-    let summary: String
-    let label: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            Text(summary)
-                .font(DesignTokens.Typography.body.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text(label)
-                .font(DesignTokens.Typography.caption)
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-private struct GroomerEvidenceEmptyState: View {
-    var body: some View {
-        BeckonSection(
-            "Evidence overview",
-            subtitle: "Evidence appears after completed bookings and structured reviews."
-        ) {
-            BeckonGroupedSurface {
-                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                    Image(systemName: "chart.bar.xaxis")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .frame(width: 28, height: 28)
-                        .accessibilityHidden(true)
-
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text("No evidence yet")
-                            .font(DesignTokens.Typography.body.weight(.semibold))
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                        Text("Completed bookings and structured reviews will appear here over time.")
-                            .font(DesignTokens.Typography.caption)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                .padding(DesignTokens.Spacing.lg)
-            }
-        }
-    }
-}
-
-private struct GroomerEvidenceSummaryRow: View {
+/// One skill's evidence: its name and how much evidence there is (three pips and a word), how many jobs were completed and answered
+/// well, and a bar of how they were answered. A negative answer is the note along the foot of the card.
+private struct GroomerEvidenceRow: View {
     let summary: GroomerPetFitEvidenceSummary
+    @Environment(\.dynamicTypeSize) private var typeSize
 
-    var body: some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-            Image(systemName: iconName)
-                .font(.body.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-                .frame(width: 28, height: 28)
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(summary.signal.title)
-                    .font(DesignTokens.Typography.body.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .lineLimit(2)
-
-                Text(summary.signal.groupTitle)
-                    .font(DesignTokens.Typography.caption)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .lineLimit(2)
-
-                Text("\(summary.completedBookingCount) completed · \(summary.positiveReviewOutcomeCount) positive · \(summary.negativeReviewOutcomeCount) negative · \(max(0, summary.completedBookingCount - summary.structuredReviewOutcomeCount)) unreported")
-                    .font(DesignTokens.Typography.caption)
-                    .foregroundStyle(DesignTokens.Colors.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                if let updatedAt = summary.evidenceUpdatedAt {
-                    Text("Updated \(GroomingRequestDateFormatting.displayString(from: updatedAt))")
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.textTertiary)
-                        .lineLimit(1)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.vertical, DesignTokens.Spacing.md)
-        .accessibilityElement(children: .combine)
-    }
-
-    private var iconName: String {
-        switch summary.signal.group {
-        case .coatType, .verifiedCoat:
-            "comb"
-        case .breedGroup:
-            "pawprint.fill"
-        case .sizeBand, .verifiedSize:
-            "ruler"
-        case .careFlag, .verifiedCare:
-            "heart.fill"
-        case .serviceFit, .verifiedService:
-            "scissors"
+    private var level: Int {
+        switch summary.confidenceTier {
+        case .high: 3
+        case .medium: 2
+        case .low: 1
         }
     }
-}
-
-private struct GroomerFitSignalGroupSection: View {
-    let group: PetFitSignal.Group
-    let signals: [PetFitSignal]
-    @Bindable var store: GroomerProfileStore
-
-    var body: some View {
-        BeckonSection(title, subtitle: subtitle) {
-            BeckonGroupedSurface {
-                VStack(spacing: 0) {
-                    ForEach(Array(signals.enumerated()), id: \.element.id) { index, signal in
-                        GroomerFitSignalRow(
-                            signal: signal,
-                            isSelected: store.isFitClaimSelected(signal)
-                        ) {
-                            store.toggleFitClaim(signal)
-                        }
-
-                        if index < signals.count - 1 {
-                            BeckonGroupedDivider(leadingInset: DesignTokens.Layout.surfaceInset)
-                        }
-                    }
-                }
-            }
-        } trailing: {
-                Text(statusText)
-                    .font(DesignTokens.Typography.status)
-                    .foregroundStyle(DesignTokens.Colors.groomerInk)
-                    .lineLimit(1)
-        }
-    }
-
-    private var selectedCount: Int {
-        store.selectedFitClaimCount(in: group)
-    }
-
-    private var title: String {
-        switch group {
-        case .coatType, .verifiedCoat:
-            "Coat skills"
-        case .breedGroup:
-            "Breed groups"
-        case .sizeBand, .verifiedSize:
-            "Size experience"
-        case .careFlag, .verifiedCare:
-            "Handling needs"
-        case .serviceFit, .verifiedService:
-            "Service strengths"
-        }
-    }
-
-    private var subtitle: String {
-        switch group {
-        case .coatType, .verifiedCoat:
-            "Coat structures you handle reliably."
-        case .breedGroup:
-            "Breed contexts retained for matching compatibility."
-        case .sizeBand, .verifiedSize:
-            "Body-size experience is set above and does not use core slots."
-        case .careFlag, .verifiedCare:
-            "Care situations you accept."
-        case .serviceFit, .verifiedService:
-            "Service work that matches your setup."
-        }
-    }
-
-    private var statusText: String {
-        selectedCount == 1 ? "1 selected" : "\(selectedCount) selected"
-    }
-}
-
-private struct GroomerFitSignalRow: View {
-    let signal: PetFitSignal
-    let isSelected: Bool
-    let onToggle: () -> Void
-
-    var body: some View {
-        Button(action: onToggle) {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                Text(signal.title)
-                    .font(DesignTokens.Typography.body.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(
-                        isSelected
-                            ? DesignTokens.Colors.groomerDeep
-                            : DesignTokens.Colors.textTertiary
-                    )
-                    .accessibilityHidden(true)
-            }
-            .frame(minHeight: 48)
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(signal.title) fit signal")
-        .accessibilityValue(isSelected ? "Selected" : "Not selected")
-    }
-}
-
-private struct GroomerFitSignalsSaveBar: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @Bindable var store: GroomerProfileStore
-    let presentation: GroomerFitSignalsWorkspacePresentation
 
     var body: some View {
         VStack(spacing: 0) {
-            Divider()
-                .overlay(DesignTokens.Colors.divider)
-
-            actionLayout {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(presentation.selectionSummary)
-                        .font(DesignTokens.Typography.caption.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Text(store.sizeBandFitClaimRangeTitle)
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Button(action: save) {
-                    if presentation.saveActionTitle == "Saving..." {
-                        HStack(spacing: DesignTokens.Spacing.sm) {
-                            ProgressView()
-                                .tint(DesignTokens.Colors.groomerInk)
-                            Text(presentation.saveActionTitle)
-                        }
-                    } else {
-                        Label(presentation.saveActionTitle, systemImage: "checkmark.circle")
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+                    DesignIconDisc(systemImage: summary.signal.group.beckonSymbol, size: .touch,
+                        font: DesignTokens.Typography.Expressive.glyph)
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs / 2) {
+                        titleLine
+                        Text("\(summary.completedBookingCount) completed · \(summary.positiveReviewOutcomeCount) positive")
+                            .font(DesignTokens.Typography.Expressive.supporting)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .lineLimit(typeSize.isAccessibilitySize ? nil : 1)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .buttonStyle(BeckonPrimaryButtonStyle(accent: .groomer, isFullWidth: dynamicTypeSize.isAccessibilitySize))
-                .disabled(presentation.isSaveDisabled)
-                .accessibilityIdentifier("groomer.fit-signals.save")
+                GroomerProofBar(positive: summary.positiveReviewOutcomeCount, negative: summary.negativeReviewOutcomeCount,
+                    total: summary.completedBookingCount)
             }
-            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-            .padding(.vertical, DesignTokens.Spacing.md)
+            .padding(DesignTokens.Spacing.md)
+            if summary.negativeReviewOutcomeCount > 0 {
+                BeckonFootNote(text: summary.negativeReviewOutcomeCount == 1 ? "1 negative answer"
+                    : "\(summary.negativeReviewOutcomeCount) negative answers", systemImage: "exclamationmark.triangle.fill")
+            }
         }
-        .background(DesignTokens.Colors.appBackground)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous))
+        .beckonLedge(.card)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(summary.signal.title), \(summary.confidenceTier.title) confidence, \(summary.completedBookingCount) completed, "
+            + "\(summary.positiveReviewOutcomeCount) positive, \(summary.negativeReviewOutcomeCount) negative")
     }
 
-    private var actionLayout: AnyLayout {
-        dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.sm))
-            : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.md))
-    }
-
-    private func save() {
-        Task {
-            await store.saveFitClaims()
+    private var titleLine: some View {
+        (typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.xs))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm))) {
+            // The name is what the row is about, so a long one takes a second line before it is cut.
+            Text(summary.signal.title)
+                .font(DesignTokens.Typography.Expressive.headline)
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                .lineLimit(typeSize.isAccessibilitySize ? nil : 2)
+                .fixedSize(horizontal: false, vertical: true)
+            if !typeSize.isAccessibilitySize { Spacer(minLength: 0) }
+            HStack(spacing: DesignTokens.Spacing.xs) {
+                Text(summary.confidenceTier.title)
+                    .font(DesignTokens.Typography.Expressive.chip)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                GroomerPips(filled: level, total: 3)
+            }
+            .fixedSize()
         }
     }
 }

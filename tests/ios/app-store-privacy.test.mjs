@@ -11,7 +11,7 @@ const releaseLinksPath =
 const customerAccountPath =
   "ios/Beckon/Beckon/Features/Customer/Profile/CustomerAccountView.swift";
 const groomerAccountPath =
-  "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerProfileAccountView.swift";
+  "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerAccountView.swift";
 const genericAccountPath =
   "ios/Beckon/Beckon/Features/Auth/AuthenticatedAccountView.swift";
 const privacyPolicyPath = "docs/04_ios/release/PRIVACY_POLICY.md";

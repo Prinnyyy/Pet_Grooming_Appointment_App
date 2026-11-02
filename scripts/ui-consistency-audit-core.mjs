@@ -31,6 +31,14 @@ const ruleByID = new Map(UI_RULES.map((rule) => [rule.id, rule]));
 export const LEDGE_TIER_PATHS = Object.freeze([
   "Features/Chat/ChatBookingCard.swift",
   "Features/Groomer/GroomerPetCard.swift",
+  "Features/Groomer/Profile/GroomerAccountParts.swift",
+  "Features/Groomer/Profile/GroomerAccountView.swift",
+  "Features/Groomer/Profile/GroomerAvailabilityEditorView.swift",
+  "Features/Groomer/Profile/GroomerFitSignalsEditorView.swift",
+  "Features/Groomer/Profile/GroomerPortfolioEditorView.swift",
+  "Features/Groomer/Profile/GroomerServicesEditorView.swift",
+  "Features/Groomer/Profile/GroomerProfileFormView.swift",
+
   "Features/Groomer/Schedule/GroomerScheduleView.swift",
   "Features/Groomer/Schedule/GroomerScheduleParts.swift",
   "Features/Groomer/Schedule/GroomerBookingParts.swift",

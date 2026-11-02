@@ -1,8 +1,10 @@
+// "Set up Beckon": the page a new account sees once it is signed in (design). Same job as RoleOnboardingView in
+// Features/Auth/RoleOnboardingView.swift: a display name, a choice between pet owner and groomer (final), Continue, Sign out. The
+// store (`AuthenticatedEntryStore`), its checks and its errors and every id are the real ones. What is new is that the page is the
+// place where the two roles meet: choosing "I am a groomer" turns the whole page coral at once (the accent follows the role,
+// `BeckonRole.swift`), so the person sees the app they are about to get before they commit to it.
 import SwiftUI
 
-nonisolated enum RoleOnboardingFocusTarget: String, Hashable {
-    case displayName = "profile.display-name.container"
-}
 
 struct RoleOnboardingView: View {
     let session: AuthSessionSnapshot
@@ -10,212 +12,142 @@ struct RoleOnboardingView: View {
     let onSignOut: () -> Void
     @FocusState private var focusedField: RoleOnboardingFocusTarget?
 
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                BeckonExpressiveBackdrop()
+    /// The page wears the colour of the role chosen so far (mint until a groomer is chosen).
+    private var role: BeckonRole { store.selectedRole == .groomer ? .groomer : .customer }
 
-                ScrollViewReader { scrollProxy in
-                    ScrollView {
-                        BeckonCascade(alignment: .center, spacing: DesignTokens.Spacing.large) {
-                            header
-                            form
+    var body: some View {
+        ZStack {
+            BeckonExpressiveBackdrop()
+
+            ScrollViewReader { proxy in
+                ScrollView {
+                    BeckonCascade(alignment: .center, spacing: DesignTokens.Layout.sectionSpacing) {
+                        header
+                        form
+                        if let message = store.errorMessage {
+                            BeckonErrorBanner(title: "Profile setup error", message: message)
+                                .accessibilityIdentifier("profile.error")
                         }
-                        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                        .padding(.vertical, DesignTokens.Spacing.xl)
                     }
-                    .beckonKeyboardAvoidance(
-                        focusedTarget: focusedField?.rawValue,
-                        using: scrollProxy
-                    )
-                    .scrollDismissesKeyboard(.interactively)
+                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                    .padding(.vertical, DesignTokens.Spacing.xl)
                 }
+                .scrollContentBackground(.hidden)
+                .beckonKeyboardAvoidance(focusedTarget: focusedField?.rawValue, using: proxy)
+                .scrollDismissesKeyboard(.interactively)
             }
-            .beckonEntranceRhythm(.detail)
-        .environment(\.beckonCustomerDesign, true)
-            .navigationTitle("Set up your profile")
-            .navigationBarTitleDisplayMode(.inline)
         }
+        .beckonEntranceRhythm(.detail)
+        .environment(\.beckonRole, role)
         .accessibilityIdentifier("profile.onboarding")
     }
 
+    // MARK: Header
+
     private var header: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
-            Image(systemName: "person.2.circle.fill")
-                .font(DesignTokens.Typography.largeTitle.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.customerDeep)
-                .frame(
-                    width: DesignTokens.Spacing.xl + DesignTokens.Spacing.xl + DesignTokens.Spacing.lg,
-                    height: DesignTokens.Spacing.xl + DesignTokens.Spacing.xl + DesignTokens.Spacing.lg
-                )
-                .background(DesignTokens.Colors.customerTint)
-                .clipShape(DesignTokens.Shapes.circular)
-                .accessibilityHidden(true)
-
+            DesignIconDisc(systemImage: "person.2.fill", size: .large, font: DesignTokens.Typography.Expressive.section)
             VStack(spacing: DesignTokens.Spacing.xs) {
                 Text("Set up Beckon")
                     .font(DesignTokens.Typography.Expressive.display)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
-
                 Text("Choose the role that matches how you will use the app.")
                     .font(DesignTokens.Typography.Expressive.body)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
             }
-
             if let email = session.email {
-                Text(email)
-                    .font(DesignTokens.Typography.Expressive.chip)
-                    .foregroundStyle(DesignTokens.Colors.customerInk)
-                    .padding(.horizontal, DesignTokens.Spacing.md)
-                    .padding(.vertical, DesignTokens.Spacing.sm)
-                    .background(DesignTokens.Colors.customerTint)
-                    .clipShape(DesignTokens.Shapes.chip)
+                BeckonMetaChip(text: email, systemImage: "envelope.fill")
             }
         }
         .padding(.top, DesignTokens.Spacing.lg)
     }
 
+    // MARK: Form
+
     private var form: some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
-            BeckonCard {
-                VStack(spacing: DesignTokens.Spacing.lg) {
-                    TextField("Display name", text: $store.displayName)
-                        .textContentType(.name)
-                        .textInputAutocapitalization(.words)
-                        .autocorrectionDisabled()
-                        .disabled(store.isSubmitting)
-                        .focused($focusedField, equals: .displayName)
-                        .beckonFormField()
-                        .accessibilityIdentifier("profile.display-name")
-                        .beckonKeyboardFocusTarget(
-                            RoleOnboardingFocusTarget.displayName.rawValue
-                        )
-
-                    VStack(spacing: DesignTokens.Spacing.md) {
-                        roleButton(
-                            role: .customer,
-                            title: "I am a pet owner",
-                            systemImage: "pawprint"
-                        )
-
-                        roleButton(
-                            role: .groomer,
-                            title: "I am a groomer",
-                            systemImage: "scissors"
-                        )
-                    }
-
-                    Label(
-                        "Your role cannot be changed through the normal app.",
-                        systemImage: "lock"
-                    )
-                    .font(DesignTokens.Typography.caption)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                Text("Display name")
+                    .font(DesignTokens.Typography.Expressive.label)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    Button {
-                        Task {
-                            await store.submit()
-                        }
-                    } label: {
-                        HStack(spacing: DesignTokens.Spacing.sm) {
-                            if store.isSubmitting {
-                                ProgressView()
-                                    .tint(DesignTokens.Colors.customerInk)
-                            }
-                            Text(store.isSubmitting ? "Creating profile…" : "Continue")
-                        }
-                    }
-                    .buttonStyle(BeckonPrimaryButtonStyle())
+                TextField("Display name", text: $store.displayName)
+                    .textContentType(.name)
+                    .textInputAutocapitalization(.words)
+                    .autocorrectionDisabled()
                     .disabled(store.isSubmitting)
-                    .accessibilityIdentifier("profile.submit")
+                    .focused($focusedField, equals: .displayName)
+                    .beckonFormField()
+                    .tint(DesignTokens.Colors.customerDeep)
+                    .accessibilityIdentifier("profile.display-name")
+            }
+            .beckonKeyboardFocusTarget(RoleOnboardingFocusTarget.displayName.rawValue)
 
-                    Button(role: .destructive, action: onSignOut) {
-                        Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
-                    }
-                    .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
-                    .disabled(store.isSubmitting)
-                    .accessibilityIdentifier("auth.sign-out")
-                }
+            VStack(spacing: DesignTokens.Spacing.md) {
+                roleCard(.customer, title: "I am a pet owner", detail: "Ask for grooming and compare offers.", systemImage: "pawprint.fill",
+                    identifier: "profile.role.customer")
+                roleCard(.groomer, title: "I am a groomer", detail: "Answer requests and run your schedule.", systemImage: "scissors",
+                    identifier: "profile.role.groomer")
             }
 
-            if let errorMessage = store.errorMessage {
-                BeckonErrorBanner(
-                    title: "Profile setup error",
-                    message: errorMessage
-                )
-                .accessibilityIdentifier("profile.error")
+            DesignInfoLine(systemImage: "lock.fill", text: "Your role cannot be changed through the normal app.")
+
+            Button {
+                Task { await store.submit() }
+            } label: {
+                DesignActionLabel(title: store.isSubmitting ? "Creating profile…" : "Continue", systemImage: "arrow.right",
+                    isBusy: store.isSubmitting)
             }
+            .buttonStyle(BeckonLedgeButtonStyle(.pill))
+            .disabled(store.isSubmitting)
+            .accessibilityIdentifier("profile.submit")
+
+            Button(action: onSignOut) {
+                DesignQuietAction(title: "Sign out", systemImage: "rectangle.portrait.and.arrow.right")
+            }
+            .buttonStyle(BeckonGuardedPlainButtonStyle())
+            .disabled(store.isSubmitting)
+            .accessibilityIdentifier("auth.sign-out")
         }
+        .designCardBody()
     }
 
-    private func roleButton(
-        role: UserRole,
-        title: String,
-        systemImage: String
-    ) -> some View {
-        Button {
-            store.selectedRole = role
+    /// A role as a card: white until it is chosen, then the page's own colour (which is this role's colour from that moment).
+    private func roleCard(_ choice: UserRole, title: String, detail: String, systemImage: String, identifier: String) -> some View {
+        let isSelected = store.selectedRole == choice
+        return Button {
+            store.selectedRole = choice
             store.errorMessage = nil
         } label: {
             HStack(spacing: DesignTokens.Spacing.md) {
-                Label(title, systemImage: systemImage)
-                    .font(DesignTokens.Typography.Expressive.headline)
-                    .foregroundStyle(roleForeground(role))
-                Spacer()
-                if store.selectedRole == role {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(roleForeground(role))
+                Image(systemName: systemImage)
+                    .font(DesignTokens.Typography.Expressive.glyph)
+                    .foregroundStyle(isSelected ? DesignTokens.Colors.customerInk : DesignTokens.Colors.customerDeep)
+                    .frame(width: DesignTokens.Metrics.minimumTouchTarget)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(DesignTokens.Typography.Expressive.headline)
+                        .foregroundStyle(isSelected ? DesignTokens.Colors.customerInk : DesignTokens.Colors.textPrimary)
+                    Text(detail)
+                        .font(DesignTokens.Typography.Expressive.chip)
+                        .foregroundStyle(isSelected ? DesignTokens.Colors.customerInk : DesignTokens.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                BeckonTickCircle(isOn: isSelected)
             }
-            .padding(DesignTokens.Spacing.lg)
-            .background(roleBackground(role))
-            .clipShape(
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
-                    .strokeBorder(
-                        roleBorder(role),
-                        lineWidth: store.selectedRole == role ? DesignTokens.Ledge.edgeWidth + 1 : DesignTokens.Ledge.edgeWidth
-                    )
-            }
+            .padding(DesignTokens.Spacing.md)
+            .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.ledgePrimaryButtonHeight)
         }
-        .buttonStyle(BeckonLedgeButtonStyle(.card))
+        .buttonStyle(BeckonLedgeButtonStyle(isSelected ? .pill : .card))
         .disabled(store.isSubmitting)
-        .accessibilityIdentifier("profile.role.\(role.rawValue)")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityIdentifier(identifier)
     }
+}
 
-    private func roleForeground(_ role: UserRole) -> Color {
-        switch role {
-        case .customer:
-            store.selectedRole == role ? DesignTokens.Colors.customerDeep : DesignTokens.Colors.textPrimary
-        case .groomer:
-            store.selectedRole == role ? DesignTokens.Colors.groomerDeep : DesignTokens.Colors.textPrimary
-        }
-    }
-
-    private func roleBackground(_ role: UserRole) -> Color {
-        switch role {
-        case .customer:
-            store.selectedRole == role ? DesignTokens.Colors.customerTint : DesignTokens.Colors.appBackground
-        case .groomer:
-            store.selectedRole == role ? DesignTokens.Colors.groomerTint : DesignTokens.Colors.appBackground
-        }
-    }
-
-    private func roleBorder(_ role: UserRole) -> Color {
-        guard store.selectedRole == role else {
-            return DesignTokens.Colors.borderSoft
-        }
-
-        switch role {
-        case .customer:
-            return DesignTokens.Colors.customerDeep
-        case .groomer:
-            return DesignTokens.Colors.groomerDeep
-        }
-    }
+nonisolated enum RoleOnboardingFocusTarget: String, Hashable {
+    case displayName = "profile.display-name.container"
 }

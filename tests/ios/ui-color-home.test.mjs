@@ -43,9 +43,12 @@ test("adopted customer message colors remain scoped away from groomer message su
   assert.doesNotMatch(groomer, /Colors\.(?:customer|groomer)(?:Tint|Fill|Ink)/);
 });
 
-test("Groomer sign out uses the shared destructive style", () => {
-  const account = read("Features/Groomer/Profile/GroomerProfileAccountView.swift");
-  assert.match(account, /BeckonDestructiveButtonStyle/);
+test("Groomer sign out uses the adopted Account access action", () => {
+  const account = read("Features/Groomer/Profile/GroomerAccountView.swift");
+  assert.match(account, /Button\(action: onSignOut\)/);
+  assert.match(account, /groomer\.account\.sign-out/);
+  assert.match(account, /BeckonLedgeButtonStyle\(\.card\)/);
+  assert.doesNotMatch(account, /Delete account|Development/);
 });
 
 test("groomer destructive entries retain their style and shared confirmations use destructive dialog actions", () => {

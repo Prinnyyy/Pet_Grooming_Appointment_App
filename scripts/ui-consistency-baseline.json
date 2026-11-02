@@ -2,7 +2,7 @@
   "version": 1,
   "scope": "ios/Beckon/Beckon/Features",
   "lastChange": {
-    "reason": "T-433 replaces both legacy booking-card layouts with the approved shared ticket"
+    "reason": "T-434 replaces legacy groomer Account and editor surfaces with approved Tier M modules"
   },
   "findings": [
     {
@@ -17,13 +17,6 @@
       "path": "ios/Beckon/Beckon/Features/Auth/AuthenticationView.swift",
       "fingerprint": "d8a5055818e8fd800ec8b280144c41f69b0bf142b530f1abb56615e201c9743b",
       "expressionHash": "4505354a128d353be1c6354592a4484c940ecfafbb54b98c2380bbd2089516a7",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Auth/RoleOnboardingView.swift",
-      "fingerprint": "9c8f5425b29d6663c11dc965cd26348440c1b36f4cf5da48eba0042242af9472",
-      "expressionHash": "397947b460955eacfe2ced3a2fe0f673822ec17fd3c567b594f8fdf698ebff73",
       "occurrence": 1
     },
     {
@@ -203,100 +196,9 @@
     },
     {
       "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerAvailabilityEditorView.swift",
-      "fingerprint": "a91b38e730167b06f5b9f28fdab825850860a183a4331546246135e4e9da9d91",
-      "expressionHash": "65158038e24ad44407eb01a986bae98924a20a6fc8589099ecedd0ea1004cef2",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerAvailabilityEditorView.swift",
-      "fingerprint": "59545720e4735844c7f5860a34e52fa6a548d4ecd3e362343002856d9d9adec6",
-      "expressionHash": "2090e643d9cd305932783fb9485c54a338495cde669b5899afa6e9daf042a67a",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerAvailabilityEditorView.swift",
-      "fingerprint": "ce47a4d4380ca10d0ec55b1a6926c7b51126ea7beac6b96cf16d4f9410f1b712",
-      "expressionHash": "7b5e952d86a3e696cbc3ee709d1e3e7bf598ae51bb1d29dac658afee58fc4522",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerAvailabilityEditorView.swift",
-      "fingerprint": "87585d38740572be14bb60f27143fd634d606e1ae773f8c0fc9d10f3eeb2d13c",
-      "expressionHash": "65158038e24ad44407eb01a986bae98924a20a6fc8589099ecedd0ea1004cef2",
-      "occurrence": 2
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerAvailabilityEditorView.swift",
-      "fingerprint": "9fece76194890ed0b7e628c6aa9137b02405d14501f6c716bdc585f49ddbe4c0",
-      "expressionHash": "e0c59269f85ec0ef911fd51371ea5a511c0de45f94d2df86ca4e91bc16cf5827",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerAvailabilityEditorView.swift",
-      "fingerprint": "f5d97ef97df66290cdd7961fdeaabd2d1cc6d80ed5340ab02dc299e15cfb5622",
-      "expressionHash": "e0c59269f85ec0ef911fd51371ea5a511c0de45f94d2df86ca4e91bc16cf5827",
-      "occurrence": 2
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerFitSignalsEditorView.swift",
-      "fingerprint": "4655f2f8979d7ae46ace45456db4e59f58f5e0e7c2a631b65c8de905892cd151",
-      "expressionHash": "65158038e24ad44407eb01a986bae98924a20a6fc8589099ecedd0ea1004cef2",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerFitSignalsEditorView.swift",
-      "fingerprint": "439d9226a080914cc3e29258ab36c1fb8507d65e8c160c96039cb54b057de6cf",
-      "expressionHash": "1a546f8f5049a9936fa9cb44ef5750c454dd9a9e2bf0f79b41be621e558fb397",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerFitSignalsEditorView.swift",
-      "fingerprint": "8f884e2d2912a6e4102dd7916ba112416cb6f105d1e31979f65e3cef6fa38edc",
-      "expressionHash": "65158038e24ad44407eb01a986bae98924a20a6fc8589099ecedd0ea1004cef2",
-      "occurrence": 2
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerFitSignalsEditorView.swift",
-      "fingerprint": "ed9a42dc57bd22caaaadf9860e61146740c327d3c87624974ecc1c66d5b3ef84",
-      "expressionHash": "1a546f8f5049a9936fa9cb44ef5750c454dd9a9e2bf0f79b41be621e558fb397",
-      "occurrence": 2
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerFitSignalsEditorView.swift",
-      "fingerprint": "40715357e8f6922dab20a8df38da9198549f7e8d4c49afbe87e6551986d78604",
-      "expressionHash": "65158038e24ad44407eb01a986bae98924a20a6fc8589099ecedd0ea1004cef2",
-      "occurrence": 3
-    },
-    {
-      "ruleID": "UI002",
       "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerPortfolioEditorView.swift",
       "fingerprint": "6b89937aa83bfbafaff287ad36b177aeaff78f2ad6582659b216d9050c6bc73d",
       "expressionHash": "65158038e24ad44407eb01a986bae98924a20a6fc8589099ecedd0ea1004cef2",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerPortfolioEditorView.swift",
-      "fingerprint": "868d516369d53b7483f394c7bf1314bd73772435f8d8bf49c6d8a340f283f4d1",
-      "expressionHash": "1a546f8f5049a9936fa9cb44ef5750c454dd9a9e2bf0f79b41be621e558fb397",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI005",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerPortfolioEditorView.swift",
-      "fingerprint": "424f05a6cb24845bfcf23f7f2c23a94b56d74a952242a8a45cdced8162db0237",
-      "expressionHash": "71f06fa6e0a405e2aca5a9b64be3d6aaf9615ce16ac8d43c367a299400a5e1f7",
       "occurrence": 1
     },
     {
@@ -307,95 +209,11 @@
       "occurrence": 1
     },
     {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerPortfolioEditorView.swift",
-      "fingerprint": "c5175af8041a9ed6c5f557920ff19075d534ef1c90b61338474be2d1cbef28dc",
-      "expressionHash": "65158038e24ad44407eb01a986bae98924a20a6fc8589099ecedd0ea1004cef2",
-      "occurrence": 2
-    },
-    {
       "ruleID": "UI101",
       "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerPortfolioEditorView.swift",
       "fingerprint": "046cad976d56f8a86eb92d41f5a20fa4d45fd4c6676fd9664b8818dddea918ac",
       "expressionHash": "e0c59269f85ec0ef911fd51371ea5a511c0de45f94d2df86ca4e91bc16cf5827",
       "occurrence": 1
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerProfileFormView.swift",
-      "fingerprint": "4899eaa67fac84f31ca8c5b784752b745a67bbd89a540e6ca26df4baa727a5dc",
-      "expressionHash": "f2674f15e49633f4ec5a8241b684ed2a325924538caff74e4317fd8192820aab",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerProfileFormView.swift",
-      "fingerprint": "20e66f9e2171748db099d19f51f96b52994c8f5734e540550f2f1bc1b53d2072",
-      "expressionHash": "f2674f15e49633f4ec5a8241b684ed2a325924538caff74e4317fd8192820aab",
-      "occurrence": 2
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerProfileFormView.swift",
-      "fingerprint": "54341a31c87de114162e7b9c615402a17a9baab210fda33cf3992c423bd1f814",
-      "expressionHash": "a4dc36b024e2abe97de60d67566f8d21bbe5857b848fc21b5c400f26bf255937",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerServicesEditorView.swift",
-      "fingerprint": "4e7f28831708295eac360441683d02d0f2a0c391160d955c27d867a720c9918f",
-      "expressionHash": "7d6de263fd93dc70426faa7d3f964cbffbfe56edab16bb07dad29b2ff1da9fdf",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerServicesEditorView.swift",
-      "fingerprint": "cd5770ce4a511b0e47d7a55d6138baf7d4cbc6fd34ced2fe358e0a6585ec09b4",
-      "expressionHash": "e0c59269f85ec0ef911fd51371ea5a511c0de45f94d2df86ca4e91bc16cf5827",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerServicesEditorView.swift",
-      "fingerprint": "7719a14684ebaa27d0d7276b6fec856b90295b2dd5f73277dce83d35caea691d",
-      "expressionHash": "65158038e24ad44407eb01a986bae98924a20a6fc8589099ecedd0ea1004cef2",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerServicesEditorView.swift",
-      "fingerprint": "5fd436b4a86d34935893adf2c534945348cb6baa03537665d1b66a1bcc488857",
-      "expressionHash": "1a546f8f5049a9936fa9cb44ef5750c454dd9a9e2bf0f79b41be621e558fb397",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerServicesEditorView.swift",
-      "fingerprint": "239a53b2d2ce120914a63911511cb3af5819ab37f74e5169e507a606f3223281",
-      "expressionHash": "bef3e672ba51889a520762bb38df171da49a1a711207b7364bd0b2449adb47e4",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerServicesEditorView.swift",
-      "fingerprint": "42dbcb38985492da412d49722e6fea66e80236bc6d74b09943aa74e1a8389ee7",
-      "expressionHash": "65158038e24ad44407eb01a986bae98924a20a6fc8589099ecedd0ea1004cef2",
-      "occurrence": 2
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerServicesEditorView.swift",
-      "fingerprint": "93083992721ac2ab9733ce70b2bfa017d2bead801a4651b9dcf82badd733105b",
-      "expressionHash": "e0c59269f85ec0ef911fd51371ea5a511c0de45f94d2df86ca4e91bc16cf5827",
-      "occurrence": 2
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerServicesEditorView.swift",
-      "fingerprint": "c81a6f62118751b70170e72312368856970a9284b829602544b8731c2f45529e",
-      "expressionHash": "65158038e24ad44407eb01a986bae98924a20a6fc8589099ecedd0ea1004cef2",
-      "occurrence": 3
     }
   ]
 }

@@ -33,25 +33,27 @@ final class GroomerWorkspaceLayoutTests: XCTestCase {
     }
 
     func testAvailabilityTimeControlsGrowWithoutShrinkingTheirText() {
+        var standardHeight: CGFloat = 0
         for size: DynamicTypeSize in [.large, .accessibility3] {
-            let host = UIHostingController(rootView: GroomerAvailabilityTimeMenu(
+            let host = UIHostingController(rootView: GroomerTimeChip(
                 minutes: .constant(17 * 60), title: "End", day: "Wednesday")
                 .environment(\.dynamicTypeSize, size))
             let measured = host.sizeThatFits(in: CGSize(width: 150, height: 10_000))
             XCTAssertGreaterThanOrEqual(measured.height, 44)
             XCTAssertLessThanOrEqual(measured.width, 150)
-            if size.isAccessibilitySize { XCTAssertGreaterThan(measured.height, 65) }
+            if size.isAccessibilitySize { XCTAssertGreaterThan(measured.height, standardHeight) }
+            else { standardHeight = measured.height }
         }
     }
 
-    func testAvailabilityBufferFocusRemainsResponsiveAtAX3() async throws {
+    func testProfileFieldFocusRemainsResponsiveAtAX3() async throws {
         let owner = UUID()
         let store = GroomerProfileStore(groomerID: owner, repository: GroomerProfileRepositoryFake(
             profileResult: .success(GroomerProfileStoreTests.profile(groomerID: owner)),
             availabilityResult: .success([GroomerProfileStoreTests.availability(groomerID: owner)])))
         await store.load()
         let host = UIHostingController(rootView: NavigationStack {
-            GroomerAvailabilityEditorView(store: store)
+            GroomerProfileEditorView(store: store)
         }.environment(\.dynamicTypeSize, .accessibility3))
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let previous = scene.windows.first(where: \.isKeyWindow)

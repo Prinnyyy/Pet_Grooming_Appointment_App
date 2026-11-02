@@ -5,6 +5,7 @@ extension GroomerProfileStore {
         editingServiceID = nil
         resetServiceForm()
         errorMessage = nil
+        actionErrorMessage = errorMessage
         noticeMessage = nil
         isShowingServiceForm = true
     }
@@ -22,6 +23,7 @@ extension GroomerProfileStore {
         serviceSpeciesConfirmed = service.acceptedSpecies != nil
         serviceIsActive = service.isActive
         errorMessage = nil
+        actionErrorMessage = errorMessage
         noticeMessage = nil
         isShowingServiceForm = true
     }
@@ -34,6 +36,7 @@ extension GroomerProfileStore {
 
     func setServiceUsesCustomSizeRange(_ isEnabled: Bool) {
         errorMessage = nil
+        actionErrorMessage = errorMessage
         noticeMessage = nil
         serviceUsesCustomSizeRange = isEnabled
 
@@ -53,6 +56,7 @@ extension GroomerProfileStore {
         else { selectedServiceSpecies.remove(species) }
         serviceSpeciesConfirmed = true
         errorMessage = nil
+        actionErrorMessage = errorMessage
         noticeMessage = nil
     }
 
@@ -75,6 +79,7 @@ extension GroomerProfileStore {
         guard !isSaving else { return }
 
         errorMessage = nil
+        actionErrorMessage = errorMessage
         noticeMessage = nil
 
         let draft: GroomerServiceDraft
@@ -82,9 +87,11 @@ extension GroomerProfileStore {
             draft = try makeServiceDraft()
         } catch let error as GroomerProfileFormError {
             errorMessage = error.message
+            actionErrorMessage = errorMessage
             return
         } catch {
             errorMessage = "Check your service details and try again."
+            actionErrorMessage = errorMessage
             return
         }
 
@@ -115,8 +122,10 @@ extension GroomerProfileStore {
             resetServiceForm()
         } catch let error as GroomerProfileRepositoryError {
             errorMessage = message(for: error, action: "save")
+            actionErrorMessage = errorMessage
         } catch {
             errorMessage = message(for: .unavailable, action: "save")
+            actionErrorMessage = errorMessage
         }
     }
 
@@ -126,6 +135,7 @@ extension GroomerProfileStore {
         isSaving = true
         profileMutationRevision += 1
         errorMessage = nil
+        actionErrorMessage = errorMessage
         noticeMessage = nil
         defer { isSaving = false }
 
@@ -135,8 +145,10 @@ extension GroomerProfileStore {
             noticeMessage = "\(service.title) was deleted."
         } catch let error as GroomerProfileRepositoryError {
             errorMessage = message(for: error, action: "delete")
+            actionErrorMessage = errorMessage
         } catch {
             errorMessage = message(for: .unavailable, action: "delete")
+            actionErrorMessage = errorMessage
         }
     }
 
@@ -159,10 +171,12 @@ extension GroomerProfileStore {
         guard !isSaving else { return }
         guard !availabilitySaveNeedsReconciliation else {
             errorMessage = "Reload the saved schedule to confirm its current state before saving again."
+            actionErrorMessage = errorMessage
             return
         }
 
         errorMessage = nil
+        actionErrorMessage = errorMessage
         noticeMessage = nil
 
         let drafts: [GroomerAvailabilityDraft]
@@ -172,9 +186,11 @@ extension GroomerProfileStore {
             preferencesDraft = try makeBookingPreferencesDraft()
         } catch let error as GroomerProfileFormError {
             errorMessage = error.message
+            actionErrorMessage = errorMessage
             return
         } catch {
             errorMessage = "Check your availability and try again."
+            actionErrorMessage = errorMessage
             return
         }
 
@@ -206,9 +222,11 @@ extension GroomerProfileStore {
             switch error {
             case .notAllowed, .availabilityUpdateRequired, .bookingOccupancyConflict:
                 errorMessage = message(for: error, action: "save availability")
+                actionErrorMessage = errorMessage
             case .availabilityConflict:
                 availabilitySaveNeedsReconciliation = true
                 errorMessage = message(for: error, action: "save availability")
+                actionErrorMessage = errorMessage
             case .networkUnavailable, .cancelled, .unavailable:
                 markAvailabilitySaveUnresolved()
             }
@@ -220,6 +238,7 @@ extension GroomerProfileStore {
     private func markAvailabilitySaveUnresolved() {
         availabilitySaveNeedsReconciliation = true
         errorMessage = "We could not confirm whether availability was saved. Your edits are still here. Reload the saved schedule before trying again."
+        actionErrorMessage = errorMessage
     }
 
     func applyAvailabilitySnapshot(_ snapshot: GroomerAvailabilitySnapshot) {
@@ -238,6 +257,7 @@ extension GroomerProfileStore {
         if let savedAvailability { applyAvailabilitySnapshot(savedAvailability) }
         availabilitySaveNeedsReconciliation = needsReconciliation
         errorMessage = nil
+        actionErrorMessage = errorMessage
         noticeMessage = nil
     }
 
@@ -272,15 +292,18 @@ extension GroomerProfileStore {
             let snapshot = try await repository.availabilitySnapshot(groomerID: groomerID)
             applyAvailabilitySnapshot(snapshot)
             errorMessage = nil
+            actionErrorMessage = errorMessage
             noticeMessage = nil
         } catch {
             errorMessage = "Could not reload availability. Your edits are still here."
+            actionErrorMessage = errorMessage
         }
     }
 
     func startCreateTimeOff() {
         resetTimeOffForm()
         errorMessage = nil
+        actionErrorMessage = errorMessage
         noticeMessage = nil
         isShowingTimeOffForm = true
     }
@@ -294,6 +317,7 @@ extension GroomerProfileStore {
         guard !isSaving else { return }
 
         errorMessage = nil
+        actionErrorMessage = errorMessage
         noticeMessage = nil
 
         let draft: GroomerTimeOffDraft
@@ -301,9 +325,11 @@ extension GroomerProfileStore {
             draft = try makeTimeOffDraft()
         } catch let error as GroomerProfileFormError {
             errorMessage = error.message
+            actionErrorMessage = errorMessage
             return
         } catch {
             errorMessage = "Check your time off dates and try again."
+            actionErrorMessage = errorMessage
             return
         }
 
@@ -328,6 +354,7 @@ extension GroomerProfileStore {
         guard !isSaving else { return }
 
         errorMessage = nil
+        actionErrorMessage = errorMessage
         noticeMessage = nil
         timeOffWindows.removeAll { $0.id == window.id }
     }
@@ -481,6 +508,7 @@ extension GroomerProfileStore {
     ) {
         if clearsNotice {
             errorMessage = nil
+            actionErrorMessage = errorMessage
             noticeMessage = nil
         }
 

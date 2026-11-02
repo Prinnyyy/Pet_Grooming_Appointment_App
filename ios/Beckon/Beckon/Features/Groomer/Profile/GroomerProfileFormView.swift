@@ -1,451 +1,166 @@
+// Profile settings, in the customer prototype's language (design). Same job as GroomerProfileEditorView in
+// Features/Groomer/Profile/GroomerProfileFormView.swift: the profile photo, the business (name, biography, years), the service area
+// (address, radius, where the work happens) and whether customers can find the profile. The store, the address editor, the focus
+// targets and the ids are the real ones. What is new is the surface (ledge sections, one pinned Save) and the order of nothing.
 import PhotosUI
 import SwiftUI
+import UIKit
 
-nonisolated enum GroomerProfileFocusTarget: String, CaseIterable, Hashable {
-    case businessName = "groomer.profile.business-name.container"
-    case biography = "groomer.profile.biography.container"
-}
 
 struct GroomerProfileEditorView: View {
     @Bindable var store: GroomerProfileStore
     @State private var addressFocusTarget: String?
+    @State private var selectedPhotoItem: PhotosPickerItem?
     @FocusState private var focusedTarget: String?
 
     var body: some View {
-        let presentation = GroomerProfileEditorPresentation(
-            isSaving: store.isSaving,
-            isBusy: store.isBusy
-        )
+        let presentation = GroomerProfileEditorPresentation(isSaving: store.isSaving, isBusy: store.isBusy)
 
-        ScrollViewReader { scrollProxy in
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    GroomerAvatarEditorSection(store: store)
-                    GroomerProfileFormSection(
-                        store: store,
-                        focusedTarget: $focusedTarget,
-                        addressFocusTarget: $addressFocusTarget
-                    )
-
-                    Button {
-                        Task {
-                            await store.saveProfile()
-                        }
-                    } label: {
-                        Text(presentation.actionTitle)
-                    }
-                    .buttonStyle(BeckonPrimaryButtonStyle(accent: .groomer))
-                    .disabled(presentation.isActionDisabled)
-                    .accessibilityIdentifier("groomer.profile.save")
+        ScrollViewReader { proxy in
+            DesignPage {
+                photo
+                details
+                area
+                visibility
+                if store.profile == nil {
+                    DesignInfoLine(systemImage: "info.circle", text: "Save your profile once these details are ready.")
                 }
-                .beckonPageInsets()
+                GroomerBarClearance()
             }
-            .beckonKeyboardAvoidance(
-                focusedTarget: focusedTarget ?? addressFocusTarget,
-                using: scrollProxy,
-                additionallyPreventsPresentationDismissal: store.isBusy
-            )
+            .beckonKeyboardAvoidance(focusedTarget: focusedTarget ?? addressFocusTarget, using: proxy,
+                additionallyPreventsPresentationDismissal: store.isBusy)
         }
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("groomer.profile.edit")
-        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
+        .scrollDismissesKeyboard(.interactively)
         .navigationTitle("Profile settings")
         .navigationBarTitleDisplayMode(.inline)
         .beckonHidesTabBar()
         .onChange(of: focusedTarget) { _, target in
             if target != nil { addressFocusTarget = nil }
         }
-        .background {
-            GroomerProfileStatusView(store: store)
+        .background { GroomerProfileStatusView(store: store) }
+        .beckonStationaryPageAction {
+            GroomerSaveBar(title: "Save profile", isSaving: store.isSaving, isDisabled: presentation.isActionDisabled,
+                identifier: "groomer.profile.save") {
+                Task { await store.saveProfile() }
+            }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("groomer.profile.edit")
     }
-}
 
-private struct GroomerAvatarEditorSection: View {
-    @Bindable var store: GroomerProfileStore
-    @State private var selectedPhotoItem: PhotosPickerItem?
+    // MARK: Photo
 
-    var body: some View {
+    private var photo: some View {
         let hasSavedPhoto = store.profile?.avatarPath != nil || store.avatarPhotoData != nil
-        let photoStatusText = hasSavedPhoto ? "Photo saved to your profile." : "Add a clear face photo."
-        let photoActionTitle = hasSavedPhoto ? "Replace Photo" : "Upload Photo"
-
-        BeckonPhotoEditorCard(
-            title: "Profile photo",
-            statusText: photoStatusText,
-            showsSavedIndicator: hasSavedPhoto,
-            savedAccessibilityLabel: "Profile photo saved"
-        ) {
-            BeckonProfileAvatar(
-                data: store.avatarPhotoData,
-                tone: .groomer,
-                size: 96,
-                cornerRadius: 48,
-                placeholderSize: 38
-            )
-            .accessibilityHidden(true)
+        return BeckonPhotoEditorCard(title: "Profile photo",
+            statusText: hasSavedPhoto ? "Photo saved to your profile." : "Add a clear face photo.",
+            showsSavedIndicator: hasSavedPhoto, savedAccessibilityLabel: "Profile photo saved") {
+            BeckonProfileAvatar(data: store.avatarPhotoData, tone: .groomer, size: DesignTokens.Metrics.profilePhoto,
+                cornerRadius: DesignTokens.Metrics.profilePhoto / 2,
+                placeholderSize: DesignTokens.Metrics.profilePhoto * 0.4)
+                .accessibilityHidden(true)
         } action: {
             PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                Label(photoActionTitle, systemImage: "camera")
+                Label(hasSavedPhoto ? "Replace Photo" : "Upload Photo", systemImage: "camera.fill")
             }
-            .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
+            .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
             .disabled(store.isBusy)
             .accessibilityIdentifier("groomer.profile.avatar.upload")
         }
-        .onChange(of: selectedPhotoItem) { _, newItem in
-            guard let newItem else { return }
-            Task {
-                await upload(newItem)
-            }
+        .onChange(of: selectedPhotoItem) { _, item in
+            guard let item else { return }
+            Task { await upload(item) }
         }
     }
 
     private func upload(_ item: PhotosPickerItem) async {
         defer { selectedPhotoItem = nil }
-
         guard let data = try? await item.loadTransferable(type: Data.self) else {
             store.errorMessage = "We could not read that photo."
+            store.actionErrorMessage = store.errorMessage
             return
         }
-
-        let contentType = item.supportedContentTypes
-            .lazy
-            .compactMap(GroomerAvatarPhotoContentType.init(uniformType:))
-            .first ?? .jpeg
-
-        guard let payload = GroomerAvatarImageEncoder.displayablePayload(
-            from: data,
-            preferredContentType: contentType
-        ) else {
+        let contentType = item.supportedContentTypes.lazy.compactMap(GroomerAvatarPhotoContentType.init(uniformType:)).first ?? .jpeg
+        guard let payload = GroomerAvatarImageEncoder.displayablePayload(from: data, preferredContentType: contentType) else {
             store.errorMessage = "We could not read that photo."
+            store.actionErrorMessage = store.errorMessage
             return
         }
-
-        await store.uploadAvatarPhoto(
-            data: payload.data,
-            contentType: payload.contentType
-        )
-    }
-}
-
-private struct GroomerProfileFormSection: View {
-    @Bindable var store: GroomerProfileStore
-    @FocusState.Binding var focusedTarget: String?
-    @Binding var addressFocusTarget: String?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-            BeckonSection(
-                "Business details",
-                subtitle: "Name, biography, and professional experience."
-            ) {
-                BeckonGroupedSurface {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                        GroomerProfileTextField(
-                            title: "Business name",
-                            text: $store.businessName,
-                            prompt: "Business name",
-                            focusTarget: GroomerProfileFocusTarget.businessName.rawValue,
-                            focusedTarget: $focusedTarget
-                        )
-                        .textContentType(.organizationName)
-
-                        GroomerProfileTextField(
-                            title: "Biography",
-                            text: $store.bio,
-                            prompt: "Biography",
-                            axis: .vertical,
-                            focusTarget: GroomerProfileFocusTarget.biography.rawValue,
-                            focusedTarget: $focusedTarget
-                        )
-                        .lineLimit(3...6)
-
-                        GroomerExperiencePicker(selection: $store.yearsExperience)
-                    }
-                    .padding(DesignTokens.Spacing.lg)
-                }
-            }
-
-            BeckonSection(
-                "Service area",
-                subtitle: "Address and travel preferences used for matching."
-            ) {
-                BeckonGroupedSurface {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                        BeckonAddressEditor(
-                            state: store.addressEditorState,
-                            onFieldFocused: { target in
-                                focusedTarget = nil
-                                addressFocusTarget = target
-                            }
-                        )
-
-                        BeckonGroupedDivider()
-
-                        GroomerProfileRadiusSlider(radius: $store.serviceRadiusMiles)
-                        GroomerProfileLocationModePicker(selection: $store.serviceLocationModes)
-                    }
-                    .padding(DesignTokens.Spacing.lg)
-                }
-            }
-
-            BeckonSection(
-                "Visibility",
-                subtitle: "Control whether your profile can receive requests."
-            ) {
-                BeckonGroupedSurface {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                        GroomerProfileToggleRow(
-                            title: "Visible to authenticated customers",
-                            subtitle: "Customers can discover and receive offers from active groomer profiles.",
-                            systemImage: "eye",
-                            isOn: $store.isActive
-                        )
-
-                        if let profile = store.profile {
-                            ProfileBadges(profile: profile)
-                        }
-                    }
-                    .padding(DesignTokens.Spacing.lg)
-                }
-            }
-
-            if store.profile == nil {
-                Text("Save your profile once these details are ready.")
-                    .font(DesignTokens.Typography.caption)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-}
-
-struct GroomerProfileTextField: View {
-    let title: String
-    @Binding var text: String
-    let prompt: String
-    let axis: Axis
-    let focusTarget: String
-    @FocusState.Binding var focusedTarget: String?
-
-    init(
-        title: String,
-        text: Binding<String>,
-        prompt: String,
-        axis: Axis = .horizontal,
-        focusTarget: String,
-        focusedTarget: FocusState<String?>.Binding
-    ) {
-        self.title = title
-        _text = text
-        self.prompt = prompt
-        self.axis = axis
-        self.focusTarget = focusTarget
-        self._focusedTarget = focusedTarget
+        await store.uploadAvatarPhoto(data: payload.data, contentType: payload.contentType)
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text(title)
-                .font(DesignTokens.Typography.caption)
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
+    // MARK: Sections
 
-            TextField(prompt, text: $text, axis: axis)
-                .focused($focusedTarget, equals: focusTarget)
-                .beckonFormField()
-                .tint(DesignTokens.Colors.groomerDeep)
-        }
-        .beckonKeyboardFocusTarget(focusTarget)
-    }
-}
-
-private struct GroomerExperiencePicker: View {
-    @Binding var selection: Int
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("Years of experience")
-                .font(DesignTokens.Typography.caption)
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-
-            Menu {
-                ForEach(0...5, id: \.self) { years in
-                    Button(label(for: years)) {
-                        selection = years
+    private var details: some View {
+        DesignSection(title: "Business details", systemImage: "briefcase.fill", spacing: DesignTokens.Spacing.lg) {
+            GroomerTextField(title: "Business name", text: $store.businessName, prompt: "Business name",
+                focusTarget: GroomerProfileFocusTarget.businessName.rawValue, focusedTarget: $focusedTarget)
+                .textContentType(.organizationName)
+            GroomerTextField(title: "Biography", text: $store.bio, prompt: "Biography", axis: .vertical,
+                focusTarget: GroomerProfileFocusTarget.biography.rawValue, focusedTarget: $focusedTarget)
+                .lineLimit(3...6)
+            GroomerCaptioned(title: "Years of experience") {
+                Menu {
+                    ForEach(0...5, id: \.self) { years in
+                        Button(Self.yearsTitle(years)) { store.yearsExperience = years }
                     }
+                } label: {
+                    GroomerMenuLabel(text: Self.yearsTitle(store.yearsExperience))
                 }
-            } label: {
-                HStack {
-                    Text(label(for: selection))
-                        .font(DesignTokens.Typography.body.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                    Spacer(minLength: DesignTokens.Spacing.xs)
-
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                }
-                .beckonFormField()
+                .accessibilityIdentifier("groomer.profile.years")
             }
         }
     }
 
-    private func label(for years: Int) -> String {
+    private static func yearsTitle(_ years: Int) -> String {
         years >= 5 ? "5+ Years" : "\(max(0, years)) Year\(years == 1 ? "" : "s")"
     }
-}
 
-private struct GroomerProfileRadiusSlider: View {
-    @Binding var radius: Int
+    private var area: some View {
+        DesignSection(title: "Service area", systemImage: "mappin.and.ellipse", spacing: DesignTokens.Spacing.lg) {
+            BeckonAddressEditor(state: store.addressEditorState, onFieldFocused: { target in
+                focusedTarget = nil
+                addressFocusTarget = target
+            })
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("Service radius")
-                    .font(DesignTokens.Typography.caption)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-
-                Spacer()
-
-                Text(radius >= 50 ? "50+ mi" : "\(radius) mi")
-                    .font(DesignTokens.Typography.body.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.groomerInk)
+            GroomerCaptioned(title: "Service radius") {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text(store.serviceRadiusMiles >= 50 ? "50+ mi" : "\(store.serviceRadiusMiles) mi")
+                        .font(DesignTokens.Typography.Expressive.title)
+                        .foregroundStyle(DesignTokens.Colors.customerDeep)
+                    Slider(value: Binding(get: { Double(store.serviceRadiusMiles) },
+                        set: { store.serviceRadiusMiles = min(max(Int($0.rounded()), 5), 50) }), in: 5...50, step: 1)
+                        .tint(DesignTokens.Colors.customerDeep)
+                        .accessibilityLabel("Service radius")
+                    Text("Use 50+ when you cover a wider service area.").designSupportingText()
+                }
             }
 
-            Slider(
-                value: Binding(
-                    get: { Double(radius) },
-                    set: { radius = min(max(Int($0.rounded()), 5), 50) }
-                ),
-                in: 5...50,
-                step: 1
-            )
-            .tint(DesignTokens.Colors.groomerDeep)
-
-            Text("Use 50+ when you cover a wider service area.")
-                .font(DesignTokens.Typography.caption)
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
+            GroomerCaptioned(title: "Service location") {
+                BeckonGroomingLocationModeSelector(selection: store.serviceLocationModes, selectionPolicy: .multiple,
+                    perspective: .groomer, accent: .groomer) { store.serviceLocationModes = $0 }
+            }
         }
     }
-}
 
-private struct GroomerProfileStatePicker: View {
-    let title: String
-    @Binding var selection: USStateCode?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text(title)
-                .font(DesignTokens.Typography.caption)
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-
-            Menu {
-                ForEach(USStateCode.allCases) { state in
-                    Button(state.rawValue) {
-                        selection = state
+    private var visibility: some View {
+        DesignSection(title: "Visibility", systemImage: "eye.fill", spacing: DesignTokens.Spacing.lg) {
+            GroomerToggleRow(title: "Visible to authenticated customers",
+                subtitle: "Customers can discover and receive offers from active groomer profiles.", isOn: $store.isActive,
+                identifier: "groomer.profile.visible")
+            if let profile = store.profile, profile.ratingCount > 0 || profile.isVerified {
+                BeckonFlowLayout(spacing: DesignTokens.Spacing.sm, rowSpacing: DesignTokens.Spacing.sm) {
+                    if let average = profile.exactRatingAverage {
+                        BeckonStatusChip(.rating(average: average, count: profile.ratingCount))
                     }
+                    if profile.isVerified { BeckonStatusChip(.verified) }
                 }
-            } label: {
-                HStack {
-                    Text(selection?.rawValue ?? "State")
-                        .foregroundStyle(
-                            selection == nil
-                                ? DesignTokens.Colors.textSecondary
-                                : DesignTokens.Colors.textPrimary
-                        )
-
-                    Spacer(minLength: DesignTokens.Spacing.xs)
-
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                }
-                .beckonFormField()
             }
         }
     }
 }
 
-private struct GroomerProfileLocationModePicker: View {
-    @Binding var selection: Set<GroomingLocationMode>
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("Service location")
-                .font(DesignTokens.Typography.caption)
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-
-            BeckonGroomingLocationModeSelector(
-                selection: selection,
-                selectionPolicy: .multiple,
-                perspective: .groomer,
-                accent: .groomer
-            ) { newSelection in
-                selection = newSelection
-            }
-        }
-    }
-}
-
-private struct GroomerProfileToggleRow: View {
-    let title: String
-    let subtitle: String?
-    let systemImage: String
-    @Binding var isOn: Bool
-
-    init(
-        title: String,
-        subtitle: String? = nil,
-        systemImage: String,
-        isOn: Binding<Bool>
-    ) {
-        self.title = title
-        self.subtitle = subtitle
-        self.systemImage = systemImage
-        _isOn = isOn
-    }
-
-    var body: some View {
-        HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-            Image(systemName: systemImage)
-                .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.groomerInk)
-                .frame(
-                    width: DesignTokens.Spacing.xl,
-                    height: DesignTokens.Spacing.xl
-                )
-                .background(DesignTokens.Colors.groomerTint)
-                .clipShape(DesignTokens.Shapes.circular)
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(title)
-                    .font(DesignTokens.Typography.body.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                if let subtitle {
-                    Text(subtitle)
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            Toggle(title, isOn: $isOn)
-                .labelsHidden()
-                .tint(DesignTokens.Colors.groomerDeep)
-        }
-        .padding(DesignTokens.Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
-                .fill(DesignTokens.Colors.iconTileFill)
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
-                .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
-        }
-        .accessibilityElement(children: .combine)
-    }
+nonisolated enum GroomerProfileFocusTarget: String, CaseIterable, Hashable {
+    case businessName = "groomer.profile.business-name.container"
+    case biography = "groomer.profile.biography.container"
 }

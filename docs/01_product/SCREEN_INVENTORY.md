@@ -86,3 +86,5 @@ All files below are Tier M except the Tier L authentication landing. The existin
 D-069 / P3 adopts groomer Requests and its shared row/detail/form/pet blocks as Tier M. Matches contains unanswered requests; Offers is grouped by workflow stage; the same detail follows a request through offer and booking.
 
 Handoff 4 P5 (D-069): `Features/Chat/ChatBookingCard.swift` owns the shared Tier M booking ticket for both roles. Chat thread text/composer remain calm, cached content and header Updating remain; ticket has no entrance.
+
+Handoff 4 P6 (D-069): Groomer Account and its six profile/editor/evidence pages in `Features/Groomer/Profile/` adopt Tier M with the shared `GroomerAccountParts` pinned save/switch/field kit. Existing Store/repository ownership remains; ProfileManagement is a compatibility entry, Account root uses the shell-owned Store. Role onboarding adopts Tier M and previews the selected role accent. Auto-ready is removed, its backend compatibility field retained.

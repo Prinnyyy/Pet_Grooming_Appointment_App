@@ -1,356 +1,345 @@
+// The groomer's portfolio, in the customer prototype's language (design) and laid out from what it is for (design). Same job as
+// GroomerPortfolioEditorView in Features/Groomer/Profile/GroomerPortfolioEditorView.swift: the gallery of finished work that customers
+// see on the groomer's profile, and one photo's page, where the groomer says which skills the work shows (its fit notes, up to six).
+// The store, the upload, the tag limit and the ids are the real ones. What the page is for: add work, and say what each photo proves,
+// because a photo with no fit notes proves nothing to the matching. So the gallery is a grid of tiles built alike (the picture, its
+// name, its first fit note and how many more) with the add tile first in the grid, a photo with no fit notes says so in amber, and
+// one line over the grid says how many are still to do. The photo's page counts the notes (3 of 6) and stops offering more at six.
 import PhotosUI
 import SwiftUI
+
 
 struct GroomerPortfolioEditorView: View {
     @Bindable var store: GroomerProfileStore
     @State private var selectedPhotoItem: PhotosPickerItem?
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
-        let presentation = GroomerPortfolioWorkspacePresentation(
-            photoCount: store.portfolioPhotos.count,
-            isUploading: store.isUploading,
-            isBusy: store.isBusy
-        )
+        let presentation = GroomerPortfolioWorkspacePresentation(photoCount: store.portfolioPhotos.count,
+            isUploading: store.isUploading, isBusy: store.isBusy)
+        let photos = store.sortedPortfolioPhotos()
+        let unfinished = photos.filter { store.portfolioFitTags(for: $0).isEmpty }.count
 
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                GroomerPortfolioGallerySection(
-                    photos: store.sortedPortfolioPhotos(),
-                    store: store,
-                    presentation: presentation
-                )
-            }
-            .beckonPageInsets()
-        }
-        .accessibilityIdentifier("groomer.portfolio.edit")
-        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
-        .navigationTitle("Portfolio")
-        .navigationBarTitleDisplayMode(.inline)
-        .beckonHidesTabBar()
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                addPhotoPicker(disabled: presentation.isAddDisabled)
-            }
-        }
-        .onChange(of: selectedPhotoItem) { _, newItem in
-            guard let newItem else { return }
-            Task {
-                await upload(newItem)
-            }
-        }
-    }
-
-    private func upload(_ item: PhotosPickerItem) async {
-        defer { selectedPhotoItem = nil }
-
-        guard let data = try? await item.loadTransferable(type: Data.self) else {
-            store.errorMessage = "We could not read that photo."
-            return
-        }
-
-        let contentType = item.supportedContentTypes
-            .lazy
-            .compactMap(GroomerPortfolioPhotoContentType.init(uniformType:))
-            .first ?? .jpeg
-
-        await store.uploadPortfolioPhoto(
-            data: data,
-            contentType: contentType
-        )
-    }
-
-    private func addPhotoPicker(disabled: Bool) -> some View {
-        PhotosPicker(
-            selection: $selectedPhotoItem,
-            matching: .images
-        ) {
-            Image(systemName: "plus")
-        }
-        .accessibilityLabel("Add portfolio photo")
-        .accessibilityIdentifier("groomer.portfolio.add")
-        .disabled(disabled)
-    }
-}
-
-private struct GroomerPortfolioGallerySection: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    let photos: [GroomerPortfolioPhoto]
-    @Bindable var store: GroomerProfileStore
-    let presentation: GroomerPortfolioWorkspacePresentation
-
-    var body: some View {
-        BeckonSection(
-            "Work gallery",
-            subtitle: "Show customers the grooming work that represents your skills."
-        ) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                if let uploadStatus = presentation.uploadStatus {
-                    BeckonGroupedSurface {
-                        HStack(spacing: DesignTokens.Spacing.md) {
-                            ProgressView()
-                                .tint(DesignTokens.Colors.groomerDeep)
-
-                            Text(uploadStatus)
-                                .font(DesignTokens.Typography.supporting)
-                                .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        }
-                        .padding(DesignTokens.Layout.surfaceInset)
-                    }
-                    .accessibilityElement(children: .combine)
+        DesignPage {
+            if let status = presentation.uploadStatus {
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    ProgressView().tint(DesignTokens.Colors.customerDeep)
+                    Text(status).designSupportingText()
                 }
-
-                if photos.isEmpty {
-                    GroomerPortfolioEmptyState()
-                        .accessibilityIdentifier("groomer.portfolio.empty")
-                } else {
-                    LazyVGrid(
-                        columns: dynamicTypeSize.isAccessibilitySize ? [GridItem(.flexible())] : Self.photoGridColumns,
-                        alignment: .leading,
-                        spacing: DesignTokens.Spacing.lg
-                    ) {
+                .designCardBody()
+                .accessibilityElement(children: .combine)
+            }
+            if photos.isEmpty {
+                firstPhoto(disabled: presentation.isAddDisabled)
+            } else {
+                VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
+                    BeckonLedgeHeading(title: "Work gallery", systemImage: "photo.on.rectangle", count: photos.count)
+                    if unfinished > 0 {
+                        DesignInfoLine(systemImage: "sparkles",
+                            text: unfinished == 1 ? "1 photo has no fit notes yet" : "\(unfinished) photos have no fit notes yet")
+                    }
+                    LazyVGrid(columns: typeSize.isAccessibilitySize ? [GridItem(.flexible())] : Self.columns,
+                        alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                        addTile(disabled: presentation.isAddDisabled)
                         ForEach(photos) { photo in
                             NavigationLink {
-                                GroomerPortfolioPhotoDetailView(
-                                    photo: photo,
-                                    store: store
-                                )
+                                GroomerPortfolioPhotoView(photo: photo, store: store)
                             } label: {
-                                GroomerPortfolioPhotoTile(
-                                    photo: photo,
-                                    store: store
-                                )
+                                GroomerPortfolioTile(photo: photo, store: store)
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(BeckonLedgeButtonStyle(.card))
                             .accessibilityIdentifier("groomer.portfolio.photo-card")
                         }
                     }
                 }
             }
-        } trailing: {
-                Text(presentation.photoSummary)
-                    .font(DesignTokens.Typography.status)
-                    .foregroundStyle(DesignTokens.Colors.groomerInk)
         }
+        .navigationTitle("Portfolio")
+        .navigationBarTitleDisplayMode(.inline)
+        .beckonHidesTabBar()
+        .background { GroomerProfileStatusView(store: store) }
+        .onChange(of: selectedPhotoItem) { _, item in
+            guard let item else { return }
+            Task { await upload(item) }
+        }
+        .accessibilityIdentifier("groomer.portfolio.edit")
     }
 
-    private static let photoGridColumns = [
-        GridItem(.flexible(), spacing: DesignTokens.Spacing.md),
-        GridItem(.flexible(), spacing: DesignTokens.Spacing.md),
+    /// Two columns whose cells start at the same line, whatever their words take.
+    private static let columns = [
+        GridItem(.flexible(), spacing: DesignTokens.Spacing.md, alignment: .top),
+        GridItem(.flexible(), spacing: DesignTokens.Spacing.md, alignment: .top),
     ]
-}
 
-private struct GroomerPortfolioEmptyState: View {
-    var body: some View {
-        BeckonGroupedSurface {
-            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                Image(systemName: "photo.on.rectangle")
-                    .font(.body.weight(.semibold))
+    /// The first tile of the grid: built like a photo's (a square, a name, a line), so every tile of a row is as tall as its neighbour.
+    private func addTile(disabled: Bool) -> some View {
+        PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                Color.clear
+                    .aspectRatio(1, contentMode: .fit)
+                    .overlay {
+                        DesignIconDisc(systemImage: "plus", size: .large, font: DesignTokens.Typography.Expressive.glyph)
+                    }
+                Text("Add work photo")
+                    .font(DesignTokens.Typography.Expressive.emphasis)
+                    .foregroundStyle(DesignTokens.Colors.customerDeep)
+                    .lineLimit(typeSize.isAccessibilitySize ? nil : 1)
+                Text("From your photos")
+                    .font(DesignTokens.Typography.Expressive.chip)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .frame(width: 28, height: 28)
-                    .accessibilityHidden(true)
+                    .lineLimit(1)
+            }
+            .padding(DesignTokens.Spacing.sm)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .buttonStyle(BeckonLedgeButtonStyle(.dashed))
+        .disabled(disabled)
+        .accessibilityLabel("Add portfolio photo")
+        .accessibilityIdentifier("groomer.portfolio.add")
+    }
 
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text("No work photos")
-                        .font(DesignTokens.Typography.body.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-
+    /// No photo yet: the whole card is the way to add one, and it says why to.
+    private func firstPhoto(disabled: Bool) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
+            PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                VStack(spacing: DesignTokens.Spacing.md) {
+                    DesignIconDisc(systemImage: "plus", size: .large, font: DesignTokens.Typography.Expressive.glyph)
+                    Text("Add your first work photo")
+                        .font(DesignTokens.Typography.Expressive.title)
+                        .foregroundStyle(DesignTokens.Colors.customerDeep)
+                        .multilineTextAlignment(.center)
                     Text("Add finished grooming work to give customers a clear view of your style.")
-                        .font(DesignTokens.Typography.caption)
+                        .font(DesignTokens.Typography.Expressive.supporting)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                .padding(DesignTokens.Spacing.xl)
+                .frame(maxWidth: .infinity)
             }
-            .padding(DesignTokens.Spacing.lg)
+            .buttonStyle(BeckonLedgeButtonStyle(.dashed))
+            .disabled(disabled)
+            .accessibilityLabel("Add portfolio photo")
+            .accessibilityIdentifier("groomer.portfolio.add")
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("groomer.portfolio.empty")
+    }
+
+    private func upload(_ item: PhotosPickerItem) async {
+        defer { selectedPhotoItem = nil }
+        guard let data = try? await item.loadTransferable(type: Data.self) else {
+            store.errorMessage = "We could not read that photo."
+            store.actionErrorMessage = store.errorMessage
+            return
+        }
+        let contentType = item.supportedContentTypes.lazy.compactMap(GroomerPortfolioPhotoContentType.init(uniformType:)).first ?? .jpeg
+        await store.uploadPortfolioPhoto(data: data, contentType: contentType)
     }
 }
 
-private struct GroomerPortfolioPhotoTile: View {
+
+/// A photo of the gallery: the picture, what it is called, and its first fit note with how many more there are; or, when it has none,
+/// the one thing to do about it. Two lines under the picture, always, so the tiles of a row are as tall as each other.
+private struct GroomerPortfolioTile: View {
     let photo: GroomerPortfolioPhoto
     @Bindable var store: GroomerProfileStore
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            GroomerPortfolioPhotoArtwork(
-                data: store.portfolioPhotoData(for: photo),
-                isUnavailable: store.isPortfolioPhotoDataUnavailable(photo)
-            )
-
-            Text(captionText ?? "Work photo")
-                .font(DesignTokens.Typography.body.weight(.semibold))
+            GroomerPortfolioArtwork(data: store.portfolioPhotoData(for: photo), isUnavailable: store.isPortfolioPhotoDataUnavailable(photo))
+            Text(caption ?? "Work photo")
+                .font(DesignTokens.Typography.Expressive.emphasis)
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text(store.portfolioFitTagSummary(for: photo))
-                .font(DesignTokens.Typography.caption)
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Label("Edit fit notes", systemImage: "chevron.right")
-                .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.groomerInk)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(typeSize.isAccessibilitySize ? nil : 1)
+            notes
         }
+        .padding(DesignTokens.Spacing.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
     }
 
-    private var captionText: String? {
-        guard let caption = photo.caption?.trimmingCharacters(
-            in: .whitespacesAndNewlines
-        ), !caption.isEmpty else {
-            return nil
-        }
-        return caption
-    }
-}
-
-private struct GroomerPortfolioPhotoDetailView: View {
-    let photo: GroomerPortfolioPhoto
-    @Bindable var store: GroomerProfileStore
-    @Environment(\.dismiss) private var dismiss
-    @State private var isShowingDeleteConfirmation = false
-
-    var body: some View {
-        let presentation = GroomerPortfolioFitNotesPresentation(
-            selectedTagCount: store.selectedPortfolioFitTagIDsByPhotoID[photo.id]?.count ?? 0,
-            maximumTagCount: GroomerPortfolioFitTag.maximumTagsPerPhoto,
-            isSaving: store.isSaving,
-            isBusy: store.isBusy || !store.canEditPortfolioTags
-        )
-
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                GroomerPortfolioPhotoArtwork(
-                    data: store.portfolioPhotoData(for: photo),
-                    isUnavailable: store.isPortfolioPhotoDataUnavailable(photo),
-                    aspectRatio: 4 / 3
-                )
-                .accessibilityIdentifier("groomer.portfolio.photo-artwork")
-
-                GroomerPortfolioPhotoDetailSummary(
-                    title: captionText ?? "Work photo",
-                    fitNoteSummary: store.portfolioFitTagSummary(for: photo)
-                )
-
-                GroomerPortfolioFitNotesEditorSection(
-                    photo: photo,
-                    store: store,
-                    presentation: presentation
-                )
+    @ViewBuilder
+    private var notes: some View {
+        let tags = store.portfolioFitTags(for: photo)
+        if let first = tags.first {
+            // The count of the others is its own piece, so a long first note is cut and the count never is.
+            HStack(spacing: DesignTokens.Spacing.xs) {
+                Text(first.signal.title)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .lineLimit(typeSize.isAccessibilitySize ? nil : 1)
+                if tags.count > 1 {
+                    Text("+\(tags.count - 1)")
+                        .foregroundStyle(DesignTokens.Colors.customerDeep)
+                        .fixedSize()
+                        .accessibilityLabel("\(tags.count - 1) more")
+                }
             }
-            .beckonPageInsets()
-        }
-        .accessibilityIdentifier("groomer.portfolio.detail")
-        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
-        .navigationTitle("Portfolio photo")
-        .navigationBarTitleDisplayMode(.inline)
-        .beckonHidesTabBar()
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            GroomerPortfolioFitNotesSaveBar(
-                presentation: presentation,
-                showDeleteConfirmation: { isShowingDeleteConfirmation = true },
-                save: saveFitNotes
-            )
-        }
-        .confirmationDialog(
-            "Delete this portfolio photo?",
-            isPresented: $isShowingDeleteConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("Delete Photo", role: .destructive, action: deletePhoto)
-        } message: {
-            Text("This removes the photo and its fit notes from your portfolio.")
+            .font(DesignTokens.Typography.Expressive.chip)
+        } else {
+            Label("Add fit notes", systemImage: "sparkles")
+                .font(DesignTokens.Typography.Expressive.chip)
+                .foregroundStyle(DesignTokens.Colors.statusWarningText)
+                .lineLimit(typeSize.isAccessibilitySize ? nil : 1)
         }
     }
 
-    private var captionText: String? {
-        guard let caption = photo.caption?.trimmingCharacters(
-            in: .whitespacesAndNewlines
-        ), !caption.isEmpty else {
-            return nil
-        }
-        return caption
-    }
-
-    private func saveFitNotes() {
-        Task {
-            await store.savePortfolioFitTags(for: photo)
-        }
-    }
-
-    private func deletePhoto() {
-        Task {
-            await store.deletePortfolioPhoto(photo)
-            if !store.portfolioPhotos.contains(where: { $0.id == photo.id }) {
-                dismiss()
-            }
-        }
+    private var caption: String? {
+        guard let value = photo.caption?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { return nil }
+        return value
     }
 }
 
-private struct GroomerPortfolioPhotoDetailSummary: View {
-    let title: String
-    let fitNoteSummary: String
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            Text(title)
-                .font(DesignTokens.Typography.title)
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text(fitNoteSummary)
-                .font(DesignTokens.Typography.body)
-                .foregroundStyle(DesignTokens.Colors.textTertiary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-private struct GroomerPortfolioPhotoArtwork: View {
+/// The picture, or what stands in for it while it loads or when it could not.
+private struct GroomerPortfolioArtwork: View {
     let data: Data?
     let isUnavailable: Bool
     var aspectRatio: CGFloat = 1
 
     var body: some View {
-        let presentation = GroomerPortfolioArtworkPresentation(
-            hasImageData: data != nil,
-            isUnavailable: isUnavailable
-        )
-
+        let presentation = GroomerPortfolioArtworkPresentation(hasImageData: data != nil, isUnavailable: isUnavailable)
         BeckonModuleImage(data: data) {
-            ZStack {
-                Rectangle()
-                    .fill(presentation.backgroundColor)
-
-                VStack(spacing: DesignTokens.Spacing.xs) {
-                    Image(systemName: presentation.systemImage)
-                        .font(DesignTokens.Typography.headline)
-                        .foregroundStyle(presentation.foregroundColor)
-
-                    if let title = presentation.title {
-                        Text(title)
-                            .font(DesignTokens.Typography.caption.weight(.semibold))
-                            .foregroundStyle(presentation.foregroundColor)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, DesignTokens.Spacing.xs)
-                    }
+            VStack(spacing: DesignTokens.Spacing.xs) {
+                Image(systemName: presentation.systemImage)
+                    .font(DesignTokens.Typography.Expressive.glyph)
+                if let title = presentation.title {
+                    Text(title)
+                        .font(DesignTokens.Typography.Expressive.chip)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, DesignTokens.Spacing.xs)
                 }
             }
+            .foregroundStyle(presentation.isUnavailable ? DesignTokens.Colors.statusWarningText : DesignTokens.Colors.customerDeep)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(presentation.isUnavailable ? DesignTokens.Colors.surface : DesignTokens.Colors.customerTint)
         }
         .frame(maxWidth: .infinity)
         .aspectRatio(aspectRatio, contentMode: .fit)
         .clipped()
-        .clipShape(
-            RoundedRectangle(
-                cornerRadius: 8,
-                style: .continuous
-            )
-        )
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.inset, style: .continuous))
         .accessibilityLabel(presentation.accessibilityLabel)
+    }
+}
+
+
+// MARK: One photo
+
+/// One photo's page: the picture and its name, then what it shows (fit notes, up to six, counted), with Save beside Delete.
+struct GroomerPortfolioPhotoView: View {
+    let photo: GroomerPortfolioPhoto
+    @Bindable var store: GroomerProfileStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var isConfirmingDelete = false
+
+    var body: some View {
+        let chosen = store.selectedPortfolioFitTagIDsByPhotoID[photo.id]?.count ?? 0
+        let presentation = GroomerPortfolioFitNotesPresentation(
+            selectedTagCount: chosen,
+            maximumTagCount: GroomerPortfolioFitTag.maximumTagsPerPhoto,
+            isSaving: store.isSaving,
+            isBusy: store.isBusy || !store.canEditPortfolioTags
+        )
+
+        DesignPage {
+            GroomerPortfolioArtwork(data: store.portfolioPhotoData(for: photo),
+                isUnavailable: store.isPortfolioPhotoDataUnavailable(photo), aspectRatio: 4 / 3)
+                .accessibilityIdentifier("groomer.portfolio.photo-artwork")
+            Text(caption ?? "Work photo")
+                .font(DesignTokens.Typography.Expressive.section)
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            fitNotes(chosen: chosen)
+            GroomerBarClearance()
+        }
+        .navigationTitle("Portfolio photo")
+        .navigationBarTitleDisplayMode(.inline)
+        .beckonHidesTabBar()
+        .background { GroomerProfileStatusView(store: store) }
+        .beckonStationaryPageAction {
+            GroomerSaveBar(title: "Save fit notes", isSaving: store.isSaving, isDisabled: presentation.isSaveDisabled,
+                identifier: "groomer.portfolio.tags.save", leading: {
+                    Button { isConfirmingDelete = true } label: {
+                        Image(systemName: "trash")
+                            .font(DesignTokens.Typography.Expressive.glyph)
+                            .foregroundStyle(DesignTokens.Colors.statusErrorText)
+                            .frame(width: DesignTokens.Metrics.ledgePrimaryButtonHeight, height: DesignTokens.Metrics.ledgePrimaryButtonHeight)
+                            .beckonLedge(.round)
+                    }
+                    .disabled(presentation.isSaveDisabled)
+                    .accessibilityLabel("Delete portfolio photo")
+                    .accessibilityIdentifier("groomer.portfolio.delete")
+                }) {
+                Task { await store.savePortfolioFitTags(for: photo) }
+            }
+        }
+        .designAlertDialog(isPresented: $isConfirmingDelete) {
+            .destructive(title: "Delete this portfolio photo?", message: "This removes the photo and its fit notes from your portfolio.",
+                systemImage: "trash.fill", keepTitle: "Keep it", confirmTitle: "Delete photo", confirmSystemImage: "trash",
+                confirmIdentifier: "groomer.portfolio.delete.confirm") {
+                Task {
+                    await store.deletePortfolioPhoto(photo)
+                    if !store.portfolioPhotos.contains(where: { $0.id == photo.id }) { dismiss() }
+                }
+            }
+        }
+        .accessibilityIdentifier("groomer.portfolio.detail")
+    }
+
+    private var caption: String? {
+        guard let value = photo.caption?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { return nil }
+        return value
+    }
+
+    /// What the photo shows. Six is all a photo can say: at six the skills left over are dimmed, and the heading says "6 of 6".
+    private func fitNotes(chosen: Int) -> some View {
+        let isFull = chosen >= GroomerPortfolioFitTag.maximumTagsPerPhoto
+        return VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
+            BeckonLedgeHeading(title: "Fit notes", systemImage: "sparkles",
+                detail: "\(chosen) of \(GroomerPortfolioFitTag.maximumTagsPerPhoto)")
+            Text("Connect this work sample to the skills it demonstrates.").designSupportingText()
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                if !store.canEditPortfolioTags {
+                    if store.isLoadingOptionalMetadata {
+                        HStack(spacing: DesignTokens.Spacing.md) {
+                            ProgressView().tint(DesignTokens.Colors.customerDeep)
+                            Text("Loading fit notes…").designSupportingText()
+                        }
+                    } else {
+                        DesignInfoLine(systemImage: "exclamationmark.triangle.fill", text: "Fit notes could not be refreshed.")
+                        Button { Task { await store.load() } } label: {
+                            DesignQuietAction(title: "Retry", systemImage: "arrow.clockwise")
+                        }
+                        .buttonStyle(BeckonGuardedPlainButtonStyle())
+                    }
+                }
+                if store.hasLoadedPortfolioTags {
+                    ForEach(Self.groups) { group in
+                        GroomerCaptioned(title: group.beckonTitle) {
+                            BeckonFlowLayout(spacing: DesignTokens.Spacing.sm, rowSpacing: DesignTokens.Spacing.sm) {
+                                ForEach(GroomerPortfolioFitTag.availableSignals.filter { $0.group == group }) { signal in
+                                    let isSelected = store.isPortfolioFitTagSelected(signal, for: photo)
+                                    DesignChoiceChip(title: signal.title, isSelected: isSelected) {
+                                        store.togglePortfolioFitTag(signal, for: photo)
+                                    }
+                                    .disabled(!store.canEditPortfolioTags || (isFull && !isSelected))
+                                    .accessibilityLabel("\(signal.title) portfolio fit tag")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .designCardBody()
+        }
+    }
+
+    private static var groups: [PetFitSignal.Group] {
+        [.coatType, .careFlag, .serviceFit].filter { group in
+            GroomerPortfolioFitTag.availableSignals.contains { $0.group == group }
+        }
     }
 }
 

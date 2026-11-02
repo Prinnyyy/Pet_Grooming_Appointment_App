@@ -279,6 +279,7 @@ private extension UserRole {
 }
 
 struct AccountDangerActionsSkeleton: View {
+    var showsDelete = true
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
             DesignSkeletonLine(width: 0.3, font: DesignTokens.Typography.Expressive.emphasis)
@@ -286,10 +287,12 @@ struct AccountDangerActionsSkeleton: View {
                 .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.ledgePrimaryButtonHeight)
                 .beckonLedge(.card)
 
+            if showsDelete {
             DesignSkeletonLine(width: 0.34)
                 .designSkeletonOnPage()
                 .designSkeleton(label: nil)
                 .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.minimumTouchTarget)
+            }
         }
     }
 }

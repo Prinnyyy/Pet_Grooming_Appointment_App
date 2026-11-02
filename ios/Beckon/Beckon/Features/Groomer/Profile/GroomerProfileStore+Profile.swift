@@ -5,6 +5,7 @@ extension GroomerProfileStore {
         guard !isSaving else { return }
 
         errorMessage = nil
+        actionErrorMessage = errorMessage
         noticeMessage = nil
 
         let draft: GroomerProfileDraft
@@ -14,9 +15,11 @@ extension GroomerProfileStore {
             confirmedAddress = try confirmedAddressForSave()
         } catch let error as GroomerProfileFormError {
             errorMessage = error.message
+            actionErrorMessage = errorMessage
             return
         } catch {
             errorMessage = "Check your profile details and try again."
+            actionErrorMessage = errorMessage
             return
         }
 
@@ -42,8 +45,10 @@ extension GroomerProfileStore {
         } catch GroomerProfileRepositoryError.cancelled {
         } catch let error as GroomerProfileRepositoryError {
             errorMessage = message(for: error, action: "save")
+            actionErrorMessage = errorMessage
         } catch {
             errorMessage = message(for: .unavailable, action: "save")
+            actionErrorMessage = errorMessage
         }
     }
 
@@ -55,12 +60,14 @@ extension GroomerProfileStore {
 
         guard data.count <= Self.maximumAvatarPhotoBytes else {
             errorMessage = "Choose an avatar photo smaller than 5 MB."
+            actionErrorMessage = errorMessage
             return
         }
 
         isUploading = true
         profileMutationRevision += 1
         errorMessage = nil
+        actionErrorMessage = errorMessage
         noticeMessage = nil
         defer { isUploading = false }
 
@@ -79,8 +86,10 @@ extension GroomerProfileStore {
             noticeMessage = "Profile photo was updated."
         } catch let error as GroomerProfileRepositoryError {
             errorMessage = message(for: error, action: "upload avatar")
+            actionErrorMessage = errorMessage
         } catch {
             errorMessage = message(for: .unavailable, action: "upload avatar")
+            actionErrorMessage = errorMessage
         }
     }
 

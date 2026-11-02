@@ -62,7 +62,7 @@ final class AuthenticatedEntryStore {
         }
 
         guard let selectedRole else {
-            errorMessage = "Choose Customer or Groomer to continue."
+            errorMessage = "Choose pet owner or groomer to continue."
             return
         }
 
