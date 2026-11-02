@@ -2,7 +2,7 @@
   "version": 1,
   "scope": "ios/Beckon/Beckon/Features",
   "lastChange": {
-    "reason": "T-432 retires superseded schedule and service sections"
+    "reason": "T-433 replaces both legacy booking-card layouts with the approved shared ticket"
   },
   "findings": [
     {
@@ -165,13 +165,6 @@
       "fingerprint": "41568523f68d87b26e176ce2355e4ad6f81e63e8edb21b2b6a3fa3c0c96ae620",
       "expressionHash": "f0e38b1b2524d87114b5f16acdb6662080d5c5bed7adfc7b2d415eb7fa8dd40d",
       "occurrence": 1
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Chat/ChatView.swift",
-      "fingerprint": "1c4f5e9dc54ed5e160c21256a17933179b70ee355e8517785f9041ba75ff9938",
-      "expressionHash": "4fc8553e33e82a3789872690cff0fdcdb9b5e15b1f7255353a70d4b00fe38c5f",
-      "occurrence": 3
     },
     {
       "ruleID": "UI102",

@@ -954,8 +954,7 @@ private struct ChatMessageRow: View {
             } label: {
                 ChatBookingMessageCard(
                     booking: bookingStore.booking(withID: booking.id) ?? booking,
-                    role: role,
-                    isOutgoing: isOutgoing
+                    role: role
                 )
             }
             .buttonStyle(BeckonLedgeButtonStyle(.card))
@@ -963,7 +962,7 @@ private struct ChatMessageRow: View {
                 "chat.message.booking.\(booking.id.uuidString.lowercased())"
             )
         } else {
-            BeckonLedgeNote(systemImage: "calendar.badge.exclamationmark", text: "Booking details are unavailable.")
+            ChatBookingUnavailableCard()
         }
     }
 
@@ -979,23 +978,15 @@ private struct ChatMessageRow: View {
             } label: {
                 ChatBookingMessageCard(
                     booking: bookingStore.booking(withID: booking.id) ?? booking,
-                    role: role,
-                    isOutgoing: isOutgoing
+                    role: role
                 )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(BeckonLedgeButtonStyle(.card))
             .accessibilityIdentifier(
                 "chat.message.booking.\(booking.id.uuidString.lowercased())"
             )
         } else {
-            BeckonCard {
-                Label(
-                    "Booking details are unavailable.",
-                    systemImage: "calendar.badge.exclamationmark"
-                )
-                .font(DesignTokens.Typography.body)
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-            }
+            ChatBookingUnavailableCard()
         }
     }
 }
@@ -1013,145 +1004,6 @@ private struct ChatBookingDetailDestination: View {
             store: store,
             onOpenChat: { _ in dismiss() }
         )
-    }
-}
-
-private struct ChatBookingMessageCard: View {
-    @Environment(\.beckonCustomerDesign) private var customerDesign
-
-    @Environment(\.dynamicTypeSize) private var typeSize
-    let booking: Booking
-    let role: UserRole
-    let isOutgoing: Bool
-
-    @ViewBuilder
-    var body: some View {
-        if customerDesign { customerBody } else { groomerBody }
-    }
-
-    @ViewBuilder private var customerBody: some View {
-        HStack(alignment: .bottom) {
-            if isOutgoing && !typeSize.isAccessibilitySize {
-                Spacer(minLength: 42)
-            }
-
-            Group {
-                let layout = typeSize.isAccessibilitySize
-                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
-                    : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.md))
-                layout {
-                    if !typeSize.isAccessibilitySize {
-                        DesignIconDisc(
-                            systemImage: booking.status.isCancellation
-                                ? "calendar.badge.exclamationmark"
-                                : "calendar.badge.checkmark",
-                            size: .touch,
-                            font: DesignTokens.Typography.Expressive.glyph)
-                    }
-
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text(booking.status.title)
-                            .font(DesignTokens.Typography.Expressive.headline)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                        Text(booking.scheduledTimeSummary)
-                            .font(DesignTokens.Typography.Expressive.supporting)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .lineLimit(typeSize.isAccessibilitySize ? nil : 2)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text("Booking \(booking.referenceCode) • \(booking.priceSummary)")
-                            .font(DesignTokens.Typography.Expressive.chip)
-                            .foregroundStyle(DesignTokens.Colors.textTertiary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    if !typeSize.isAccessibilitySize {
-                        Image(systemName: "chevron.right")
-                            .font(DesignTokens.Typography.Expressive.label)
-                            .foregroundStyle(DesignTokens.Colors.textTertiary)
-                            .accessibilityHidden(true)
-                    }
-                }
-            }
-            .padding(DesignTokens.Spacing.md)
-            .frame(maxWidth: 360)
-
-            if !isOutgoing && !typeSize.isAccessibilitySize {
-                Spacer(minLength: 42)
-            }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(
-            "\(booking.status.title), \(booking.scheduledTimeSummary), \(booking.priceSummary)"
-        )
-        .accessibilityHint("Opens booking details")
-    }
-
-    @ViewBuilder private var groomerBody: some View {
-        HStack(alignment: .bottom) {
-            if isOutgoing && !typeSize.isAccessibilitySize {
-                Spacer(minLength: 42)
-            }
-
-            BeckonCard(padding: DesignTokens.Spacing.md) {
-                let layout = typeSize.isAccessibilitySize
-                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
-                    : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.md))
-                layout {
-                    if !typeSize.isAccessibilitySize {
-                        Image(systemName: booking.status.isCancellation
-                            ? "calendar.badge.exclamationmark"
-                            : "calendar.badge.checkmark")
-                            .font(.title3.weight(.bold))
-                            .foregroundStyle(DesignTokens.Colors.textTertiary)
-                            .frame(width: 48, height: 48)
-                            .background(DesignTokens.Colors.iconTileFill)
-                            .clipShape(
-                                RoundedRectangle(
-                                    cornerRadius: DesignTokens.CornerRadius.input,
-                                    style: .continuous
-                                )
-                            )
-                            .accessibilityHidden(true)
-                    }
-
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text(booking.status.title)
-                            .font(DesignTokens.Typography.headline.weight(.bold))
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                        Text(booking.scheduledTimeSummary)
-                            .font(DesignTokens.Typography.body)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .lineLimit(typeSize.isAccessibilitySize ? nil : 2)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text("Booking \(booking.referenceCode) • \(booking.priceSummary)")
-                            .font(DesignTokens.Typography.caption.weight(.semibold))
-                            .foregroundStyle(DesignTokens.Colors.textTertiary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    if !typeSize.isAccessibilitySize {
-                        Image(systemName: "chevron.right")
-                            .font(DesignTokens.Typography.headline.weight(.semibold))
-                            .foregroundStyle(DesignTokens.Colors.textTertiary)
-                            .accessibilityHidden(true)
-                    }
-                }
-            }
-            .frame(maxWidth: 360)
-
-            if !isOutgoing && !typeSize.isAccessibilitySize {
-                Spacer(minLength: 42)
-            }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(
-            "\(booking.status.title), \(booking.scheduledTimeSummary), \(booking.priceSummary)"
-        )
-        .accessibilityHint("Opens booking details")
     }
 }
 

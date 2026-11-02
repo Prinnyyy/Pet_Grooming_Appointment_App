@@ -84,3 +84,5 @@ All files below are Tier M except the Tier L authentication landing. The existin
 `AppRootView` owns the single `Features/Auth/LaunchScene.swift` gate; auth/bootstrap/profile leaves report readiness, including failures. `DesignSystem/BeckonHomeScene.swift` owns Home's decorative layers and scroll-depth state. Home owns pet editing; the tab shell routes Grooming's add-pet request to that owner. Each existing Store owns its first-answer flag; no timer infers data completion.
 
 D-069 / P3 adopts groomer Requests and its shared row/detail/form/pet blocks as Tier M. Matches contains unanswered requests; Offers is grouped by workflow stage; the same detail follows a request through offer and booking.
+
+Handoff 4 P5 (D-069): `Features/Chat/ChatBookingCard.swift` owns the shared Tier M booking ticket for both roles. Chat thread text/composer remain calm, cached content and header Updating remain; ticket has no entrance.
