@@ -41,11 +41,21 @@ function trackedSwiftPaths() {
   }
 }
 
-function scan(paths = trackedSwiftPaths()) {
-  return paths.flatMap((filePath) => {
+function scan(paths) {
+  const includeShared = paths === undefined;
+  paths ??= trackedSwiftPaths();
+  const findings = paths.flatMap((filePath) => {
     if (!existsSync(filePath)) failConfig(`Swift source does not exist: ${filePath}`);
     return auditSwiftSource({ filePath, source: readFileSync(filePath, "utf8") });
   });
+  if (!includeShared) return findings;
+  // The role boundary also includes shared components; their other style rules retain the existing Feature scope.
+  const shared = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "--",
+    "ios/Beckon/Beckon/SharedFeatures/**/*.swift", "ios/Beckon/Beckon/DesignSystem/**/*.swift"], { encoding: "utf8" });
+  for (const filePath of shared.split("\n").filter(Boolean)) {
+    findings.push(...auditSwiftSource({ filePath, source: readFileSync(filePath, "utf8") }).filter(f => f.ruleID === "UI018"));
+  }
+  return findings;
 }
 
 function readBaseline() {

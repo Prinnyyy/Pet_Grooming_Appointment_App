@@ -57,6 +57,7 @@ struct CustomerNotificationsView: View {
 }
 
 private struct CustomerNotificationListContent: View {
+    @State private var moreError: String?
     let store: CustomerNotificationsStore
     let onSelect: (UUID) -> Void
 
@@ -77,19 +78,20 @@ private struct CustomerNotificationListContent: View {
                 summary.beckonEntrance(0)
                 if !unread.isEmpty { group("New", systemImage: "bell.fill", items: unread, order: 1) }
                 if !earlier.isEmpty { group("Earlier", systemImage: "clock.fill", items: earlier, order: 1 + (unread.isEmpty ? 0 : min(unread.count, 4))) }
-                if let message = store.errorMessage {
+                if let message = store.errorMessage, message != moreError {
                     loadError(message)
                 }
                 if store.canLoadMore || store.isLoadingMore {
-                    Button { Task { await store.loadNextPage() } } label: {
-                        DesignQuietAction(title: store.isLoadingMore ? "Loading…" : "Load more", systemImage: "arrow.down.circle")
+                    BeckonLoadMoreButton(isLoading: store.isLoadingMore, accent: .customer,
+                        accessibilityIdentifier: "customer.notifications.load-more", title: "Load more", failed: moreError != nil) {
+                        moreError = nil
+                        await store.loadNextPage()
+                        moreError = store.errorMessage
                     }
-                    .buttonStyle(BeckonGuardedPlainButtonStyle())
-                    .disabled(store.isLoadingMore)
-                    .accessibilityIdentifier("customer.notifications.load-more")
                 }
             }
         }
+        .onChange(of: store.isLoading) { _, loading in if loading { moreError = nil } }
     }
 
     private func loadError(_ message: String) -> some View {

@@ -89,7 +89,7 @@ struct CustomerGroomerDiscoveryView: View {
         .interactiveDismissDisabled(isBusy || isSending || handedOver || (!isSent && !selection.isEmpty))
         // A request out is a small win: the buzz comes as the page starts to leave.
         .sensoryFeedback(.success, trigger: handedOver) { _, now in now }
-        .sheet(item: $detail) { candidate in
+        .beckonSheet(item: $detail) { candidate in
             NavigationStack {
                 CustomerGroomerDetailView(candidate: candidate, flow: flow, requests: requests,
                     marketplace: marketplace, selection: $selection)

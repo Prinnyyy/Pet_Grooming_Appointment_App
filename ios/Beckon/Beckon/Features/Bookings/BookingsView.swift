@@ -111,7 +111,7 @@ struct BookingsView: View {
                 CustomerRequestsStatusView(store: requestStore)
             }
         }
-        .sheet(isPresented: requestWizardPresented) {
+        .beckonSheet(isPresented: requestWizardPresented) {
             if let requestStore {
                 CustomerRequestWizardView(
                     store: requestStore,

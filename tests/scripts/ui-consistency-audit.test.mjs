@@ -14,6 +14,20 @@ import {
 const projectRoot = process.cwd();
 const cliPath = path.join(projectRoot, "scripts/ui-consistency-audit.mjs");
 
+test("UI018 rejects native presentations but preserves role-aware wrappers and presenter boundary", () => {
+  const source = `view.sheet(isPresented: $open) { Text("sheet") }
+    .fullScreenCover(item: $item) { _ in content }
+    .popover(isPresented: $open) { content }
+    .beckonSheet(isPresented: $open) { content }
+    .beckonCover(item: $item) { _ in content }
+    // .sheet(isPresented: $open) { content }
+    Text(".popover(isPresented:)")`;
+  for (const filePath of ["Features/Example.swift", "SharedFeatures/Example.swift"]) {
+    assert.equal(auditSwiftSource({ filePath, source }).filter(f => f.ruleID === "UI018").length, 3);
+  }
+  assert.equal(auditSwiftSource({ filePath: "DesignSystem/BeckonRole.swift", source }).filter(f => f.ruleID === "UI018").length, 0);
+});
+
 test("UI012 rejects token opacity while allowing named opaque surfaces", () => {
   const source = `Color.clear
     .background(DesignTokens.Colors.customerTint)

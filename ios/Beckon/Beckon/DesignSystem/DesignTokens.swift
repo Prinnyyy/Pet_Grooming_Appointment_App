@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 
 enum DesignTokens {
@@ -53,6 +54,15 @@ enum DesignTokens {
         static let infoFill: UInt = 0xE7EFF7
         static let infoBorder: UInt = 0xCFDDEC
         static let ratingStar: UInt = 0xF2B84B
+
+        static let coralSceneSkyTop: UInt = 0xFFDDD4
+        static let coralSceneSkyHorizon: UInt = 0xFFF1ED
+        static let coralSceneMountainFar: UInt = 0xFFD3C8
+        static let coralSceneMountainNear: UInt = 0xFFC3B5
+        static let coralSceneLawn: UInt = 0xFFD3B4
+        static let coralHeroEnd: UInt = 0xFFB9AE
+        static let coralHeroBubble: UInt = 0xFFCFC7
+        static let coralHeroDecoration: UInt = 0xE8796A
     }
 
     nonisolated enum ColorHex {
@@ -101,6 +111,15 @@ enum DesignTokens {
         static let statusNeutralFill = Palette.warmIconTile
         static let statusNeutralBorder = Palette.warmBorder
 
+
+        static let groomerHeroEnd = Palette.coralHeroEnd
+        static let groomerHeroBubble = Palette.coralHeroBubble
+        static let groomerHeroDecoration = Palette.coralHeroDecoration
+        static let groomerSceneSkyTop = Palette.coralSceneSkyTop
+        static let groomerSceneSkyHorizon = Palette.coralSceneSkyHorizon
+        static let groomerSceneMountainFar = Palette.coralSceneMountainFar
+        static let groomerSceneMountainNear = Palette.coralSceneMountainNear
+        static let groomerSceneLawn = Palette.coralSceneLawn
     }
 
     enum Colors {
@@ -115,29 +134,29 @@ enum DesignTokens {
         static let iconTileFill = Color(hex: ColorHex.iconTileFill)
         static let ratingStar = Color(hex: ColorHex.ratingStar)
         static let unreadDot = Color(hex: ColorHex.unreadDot)
-        static let customerFill = Color(hex: ColorHex.customerFill)
-        static let customerFillPressed = Color(hex: ColorHex.customerFillPressed)
-        static let customerInk = Color(hex: ColorHex.customerInk)
-        static let customerDeep = Color(hex: ColorHex.customerDeep)
-        static let customerTint = Color(hex: ColorHex.customerTint)
+        static let customerFill = accent(ColorHex.customerFill, ColorHex.groomerFill)
+        static let customerFillPressed = accent(ColorHex.customerFillPressed, ColorHex.groomerFillPressed)
+        static let customerInk = accent(ColorHex.customerInk, ColorHex.groomerInk)
+        static let customerDeep = accent(ColorHex.customerDeep, ColorHex.groomerDeep)
+        static let customerTint = accent(ColorHex.customerTint, ColorHex.groomerTint)
         /// A placeholder bar of a page that is loading, and the light that sweeps over it (design).
-        static let skeleton = Color(hex: ColorHex.customerTint)
+        static let skeleton = accent(ColorHex.customerTint, ColorHex.groomerTint)
         /// A bar on the page itself (the mint wash at the top is as light as `skeleton`, so it would vanish there).
-        static let skeletonOnPage = Color(hex: ColorHex.customerHeroBubble)
+        static let skeletonOnPage = accent(ColorHex.customerHeroBubble, ColorHex.groomerHeroBubble)
         static let skeletonSweep = Color(hex: ColorHex.surface, opacity: 0.85)
         static let groomerFill = Color(hex: ColorHex.groomerFill)
         static let groomerFillPressed = Color(hex: ColorHex.groomerFillPressed)
         static let groomerInk = Color(hex: ColorHex.groomerInk)
         static let groomerDeep = Color(hex: ColorHex.groomerDeep)
         static let groomerTint = Color(hex: ColorHex.groomerTint)
-        static let customerHeroEnd = Color(hex: ColorHex.customerHeroEnd)
-        static let customerHeroBubble = Color(hex: ColorHex.customerHeroBubble)
-        static let customerHeroDecoration = Color(hex: ColorHex.customerHeroDecoration)
-        static let sceneSkyTop = Color(hex: ColorHex.sceneSkyTop)
-        static let sceneSkyHorizon = Color(hex: ColorHex.sceneSkyHorizon)
-        static let sceneMountainFar = Color(hex: ColorHex.sceneMountainFar)
-        static let sceneMountainNear = Color(hex: ColorHex.sceneMountainNear)
-        static let sceneLawn = Color(hex: ColorHex.sceneLawn)
+        static let customerHeroEnd = accent(ColorHex.customerHeroEnd, ColorHex.groomerHeroEnd)
+        static let customerHeroBubble = accent(ColorHex.customerHeroBubble, ColorHex.groomerHeroBubble)
+        static let customerHeroDecoration = accent(ColorHex.customerHeroDecoration, ColorHex.groomerHeroDecoration)
+        static let sceneSkyTop = accent(ColorHex.sceneSkyTop, ColorHex.groomerSceneSkyTop)
+        static let sceneSkyHorizon = accent(ColorHex.sceneSkyHorizon, ColorHex.groomerSceneSkyHorizon)
+        static let sceneMountainFar = accent(ColorHex.sceneMountainFar, ColorHex.groomerSceneMountainFar)
+        static let sceneMountainNear = accent(ColorHex.sceneMountainNear, ColorHex.groomerSceneMountainNear)
+        static let sceneLawn = accent(ColorHex.sceneLawn, ColorHex.groomerSceneLawn)
         static let statusSuccessText = Color(hex: ColorHex.statusSuccessText)
         static let statusSuccessFill = Color(hex: ColorHex.statusSuccessFill)
         static let statusSuccessBorder = Color(hex: ColorHex.statusSuccessBorder)
@@ -237,6 +256,33 @@ enum DesignTokens {
         static let groomingGlanceCardHeight: CGFloat = 212
         /// Widest a dialog (alert or modal) grows; on a phone it is the screen minus the gutters.
         static let dialogMaxWidth: CGFloat = 360
+
+        static let petAvatarSmall: CGFloat = 48
+        static let petAvatar: CGFloat = 56
+        static let petAvatarLarge: CGFloat = 64
+        static let photoThumbnail: CGFloat = 84
+        static let chipHeight: CGFloat = 28
+        static let chipBarShort: CGFloat = 92
+        static let chipBarLong: CGFloat = 128
+        static let stateStripHeight: CGFloat = 40
+        static let countTileHeight: CGFloat = 104
+        static let dayChipHeight: CGFloat = 78
+        static let timeColumnWidth: CGFloat = 52
+        static let dayShapeHeight: CGFloat = 12
+        static let dayShapeNowLine: CGFloat = 3
+        static let dayLoadWidth: CGFloat = 26
+        static let dayLoadHeight: CGFloat = 5
+        static let pipWidth: CGFloat = 18
+        static let pipHeight: CGFloat = 6
+        static let proofBarHeight: CGFloat = 8
+        static let markDot: CGFloat = 6
+        static let liveDot: CGFloat = 8
+        static let rangeThumb: CGFloat = 30
+        static let rangeHit: CGFloat = 48
+        static let rangeTrack: CGFloat = 6
+        static let profilePhoto: CGFloat = 96
+        static let dayNameWidth: CGFloat = 40
+        static let dayRowHeight: CGFloat = 64
     }
 
     enum CornerRadius {
@@ -261,6 +307,8 @@ enum DesignTokens {
         static let card: CGFloat = 5
         static let control: CGFloat = 4
         static let pill: CGFloat = 3
+        /// Stable outer room shared by every ledge button surface.
+        static let room: CGFloat = max(button, card, control, pill)
         static let edgeWidth: CGFloat = 2
         static let dashedEdgeWidth: CGFloat = 2.5
         static let dash: [CGFloat] = [7, 6]
@@ -277,7 +325,7 @@ enum DesignTokens {
         /// Content swaps.
         static let swap = Animation.spring(response: 0.45, dampingFraction: 0.7)
         /// A button turning into another look (white card to mint pill, a pill to a round control): the face, its corners, its lip and its
-        /// edge stretch from one to the other with a little overshoot, instead of one fading out as the other fades in (S-066).
+        /// edge stretch from one to the other with a little overshoot, instead of one fading out as the other fades in (design).
         static let morph = Animation.spring(response: 0.42, dampingFraction: 0.64)
         static let reduced = Animation.easeOut(duration: 0.15)
         /// A dialog drops in with a little overshoot and leaves quickly; the page behind it is not worth waiting for.
@@ -306,7 +354,7 @@ enum DesignTokens {
         }
 
         /// A journey of steps (request wizard, pet form): blocks slide in from the side the person is heading to, with a lean.
-        /// Quicker than the other two on purpose (S-039): a person taps Continue again and again, and each step is dealt for only
+        /// Quicker than the other two on purpose (design): a person taps Continue again and again, and each step is dealt for only
         /// about a third of a second before the next tap can come.
         static let stepEntrance = Entrance(beat: 0.045, maxBeats: 6, travel: 36, scale: 0.94, leaderScale: 0.88, tilt: 1.8,
             spring: .spring(response: 0.4, dampingFraction: 0.6), leaderSpring: .spring(response: 0.44, dampingFraction: 0.54))
@@ -404,6 +452,16 @@ enum DesignTokens {
         static let headline = Font.headline.weight(.bold)
         static let caption = Font.caption.weight(.medium)
     }
+}
+
+
+/// A colour of the screen's accent role: mint for the customer, coral for the groomer (see `BeckonRole.swift`).
+private nonisolated func accent(_ customer: UInt, _ groomer: UInt) -> Color {
+    func ui(_ hex: UInt) -> UIColor {
+        UIColor(red: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255,
+            blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
+    }
+    return Color(uiColor: UIColor { traits in traits.beckonRole == .groomer ? ui(groomer) : ui(customer) })
 }
 
 

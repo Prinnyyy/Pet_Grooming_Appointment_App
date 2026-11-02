@@ -66,7 +66,7 @@ struct GroomerProfileView<Bar: View>: View {
         .safeAreaInset(edge: .bottom, spacing: 0) { bar }
         // A photo covers the whole phone, not a sheet over the sheet. It is shown and hidden without the system's slide: the viewer
         // fades itself in and out.
-        .fullScreenCover(item: $viewing) { _ in
+        .beckonCover(item: $viewing) { _ in
             GroomerWorkViewer(works: content.works, position: $viewerPosition)
         }
         .toolbar(.hidden, for: .navigationBar)

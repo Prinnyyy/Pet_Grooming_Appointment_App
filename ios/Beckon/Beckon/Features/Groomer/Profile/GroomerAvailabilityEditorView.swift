@@ -103,7 +103,7 @@ struct GroomerAvailabilityEditorView: View {
                 save: saveAvailability
             )
         }
-        .sheet(isPresented: $store.isShowingTimeOffForm) {
+        .beckonSheet(isPresented: $store.isShowingTimeOffForm) {
             GroomerTimeOffFormView(store: store)
                 .presentationDetents([.medium])
         }

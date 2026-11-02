@@ -108,7 +108,7 @@ struct CustomerHomeView: View {
                 nextBookingPresentation: nextBookingPresentation
             )
         }
-        .sheet(isPresented: $petStore.isShowingPetForm, onDismiss: {
+        .beckonSheet(isPresented: $petStore.isShowingPetForm, onDismiss: {
             requestStore.resumeWizardAfterPet(petStore.pets)
         }) {
             CustomerPetFormView(store: petStore)
@@ -126,7 +126,7 @@ struct CustomerHomeView: View {
             addPetRequested = false
             petStore.startCreate()
         }
-        .sheet(isPresented: requestWizardPresentationBinding, onDismiss: {
+        .beckonSheet(isPresented: requestWizardPresentationBinding, onDismiss: {
             if requestStore.isWizardSuspendedForPet { petStore.startCreate() }
         }) {
             CustomerRequestWizardView(

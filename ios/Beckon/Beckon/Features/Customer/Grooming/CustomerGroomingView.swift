@@ -109,10 +109,10 @@ struct CustomerGroomingView: View {
                 systemImage: "xmark.circle.fill", keepTitle: "Keep Request", confirmTitle: "Cancel request",
                 confirmSystemImage: "xmark.circle") { Task { await requestStore.cancel(request) } }
         }
-        .sheet(isPresented: wizardPresentationBinding) {
+        .beckonSheet(isPresented: wizardPresentationBinding) {
             CustomerRequestWizardView(store: requestStore, customerProfileRepository: customerProfileRepository)
         }
-        .sheet(item: Binding(get: { requestFlowHosted || requestStore.isShowingWizard ? nil : requestStore.discoveryFlow },
+        .beckonSheet(item: Binding(get: { requestFlowHosted || requestStore.isShowingWizard ? nil : requestStore.discoveryFlow },
                              set: { requestStore.discoveryFlow = $0 })) { flow in
             if let marketplace = requestStore.marketplace {
                 NavigationStack { CustomerGroomerDiscoveryView(flow: flow, requests: requestStore, marketplace: marketplace) }

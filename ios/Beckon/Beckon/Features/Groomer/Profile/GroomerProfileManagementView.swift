@@ -96,7 +96,7 @@ struct GroomerProfileManagementView: View {
         .background {
             GroomerProfileStatusView(store: store)
         }
-        .sheet(isPresented: $store.isShowingServiceForm) {
+        .beckonSheet(isPresented: $store.isShowingServiceForm) {
             GroomerServiceFormView(store: store)
         }
         .navigationDestination(item: $activeRoute) { route in

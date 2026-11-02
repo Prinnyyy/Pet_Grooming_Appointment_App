@@ -28,7 +28,7 @@ Test for any new element: does it feel like a thing you can push, and does it he
 
 - Input controls remain calm even inside expressive form chrome. A shared file may contain customer and groomer presentation; `beckonCustomerDesign` scopes the adoption.
 - A screen's tier is recorded in `SCREEN_INVENTORY.md` and, for ledge use, in `LEDGE_TIER_PATHS` in `scripts/ui-consistency-audit-core.mjs`. Undeclared means C. Raising a tier needs a Decision Log entry.
-- Groomer color and Groomer-owned surfaces stay schedule/action oriented; Lively is a Customer-side expression.
+- Handoff 4 adopts the shared kit for both roles in packages. P1 provides coral-capable primitives; P2 owns the groomer shell and screen tier declarations. Retain `beckonCustomerDesign` and its legacy branches until the final gate confirms all runtime entry points have adopted the kit.
 
 ## 3. Tokens
 
@@ -38,7 +38,7 @@ Tokens are defined once in `DesignTokens.swift`: `Ledge` owns lip depth and bord
 
 Type roles `DesignTokens.Typography.Expressive`: display, hero, section, title, headline, body, supporting, emphasis, label, labelMuted, caption, chip, micro, glyph, glyphLarge. They are SF Rounded through semantic text styles, so Dynamic Type applies. Fixed point sizes are allowed only for decorative glyphs inside the DesignSystem illustration layer and the journey node.
 
-Surfaces are a closed set, `BeckonLedgeSurface`: `card`, `round`, `primary`, `pill`, `dashed`. A screen picks one and never assembles its own face, lip, radius or depth.
+Surfaces are a closed set, `BeckonLedgeSurface`: `card`, `round`, `primary`, `pill`, `dashed`, `highlight`. `highlight` uses the role Tint face and Fill edge/lip for a few important cards, never most of a list. Every ledge button reserves `Ledge.room` beneath its face; its lip and press travel keep the surface's own depth. Shared booking/request primary and quiet actions both use `ledgePrimaryButtonHeight`; the older Primary/Secondary button family retains its existing heights. A screen picks one and never assembles its own face, lip, radius or depth.
 
 ## 4. Color
 
@@ -180,3 +180,14 @@ The launch animation owns the brand entrance once per app opening. The name and 
 These conventions follow [Apple's motion guidance](https://developer.apple.com/design/human-interface-guidelines/motion) and [responsiveness guidance](https://developer.apple.com/documentation/xcode/improving-app-responsiveness). Verify changed routes in the existing isolated Simulator host, plus cancellation, repeated activation, modal completion and account boundaries; source review or scheduling-gap measurements alone are not a frame-rate guarantee.
 
 The same lockup instance stays visible from launch into the signed-out welcome page; only its backdrop leaves. This preserves the pup's reaction and idle timeline instead of cross-fading two different poses. The real welcome page owns buttons and scrolling; its hidden lockup reserves geometry and brand semantics, and a lightweight preference forwards press/scroll state to the decoration. The decoration never receives hits, its reserved action layout is hidden from accessibility, and the whole decoration leaves the accessibility tree after handoff so it cannot obstruct the real controls. Returning from the form does not replay the arrival. For destinations without the welcome brand, composite the outgoing launch scene before fading it to avoid pale artwork. Visibility/foreground changes do not replay the arrival; explicit button-press reactions remain independent.
+
+
+## Handoff 4 foundations (D-068, P1)
+
+`BeckonRole` bridges the SwiftUI environment to a UIKit trait. Customer remains the default mint palette; the groomer role resolves the accent, hero, scene and skeleton tokens to coral/peach. Presentations use `beckonSheet`/`beckonCover`, preserving their original bindings and onDismiss handlers. Their shared carrier writes the role on presented hosting controllers, and DesignDialog uses that carrier too. UI018 rejects native sheets/covers/popovers outside these two presenters, including shared components. The groomer shell selects its role in P2. Coral Deep on Fill is a decorative lip (2.90:1), not a semantic glyph/text pair; use Ink on Fill or Deep on white for meaningful content.
+
+`BeckonStateStrip` is the shared symbol/title/optional-reference band (accent, neutral, success, warning, error). At accessibility sizes its reference stacks. Grooming needs cards and errors use it now; booking chat cards adopt it in P5. `BeckonErrorBanner` is a white ledge card with red confined to its strip and the original retry action below. A failed Load more remains the same button, says “Couldn't load more · Try again”, and keeps its footprint in normal/loading/failed states; full page failures retain the error card. Action errors remain feature-owned and must not be relabelled as pagination failures.
+
+`BeckonFootNote` carries one warm attention or neutral waiting note along a card foot, wrapping at accessibility sizes. `BeckonLedgeHeading` accepts trailing detail; `BeckonDateTile` supports a muted date; `BeckonLedgeHero(showsPup: false)` draws no pup. `BeckonWhen.day` and `.start` split the existing short form without substituting a device timezone. Journey primitives add groomer request/service paths and status/attention/waiting bubbles; role screens bind them in later packages. Requests and Schedule icons join the existing template family, retaining UIKit bitmap rendering. `BeckonTabBarOwner` is available for P2 integration; it does not reset navigation.
+
+Customer-visible P1 effects: the shared error card, pagination retry in Notifications/Offers, constant button room (pill +3pt, card +1pt, round +2pt), quiet booking/request actions growing from 44pt to 58pt before ledge room, and the shared strip in Grooming needs cards. Launch, chat loading, timing buffers and manual tab history are unchanged. Visual confirmation is user-owned; geometry, role resolution, presented-controller traits and contrast have executable checks.

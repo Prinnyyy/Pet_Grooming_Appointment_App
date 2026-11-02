@@ -2,10 +2,13 @@ import SwiftUI
 
 
 /// Closed set of ledge surfaces for expressive (Tier L/M) screens; see `docs/01_product/LIVELY_UI_SPEC.md`.
-/// A screen picks one and never assembles its own face, lip, radius or depth. Adding a case is a spec change.
+/// A screen picks one and never assembles its own face, lip, radius or depth. Adding a case is a spec change (`highlight`, design).
 enum BeckonLedgeSurface {
     /// White card with a quiet warm border and ledge. Tappable cards and notes.
     case card
+    /// A card to notice first: the role's pale tint for its face, the role's own colour for its edge and ledge. For the few cards of
+    /// a list that matter more than the rest (a request that names the groomer); when most of a list is one, none of them is.
+    case highlight
     /// Circular icon control such as the bell.
     case round
     /// White button on a role-colored hero; Deep ledge. One per screen.
@@ -19,6 +22,7 @@ enum BeckonLedgeSurface {
         switch self {
         case .card, .round, .primary, .dashed: DesignTokens.Colors.surface
         case .pill: DesignTokens.Colors.customerFill
+        case .highlight: DesignTokens.Colors.customerTint
         }
     }
 
@@ -27,6 +31,7 @@ enum BeckonLedgeSurface {
         case .card, .round: DesignTokens.Colors.border
         case .primary, .pill: DesignTokens.Colors.customerDeep
         case .dashed: DesignTokens.Colors.borderSoft
+        case .highlight: DesignTokens.Colors.customerFill
         }
     }
 
@@ -34,12 +39,13 @@ enum BeckonLedgeSurface {
         switch self {
         case .card, .round, .dashed: DesignTokens.Colors.border
         case .primary, .pill: nil
+        case .highlight: DesignTokens.Colors.customerFill
         }
     }
 
     var radius: CGFloat {
         switch self {
-        case .card, .dashed: DesignTokens.CornerRadius.card
+        case .card, .dashed, .highlight: DesignTokens.CornerRadius.card
         case .round: DesignTokens.CornerRadius.round
         case .primary: DesignTokens.CornerRadius.ledgeButton
         case .pill: DesignTokens.CornerRadius.pill
@@ -48,7 +54,7 @@ enum BeckonLedgeSurface {
 
     var depth: CGFloat {
         switch self {
-        case .card, .dashed: DesignTokens.Ledge.card
+        case .card, .dashed, .highlight: DesignTokens.Ledge.card
         case .round: DesignTokens.Ledge.control
         case .primary: DesignTokens.Ledge.button
         case .pill: DesignTokens.Ledge.pill
@@ -88,8 +94,10 @@ extension View {
 ///
 /// A button whose surface changes with its state (`isSelected ? .pill : .card`) does not swap one look for another: the face
 /// colour, the corner radius, the lip and the edge are the same pieces in every surface and only their values change, under
-/// `Motion.morph`, so the button stretches from the white card to the mint pill instead of fading (S-066). A dashed edge and a
-/// solid edge are two strokes of which one is always clear, because a dash pattern cannot be tweened.
+/// `Motion.morph`, so the button stretches from the white card to the mint pill instead of fading (design). A dashed edge and a
+/// solid edge are two strokes of which one is always clear, because a dash pattern cannot be tweened. The room under the face is the
+/// same for every surface (`Ledge.room`) and only the lip inside it differs, so a button that changes surface changes nothing around
+/// it: not the height of its row, and not the faces of its neighbours (design).
 ///
 /// Physical press: the face sinks into its lip, then springs back with overshoot, with a medium haptic. The press starts only
 /// once the touch has settled (see `BeckonSettledPress`), so scrolling over buttons neither sinks them nor buzzes.
@@ -125,7 +133,7 @@ struct BeckonLedgePressStyle: ButtonStyle {
                 }
                 .offset(y: pressed && !reduceMotion ? surface.depth : 0)
                 .background { shape.fill(surface.lip).offset(y: surface.depth) }
-                .padding(.bottom, surface.depth)
+                .padding(.bottom, DesignTokens.Ledge.room)
                 .contentShape(Rectangle())
                 // The look turning into another look. Under the press animation below, so a press is still the press spring.
                 .animation(reduceMotion ? DesignTokens.Motion.reduced : DesignTokens.Motion.morph, value: surface)

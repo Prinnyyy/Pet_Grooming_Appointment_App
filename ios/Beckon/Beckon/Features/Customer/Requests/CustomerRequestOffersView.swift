@@ -3,6 +3,8 @@ import SwiftUI
 // offers in the Home style: each quote is a ledge card led by the price, with fit evidence and a clear next step.
 // Same data, sort, refresh and destinations as Features/Customer/Requests/CustomerOffersView.swift.
 struct CustomerRequestOffersView: View {
+    @State private var moreFailed = false
+    @State private var refreshError: String?
     let requestID: UUID
     let store: CustomerRequestsStore
 
@@ -11,13 +13,14 @@ struct CustomerRequestOffersView: View {
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 content(request, now: context.date)
             }
+            .onChange(of: store.isLoadingOffers(for: request)) { _, loading in if loading { moreFailed = false } }
             .navigationTitle("Offers")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Picker("Sort", selection: Binding(get: { store.offerSort }, set: { mode in
-                            Task { await store.changeOfferSort(to: mode, for: request) }
+                            Task { moreFailed = false; refreshError = nil; await store.changeOfferSort(to: mode, for: request); refreshError = store.offerError(for: request) }
                         })) {
                             ForEach(CustomerOfferSort.allCases, id: \.self) { Text($0.title).tag($0) }
                         }
@@ -25,7 +28,7 @@ struct CustomerRequestOffersView: View {
                     .accessibilityIdentifier("customer.offers.sort")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { Task { await store.loadOffers(for: request) } } label: {
+                    Button { Task { await refreshOffers(for: request) } } label: {
                         Label("Refresh", systemImage: "arrow.clockwise")
                     }
                     .disabled(store.isLoadingOffers(for: request))
@@ -34,10 +37,18 @@ struct CustomerRequestOffersView: View {
             }
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("customer.offers.list")
-            .task(id: request.id) { await store.loadOffers(for: request) }
+            .task(id: request.id) { await refreshOffers(for: request) }
         } else {
             DesignPage(rhythm: .list, cascades: false) { BeckonLedgeNote(systemImage: "doc.text.magnifyingglass", text: "This request isn't available. Refresh and try again.") }
         }
+    }
+
+    private func refreshOffers(for request: CustomerGroomingRequest) async {
+        moreFailed = false
+        refreshError = nil
+        await store.loadOffers(for: request)
+        guard !Task.isCancelled else { return }
+        refreshError = store.offerError(for: request)
     }
 
     private func content(_ request: CustomerGroomingRequest, now: Date) -> some View {
@@ -77,18 +88,20 @@ struct CustomerRequestOffersView: View {
                         .accessibilityElement(children: .contain)
                         .accessibilityIdentifier("customer.offers.history-list")
                 }
-                if let message = store.offerError(for: request) {
-                    BeckonErrorBanner(title: "More offers unavailable", message: message)
-                        .accessibilityIdentifier("customer.offers.load-more-error")
-                }
-                if store.canLoadMoreOffers(for: request) || store.isLoadingMoreOffers(for: request) {
-                    Button { Task { await store.loadNextOffersPage(for: request) } } label: {
-                        DesignQuietAction(title: store.isLoadingMoreOffers(for: request) ? "Loading…" : "Load more offers",
-                            systemImage: "arrow.down.circle")
+                if let refreshError {
+                    BeckonErrorBanner(title: "Offers could not be updated", message: refreshError) {
+                        Button("Try again", systemImage: "arrow.clockwise") { Task { await refreshOffers(for: request) } }
+                            .buttonStyle(BeckonSecondaryButtonStyle(accent: .customer, isFullWidth: false))
                     }
-                    .buttonStyle(BeckonGuardedPlainButtonStyle())
-                    .disabled(store.isLoadingMoreOffers(for: request))
-                    .accessibilityIdentifier("customer.offers.load-more")
+                }
+                if store.canLoadMoreOffers(for: request) || store.isLoadingMoreOffers(for: request) || moreFailed {
+                    BeckonLoadMoreButton(isLoading: store.isLoadingMoreOffers(for: request), accent: .customer,
+                        accessibilityIdentifier: "customer.offers.load-more", title: "Load more offers", failed: moreFailed) {
+                        moreFailed = false
+                        if store.canLoadMoreOffers(for: request) { await store.loadNextOffersPage(for: request) }
+                        else { await store.loadOffers(for: request) }
+                        moreFailed = store.offerError(for: request) != nil
+                    }
                 }
             }
         }

@@ -6,6 +6,19 @@ import UIKit
 
 @MainActor
 struct DesignTokenAccessibilityTests {
+    @Test func groomerHeroAndScenePairsRemainReadable() {
+        typealias H = DesignTokens.ColorHex
+        for background in [H.groomerFill, H.groomerHeroEnd, H.groomerHeroBubble, H.groomerTint] {
+            #expect(Self.contrastRatio(H.groomerInk, background) >= 4.5)
+        }
+        for background in [H.groomerSceneSkyTop, H.groomerSceneSkyHorizon,
+            H.groomerSceneMountainFar, H.groomerSceneMountainNear, H.groomerSceneLawn] {
+            #expect(Self.contrastRatio(H.textPrimary, background) >= 4.5)
+        }
+        // The lip is decorative. Semantic glyphs use Deep on white, or Ink on Fill, not Deep on Fill.
+        #expect(Self.contrastRatio(H.groomerDeep, H.surface) >= 4.5)
+    }
+
     @Test func homeTitleRemainsReadableOnScene() {
         for background in [DesignTokens.ColorHex.sceneSkyTop, DesignTokens.ColorHex.sceneSkyHorizon,
                            DesignTokens.ColorHex.sceneMountainFar, DesignTokens.ColorHex.sceneMountainNear, DesignTokens.ColorHex.sceneLawn] {

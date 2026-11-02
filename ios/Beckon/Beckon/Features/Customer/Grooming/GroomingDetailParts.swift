@@ -93,16 +93,8 @@ struct GroomingNeedsCard<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Label {
-                Text(title).font(DesignTokens.Typography.Expressive.emphasis)
-            } icon: {
-                Image(systemName: systemImage).font(DesignTokens.Typography.Expressive.emphasis)
-            }
-            .foregroundStyle(tone == .attention ? DesignTokens.Colors.statusWarningText : DesignTokens.Colors.customerInk)
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
-            .background(tone == .attention ? DesignTokens.Colors.statusWarningFill : DesignTokens.Colors.customerFill)
-            .accessibilityAddTraits(.isHeader)
+            BeckonStateStrip(title: title, systemImage: systemImage,
+                tone: tone == .attention ? .warning : .accent)
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) { content }
                 .padding(DesignTokens.Spacing.lg)
@@ -134,8 +126,7 @@ struct GroomingActionButton: View {
             .font(isPrimary ? DesignTokens.Typography.Expressive.headline : DesignTokens.Typography.Expressive.emphasis)
             .foregroundStyle(isPrimary ? DesignTokens.Colors.customerInk : DesignTokens.Colors.textPrimary)
             .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, minHeight: isPrimary ? DesignTokens.Metrics.ledgePrimaryButtonHeight
-                : DesignTokens.Metrics.minimumTouchTarget)
+            .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.ledgePrimaryButtonHeight)
         }
         .buttonStyle(BeckonLedgeButtonStyle(isPrimary ? .pill : .card))
         .accessibilityIdentifier(identifier)

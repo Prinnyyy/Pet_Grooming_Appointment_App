@@ -185,7 +185,7 @@ struct BeckonAddressEditor: View {
             feedbackCenter?.showNotice(message)
             state.consumeNotice()
         }
-        .sheet(item: reviewSheetBinding) { sheet in
+        .beckonSheet(item: reviewSheetBinding) { sheet in
             BeckonAddressReviewSheet(sheet: sheet, state: state)
         }
         .onDisappear(perform: state.clear)

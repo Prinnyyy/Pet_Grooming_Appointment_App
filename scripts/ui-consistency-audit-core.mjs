@@ -18,6 +18,7 @@ export const UI_RULES = Object.freeze([
   { id: "UI015", severity: "error", category: "expressive-motion", message: "Expressive motion belongs to DesignSystem; use Beckon motion modifiers and DesignTokens.Motion." },
   { id: "UI016", severity: "error", category: "rounded-type", message: "Rounded type comes from DesignTokens.Typography.Expressive, not Feature-local fonts." },
   { id: "UI017", severity: "error", category: "ledge-tier", message: "Ledge surfaces are Tier L/M only; declare the screen in SCREEN_INVENTORY.md and the LEDGE_TIER_PATHS allowlist." },
+  { id: "UI018", severity: "error", category: "presentation-role", message: "Use beckonSheet/beckonCover so presented controllers carry their role." },
   { id: "UI101", severity: "warning", category: "fixed-geometry", message: "Review fixed geometry for dynamic text risk." },
   { id: "UI102", severity: "warning", category: "layout-patch", message: "Review offset or negative spacing as a layout repair." },
   { id: "UI201", severity: "review", category: "duplicate-stack", message: "Review repeated visual modifier stacks for a semantic component." },
@@ -276,6 +277,10 @@ function addDuplicateStacks(results, { masked, source, filePath }) {
 export function auditSwiftSource({ filePath, source }) {
   const masked = maskSwiftNonCode(source);
   const findings = [];
+  // Only these two shared presenters may call native APIs; both explicitly carry the role.
+  if (!/(?:^|\/)DesignSystem\/(?:BeckonRole|DesignDialog)\.swift$/.test(filePath)) {
+    addMatches(findings, { masked, source, filePath, ruleID: "UI018", pattern: /\.(?:sheet|fullScreenCover|popover)\s*\(/g, replacement: "beckonSheet / beckonCover with role propagation" });
+  }
 
   addMatches(findings, { masked, source, filePath, ruleID: "UI001", pattern: /\.font\s*\(\s*\.system\s*\(/g, replacement: "DesignTokens.Typography.<role>" });
   addMatches(findings, { masked, source, filePath, ruleID: "UI002", pattern: /\.font\s*\(\s*\.(?:largeTitle|title\d?|headline|subheadline|body|callout|footnote|caption\d?)\b/g, replacement: "DesignTokens.Typography.<role>" });

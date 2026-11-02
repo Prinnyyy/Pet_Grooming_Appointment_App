@@ -55,7 +55,6 @@ struct CustomerRequestPetChoiceCard: View {
             .frame(maxWidth: .infinity, minHeight: 104, alignment: .leading)
         }
         .buttonStyle(BeckonLedgeButtonStyle(isSelected ? .pill : .card))
-        .padding(.bottom, isSelected ? DesignTokens.Ledge.card - DesignTokens.Ledge.pill : DesignTokens.Spacing.none)
         .accessibilityIdentifier("customer.requests.wizard.pet.\(pet.species.lowercased()).\(pet.id.uuidString)")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
@@ -153,7 +152,6 @@ struct CustomerRequestServiceChoiceRow: View {
             .frame(maxWidth: .infinity, minHeight: 76, alignment: .leading)
         }
         .buttonStyle(BeckonLedgeButtonStyle(isSelected ? .pill : .card))
-        .padding(.bottom, isSelected ? DesignTokens.Ledge.card - DesignTokens.Ledge.pill : DesignTokens.Spacing.none)
         .accessibilityIdentifier("customer.requests.wizard.service.\(option.rawValue)")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }

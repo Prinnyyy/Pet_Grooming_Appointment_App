@@ -120,7 +120,7 @@ struct AuthenticatedEntryView: View {
             default: break
             }
         }
-        .sheet(item: Binding(get: {
+        .beckonSheet(item: Binding(get: {
             guard let target = reminderScheduler.tap, target.accountID == session.userID,
                   case .groomer = store.state, target.role == .groomer else { return nil }
             return target

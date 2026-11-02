@@ -15,6 +15,10 @@ struct BeckonWhen: Equatable {
     let full: String
     /// The day and the start: "Wed · 10:02 AM".
     let short: String
+    /// The day on its own, as `short` and `full` write it: "Wed", "Nov 8".
+    let day: String
+    /// The start on its own: "10:02 AM".
+    let start: String
 
     init?(start: String, end: String?, zoneIdentifier: String?, now: Date = Date()) {
         guard let startDate = GroomingRequestDateFormatting.parsedDate(from: start) else { return nil }
@@ -41,6 +45,8 @@ struct BeckonWhen: Equatable {
             day = format("MMM d, yyyy", startDate)
         }
         let begin = format("h:mm a", startDate)
+        self.day = day
+        self.start = begin
         short = "\(day) · \(begin)"
         full = endDate.map { "\(day) · \(begin)–\(format("h:mm a", $0))" } ?? short
     }

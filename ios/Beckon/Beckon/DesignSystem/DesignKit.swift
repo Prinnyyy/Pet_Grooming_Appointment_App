@@ -117,13 +117,15 @@ struct DesignFactRow: View {
     let systemImage: String
     let title: String
     let value: String
+    /// `caution` for a fact that warns (a pet's health notes).
+    var tone = DesignIconDisc.Tone.customer
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         (typeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.sm))
             : AnyLayout(HStackLayout(alignment: .center, spacing: DesignTokens.Spacing.md))) {
-            DesignIconDisc(systemImage: systemImage)
+            DesignIconDisc(systemImage: systemImage, tone: tone)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(DesignTokens.Typography.Expressive.chip)

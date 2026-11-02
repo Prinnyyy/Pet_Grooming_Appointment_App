@@ -14,11 +14,20 @@ struct BeckonJourneyStop: Equatable {
     /// Everything after the service is one stop: the groomer finishes, then the owner leaves a review. It is done only once the review
     /// is in, and a reviewed grooming has left the card row for History, so on a card it is always ahead or in progress.
     static let finished = BeckonJourneyStop(title: "Finished", systemImage: "sparkles")
+    /// The groomer's side of a booking (design): the service itself, and the owner's review that closes it.
+    static let inService = BeckonJourneyStop(title: "In service", systemImage: "scissors")
+    static let reviewed = BeckonJourneyStop(title: "Reviewed", systemImage: "star.fill")
 
     /// A request's three moments (the request detail page), and the whole grooming: the same path goes on after Booked, so a
     /// request that gets booked keeps its card and lights up more nodes.
     static let requestPath = [posted, offers, booked]
     static let groomingPath = [posted, offers, booked, finished]
+    /// A booking as the groomer lives it: booked, the service, finished, and the owner's review.
+    static let servicePath = [booked, inService, finished, reviewed]
+    /// A request as the groomer lives it (design): it matched, an offer went out, it was booked.
+    static let matched = BeckonJourneyStop(title: "Matched", systemImage: "sparkles")
+    static let offerSent = BeckonJourneyStop(title: "Offer sent", systemImage: "tag.fill")
+    static let groomerRequestPath = [matched, offerSent, booked]
 }
 
 
@@ -82,11 +91,12 @@ struct BeckonJourney: View {
 
     /// Four stops share the width of a card, so the bubble over an end stop slides toward the middle to stay inside it.
     private func bubbleShift(column: Int, kind: BeckonJourneyCallout.Kind) -> CGFloat {
-        guard stops.count > 3 else { return 0 }
+        // Three stops are wide enough for a short bubble; a long one over the last of them slides inward (design).
+        guard stops.count > 3 else { return column == stops.count - 1 && kind.isLong ? 40 : 0 }
         if column == 0 { return -26 }
         guard column == stops.count - 1 else { return 0 }
         // The longest bubble needs more room than the others; a short one slid that far would leave its tail beyond its edge.
-        return kind == .confirmOutcome ? 40 : 26
+        return kind.isLong ? 40 : 26
     }
 
     var body: some View {
@@ -234,8 +244,37 @@ private struct BeckonBubbleTail: Shape {
 
 
 /// Speech bubble over the current node. Status colors only (warning = needs you, success = done); always icon + text.
+private struct BeckonBouncingDots: View {
+    let time: TimeInterval
+
+    var body: some View {
+        HStack(spacing: DesignTokens.Spacing.xs) {
+            ForEach(0..<3, id: \.self) { dot in
+                Circle().fill(DesignTokens.Colors.customerDeep)
+                    .frame(width: 6, height: 6)
+                    .offset(y: -3.5 * max(0, sin(time * 6 - Double(dot) * 0.9)))
+            }
+        }
+    }
+}
+
 struct BeckonJourneyCallout: View {
-    enum Kind: Equatable { case waiting, offers(Int?), booked, countdown(String), confirmOutcome, review }
+    /// `status`, `attention` and `waitingFor` are the groomer's (design): where a booking stands, what the groomer has to do about it, and
+    /// what it is waiting for from the owner. Each says its own words.
+    enum Kind: Equatable {
+        case waiting, offers(Int?), booked, countdown(String), confirmOutcome, review
+        case status(String, systemImage: String)
+        case attention(String, systemImage: String)
+        case waitingFor(String)
+
+        /// A bubble that needs more room than a short one when it sits over the last stop.
+        var isLong: Bool {
+            switch self {
+            case .confirmOutcome, .attention, .waitingFor: true
+            default: false
+            }
+        }
+    }
     let kind: Kind
     /// Slides the bubble sideways while the tail stays over the node.
     let shift: CGFloat
@@ -271,13 +310,7 @@ struct BeckonJourneyCallout: View {
         switch kind {
         case .waiting:
             HStack(spacing: DesignTokens.Spacing.sm) {
-                HStack(spacing: DesignTokens.Spacing.xs) {
-                    ForEach(0..<3, id: \.self) { dot in
-                        Circle().fill(DesignTokens.Colors.customerDeep)
-                            .frame(width: 6, height: 6)
-                            .offset(y: -3.5 * max(0, sin(time * 6 - Double(dot) * 0.9)))
-                    }
-                }
+                BeckonBouncingDots(time: time)
                 Text("Finding groomers")
                     .font(DesignTokens.Typography.Expressive.caption)
                     .foregroundStyle(DesignTokens.Colors.customerInk)
@@ -302,24 +335,39 @@ struct BeckonJourneyCallout: View {
             Label("Rate it!", systemImage: "star.fill")
                 .font(DesignTokens.Typography.Expressive.caption)
                 .foregroundStyle(DesignTokens.Colors.statusWarningText)
+        case .status(let text, let systemImage):
+            Label(text, systemImage: systemImage)
+                .font(DesignTokens.Typography.Expressive.caption)
+                .foregroundStyle(DesignTokens.Colors.customerInk)
+        case .attention(let text, let systemImage):
+            Label(text, systemImage: systemImage)
+                .font(DesignTokens.Typography.Expressive.caption)
+                .foregroundStyle(DesignTokens.Colors.statusWarningText)
+        case .waitingFor(let text):
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                BeckonBouncingDots(time: time)
+                Text(text)
+                    .font(DesignTokens.Typography.Expressive.caption)
+                    .foregroundStyle(DesignTokens.Colors.customerInk)
+            }
         }
     }
 
     private var face: Color {
         switch kind {
-        case .waiting: DesignTokens.Colors.surface
-        case .offers, .confirmOutcome, .review: DesignTokens.Colors.statusWarningFill
+        case .waiting, .waitingFor: DesignTokens.Colors.surface
+        case .offers, .confirmOutcome, .review, .attention: DesignTokens.Colors.statusWarningFill
         case .booked: DesignTokens.Colors.statusSuccessFill
-        case .countdown: DesignTokens.Colors.customerTint
+        case .countdown, .status: DesignTokens.Colors.customerTint
         }
     }
 
     private var edge: Color {
         switch kind {
-        case .waiting: DesignTokens.Colors.border
-        case .offers, .confirmOutcome, .review: DesignTokens.Colors.statusWarningBorder
+        case .waiting, .waitingFor: DesignTokens.Colors.border
+        case .offers, .confirmOutcome, .review, .attention: DesignTokens.Colors.statusWarningBorder
         case .booked: DesignTokens.Colors.statusSuccessBorder
-        case .countdown: DesignTokens.Colors.customerFill
+        case .countdown, .status: DesignTokens.Colors.customerFill
         }
     }
 }

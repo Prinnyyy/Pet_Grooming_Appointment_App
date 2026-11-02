@@ -18,6 +18,16 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-068
+Date: 2026-11-01
+Task: T-429
+Decision: Adopt handoff 4 P1 shared foundations: bridged role trait with presentation carrier (handoff D1), dynamic accent/scene tokens, highlight ledge, fixed ledge button room, shared state strip/error card/foot note, stable failed pagination button, equal primary/quiet booking action heights (handoff D9).
+Context: User requested P1 only and explicitly requires answers before D2 timing or D3 tab-restart code. Shared primitives must preserve newer T-423 through T-427 plumbing rather than overwrite their prototype twins.
+Consequences: Keep UIKit tab bitmap rendering, strict business timezone, launch/cancellation/visibility guards, Store/repository validation, role-specific legacy branches until P8, and thread Updating without skeleton. P1 adds the tab-bar owner but P2 integrates it. Role-aware presentation wrappers preserve onDismiss. No D2/D3 policy change or T-428 implementation; later packages own groomer screen adoption. Visual inspection belongs to the user.
+Linked files: docs/superpowers/plans/2026-11-01-groomer-ui-p1-foundations.md; docs/01_product/LIVELY_UI_SPEC.md.
+```
+
+```text
 Decision ID: D-067
 Date: 2026-10-29
 Task: T-423

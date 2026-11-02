@@ -105,7 +105,7 @@ struct CustomerFavoriteGroomersView: View {
             if let request = activeRequest, !selection.isEmpty { sendBar(request) }
         }
         .onChange(of: effectiveScope) { _, _ in selectedIDs = [] }
-        .sheet(item: $profileOf) { favorite in profileSheet(favorite) }
+        .beckonSheet(item: $profileOf) { favorite in profileSheet(favorite) }
         .snackbar(snackbar)
         .groomerLimitDialog(isPresented: $showLimit, isNewRequest: false, poolEnabled: nil)
         .navigationTitle("Saved groomers")

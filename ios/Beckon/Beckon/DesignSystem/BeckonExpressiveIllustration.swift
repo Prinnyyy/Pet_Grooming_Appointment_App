@@ -13,6 +13,7 @@ import SwiftUI
 struct BeckonLedgeHero<Content: View>: View {
     var isExcited = false
     var isPupHidden = false
+    var showsPup = true
     @ViewBuilder let content: Content
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
@@ -25,9 +26,10 @@ struct BeckonLedgeHero<Content: View>: View {
     @State private var cardDip: CGFloat = 1
     @State private var isSurprised = false
 
-    init(isExcited: Bool = false, isPupHidden: Bool = false, @ViewBuilder content: () -> Content) {
+    init(isExcited: Bool = false, isPupHidden: Bool = false, showsPup: Bool = true, @ViewBuilder content: () -> Content) {
         self.isExcited = isExcited
         self.isPupHidden = isPupHidden
+        self.showsPup = showsPup
         self.content = content()
         _riseOffset = State(initialValue: isPupHidden ? BeckonHeroPup.hiddenDepth : 0)
         _stretch = State(initialValue: isPupHidden ? BeckonHeroPup.launchStretch : 0)
@@ -44,9 +46,10 @@ struct BeckonLedgeHero<Content: View>: View {
             // The pup is laid over the card's top edge (not scaled with it: the card dips under the pup's paws).
             card
                 .scaleEffect(cardDip, anchor: .bottom)
-                .overlay(alignment: .topTrailing) { pup }
+                .overlay(alignment: .topTrailing) { if showsPup { pup } }
         }
         .task(id: [isPupHidden, reduceMotion, scenePhase == .active, pageIsActive]) {
+            guard showsPup else { showPup(); return }
             if isPupHidden { hidePup() }
             else if reduceMotion || scenePhase != .active || !pageIsActive { showPup() }
             else if riseOffset != 0 || pawsLanded != 1 { await emerge() }

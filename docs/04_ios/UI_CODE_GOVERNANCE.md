@@ -39,6 +39,7 @@ node scripts/ui-consistency-audit.mjs strict ios/Beckon/Beckon/Features/Customer
 | UI015 | error | Expressive motion primitive (`keyframeAnimator`, `phaseAnimator`, `repeatForever`, `TimelineView(.animation)`, spring literals) in Feature code | `beckonEntrance`, `beckonAnimation` or a DesignSystem component |
 | UI016 | error | Feature-local `design: .rounded` or `.fontDesign(.rounded)` | `DesignTokens.Typography.Expressive.<role>` |
 | UI017 | error | `BeckonLedge*` surface outside the Tier L/M allowlist | Tier C primitives, or declare the screen in `SCREEN_INVENTORY.md` and `LEDGE_TIER_PATHS` |
+| UI018 | error | Native sheet, cover or popover bypasses role propagation | `beckonSheet` / `beckonCover`; native presentation is confined to `BeckonRole` and `DesignDialog`. SharedFeatures/DesignSystem are also scanned for this rule |
 | UI101 | warning | Fixed frame with Dynamic Type risk | Content-sized or adaptive layout |
 | UI102 | warning | Offset or negative spacing repair | Alignment or layout container |
 | UI201 | review | Repeated visual modifier stack | Review for a semantic component |

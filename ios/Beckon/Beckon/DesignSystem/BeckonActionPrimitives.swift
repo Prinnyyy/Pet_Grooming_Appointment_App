@@ -257,6 +257,7 @@ struct BeckonLoadMoreButton: View {
     let title: String
     let systemImage: String
     let loadingAccessibilityLabel: String
+    let failed: Bool
     let action: () async -> Void
 
     init(
@@ -266,6 +267,7 @@ struct BeckonLoadMoreButton: View {
         title: String = "Load More",
         systemImage: String = "chevron.down",
         loadingAccessibilityLabel: String = "Loading more",
+        failed: Bool = false,
         action: @escaping () async -> Void
     ) {
         self.isLoading = isLoading
@@ -274,6 +276,7 @@ struct BeckonLoadMoreButton: View {
         self.title = title
         self.systemImage = systemImage
         self.loadingAccessibilityLabel = loadingAccessibilityLabel
+        self.failed = failed
         self.action = action
     }
 
@@ -284,7 +287,7 @@ struct BeckonLoadMoreButton: View {
             }
         } label: {
             ZStack {
-                Label(title, systemImage: systemImage)
+                label
                     .opacity(isLoading ? 0 : 1)
 
                 if isLoading {
@@ -298,6 +301,24 @@ struct BeckonLoadMoreButton: View {
         .buttonStyle(BeckonSecondaryButtonStyle(accent: accent))
         .disabled(isLoading)
         .accessibilityIdentifier(accessibilityIdentifier)
+    }
+
+    /// Red is only the symbol: the button keeps its white face, so it does not turn into another kind of control.
+    @ViewBuilder
+    private var label: some View {
+        ZStack {
+            Label(title, systemImage: systemImage)
+                .opacity(failed ? 0 : 1)
+                .accessibilityHidden(failed)
+            Label {
+                Text("Couldn't load more · Try again")
+            } icon: {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .foregroundStyle(DesignTokens.Colors.statusErrorText)
+            }
+            .opacity(failed ? 1 : 0)
+            .accessibilityHidden(!failed)
+        }
     }
 }
 

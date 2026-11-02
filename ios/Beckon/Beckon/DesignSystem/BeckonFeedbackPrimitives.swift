@@ -18,6 +18,92 @@ struct BeckonInlineError: View {
     }
 }
 
+struct BeckonStateStrip: View {
+    /// What the strip's colours say. `accent` is the role's own (mint, coral for the groomer): a card that only informs.
+    enum Tone: Equatable {
+        case accent, neutral, success, warning, error
+
+        /// A status chip's tone. The chip's "info" is the role's accent here, as in a needs-you card that only informs.
+        init(_ chip: BeckonStatusChip.Tone) {
+            switch chip {
+            case .info: self = .accent
+            case .neutral: self = .neutral
+            case .success: self = .success
+            case .warning: self = .warning
+            case .error: self = .error
+            }
+        }
+
+        fileprivate var text: Color {
+            switch self {
+            case .accent: DesignTokens.Colors.customerInk
+            case .neutral: DesignTokens.Colors.statusNeutralText
+            case .success: DesignTokens.Colors.statusSuccessText
+            case .warning: DesignTokens.Colors.statusWarningText
+            case .error: DesignTokens.Colors.statusErrorText
+            }
+        }
+
+        fileprivate var fill: Color {
+            switch self {
+            case .accent: DesignTokens.Colors.customerFill
+            case .neutral: DesignTokens.Colors.statusNeutralFill
+            case .success: DesignTokens.Colors.statusSuccessFill
+            case .warning: DesignTokens.Colors.statusWarningFill
+            case .error: DesignTokens.Colors.statusErrorFill
+            }
+        }
+    }
+
+    let title: String
+    var systemImage: String?
+    var tone: Tone
+    /// A few characters at the far end ("#0F3A21"): what names the thing, not what happened to it. It goes under the title at
+    /// accessibility sizes.
+    var mark: String?
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    init(title: String, systemImage: String? = nil, tone: Tone, mark: String? = nil) {
+        self.title = title
+        self.systemImage = systemImage
+        self.tone = tone
+        self.mark = mark
+    }
+
+    var body: some View {
+        let stacks = typeSize.isAccessibilitySize
+        let layout = stacks
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.xs))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm))
+        layout {
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                if let systemImage {
+                    Image(systemName: systemImage)
+                        .contentTransition(.symbolEffect(.replace))
+                        .accessibilityHidden(true)
+                }
+                Text(title).fixedSize(horizontal: false, vertical: true)
+            }
+            if let mark {
+                if !stacks { Spacer(minLength: DesignTokens.Spacing.sm) }
+                Text(mark)
+                    .font(DesignTokens.Typography.Expressive.chip)
+                    .fixedSize()
+            }
+        }
+        .font(DesignTokens.Typography.Expressive.emphasis)
+        .foregroundStyle(tone.text)
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.vertical, DesignTokens.Spacing.sm)
+        .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.stateStripHeight, alignment: .leading)
+        .background(tone.fill)
+        // The band changes colour as the state does (a booking that was Confirmed is Completed now), as every control that changes
+        // look does (GUIDE 24).
+        .beckonAnimation(DesignTokens.Motion.morph, value: tone)
+        .accessibilityAddTraits(.isHeader)
+    }
+}
+
 struct BeckonErrorBanner<Action: View>: View {
     private let title: String
     private let message: String?
@@ -38,52 +124,35 @@ struct BeckonErrorBanner<Action: View>: View {
         self.action = action()
     }
 
+    /// A white ledge card like the rest of the page, with a strip on top that says what it is: the symbol and the title in the error
+    /// colours, the kit's `BeckonStateStrip` (design). The words and the way out (a retry) are under it. Red lives in
+    /// the strip and nowhere else: no outline of its own and no blur shadow, so the box is one more card of the family and not a
+    /// guest from another one.
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                if let systemImage {
-                    Image(systemName: systemImage)
-                        .font(DesignTokens.Typography.body.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.statusErrorText)
-                        .frame(
-                            width: DesignTokens.Spacing.xl + DesignTokens.Spacing.sm,
-                            height: DesignTokens.Spacing.xl + DesignTokens.Spacing.sm
-                        )
-                        .background(DesignTokens.Colors.statusErrorFill)
-                        .clipShape(DesignTokens.Shapes.circular)
-                        .accessibilityHidden(true)
-                }
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 0) {
+                BeckonStateStrip(title: title, systemImage: systemImage, tone: .error)
 
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(title)
-                        .font(DesignTokens.Typography.headline)
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                    if let message {
-                        Text(message)
-                            .font(DesignTokens.Typography.body)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+                if let message {
+                    Text(message)
+                        .designSupportingText()
+                        .padding(.horizontal, DesignTokens.Spacing.lg)
+                        .padding(.top, DesignTokens.Spacing.md)
+                        .padding(.bottom, showsAction ? .zero : DesignTokens.Spacing.lg)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .accessibilityElement(children: .combine)
 
             if showsAction {
                 action
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.top, message == nil ? DesignTokens.Spacing.sm : .zero)
+                    .padding(.bottom, DesignTokens.Spacing.sm)
             }
         }
-        .padding(DesignTokens.Spacing.lg)
-        .background {
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
-                .fill(DesignTokens.Colors.surfaceRaised)
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
-                .stroke(DesignTokens.Colors.statusErrorBorder, lineWidth: 1)
-        }
-        .beckonShadow(DesignTokens.Shadows.smallCard)
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous))
+        .beckonLedge(.card)
     }
 }
 

@@ -45,7 +45,7 @@ struct CustomerRequestFlowPresenter: ViewModifier {
     func body(content: Content) -> some View {
         content
             .environment(\.customerRequestFlowHosted, true)
-            .sheet(isPresented: Binding(get: { store?.isShowingWizard ?? false },
+            .beckonSheet(isPresented: Binding(get: { store?.isShowingWizard ?? false },
                 set: { store?.setWizardPresentation($0) }), onDismiss: {
                     if store?.isWizardSuspendedForPet == true { onAddPet() }
                     else if let id = store?.completedWizardRequestID {
@@ -58,7 +58,7 @@ struct CustomerRequestFlowPresenter: ViewModifier {
                         onAddPet: { store.suspendWizardForPet() })
                 }
             }
-            .sheet(item: Binding(get: { store?.isShowingWizard == true ? nil : store?.discoveryFlow },
+            .beckonSheet(item: Binding(get: { store?.isShowingWizard == true ? nil : store?.discoveryFlow },
                 set: { store?.discoveryFlow = $0 })) { flow in
                 if let store, let marketplace = store.marketplace {
                     NavigationStack { CustomerGroomerDiscoveryView(flow: flow, requests: store, marketplace: marketplace) }

@@ -214,6 +214,7 @@ private struct DesignDialogPresenter: ViewModifier {
     @State private var isCovering = false
     @State private var isShowing = false
     @State private var spec: DesignDialogSpec?
+    @Environment(\.beckonRole) private var role
 
     /// The body reads `spec` and `isShowing` itself and hands the cover plain values. A cover's content closure that reads this
     /// modifier's state only inside the closure leaves the dialog blank when the caller's own `@State` drives it: the body never
@@ -221,6 +222,7 @@ private struct DesignDialogPresenter: ViewModifier {
     func body(content: Content) -> some View {
         let spec = spec
         let isShowing = isShowing
+        let role = role
         content
             .fullScreenCover(isPresented: $isCovering) {
                 Group {
@@ -232,6 +234,7 @@ private struct DesignDialogPresenter: ViewModifier {
                         }
                     }
                 }
+                .beckonCarriesRole(role)
                 .presentationBackground(.clear)
             }
             .onChange(of: isPresented, initial: true) { _, wantsDialog in

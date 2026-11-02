@@ -9,6 +9,8 @@ import UIKit
 
 enum BeckonTabIcon: CaseIterable, Identifiable {
     case home, grooming, messages, account
+    /// The groomer's two own tabs: an inbox tray for the requests that come in, a calendar for the schedule.
+    case requests, schedule
 
     var id: Self { self }
 
@@ -74,6 +76,29 @@ enum BeckonTabIcon: CaseIterable, Identifiable {
                 path.closeSubpath()
             }
             return ([head, shoulders], [], 2.2)
+
+        case .requests:
+            let tray = Path { path in
+                path.move(to: CGPoint(x: 3.8, y: 12.8))
+                path.addLine(to: CGPoint(x: 6.6, y: 5.9))
+                path.addQuadCurve(to: CGPoint(x: 8.2, y: 4.8), control: CGPoint(x: 6.9, y: 4.8))
+                path.addLine(to: CGPoint(x: 15.8, y: 4.8))
+                path.addQuadCurve(to: CGPoint(x: 17.4, y: 5.9), control: CGPoint(x: 17.1, y: 4.8))
+                path.addLine(to: CGPoint(x: 20.2, y: 12.8))
+                path.addLine(to: CGPoint(x: 20.2, y: 17.4))
+                path.addQuadCurve(to: CGPoint(x: 17.8, y: 19.8), control: CGPoint(x: 20.2, y: 19.8))
+                path.addLine(to: CGPoint(x: 6.2, y: 19.8))
+                path.addQuadCurve(to: CGPoint(x: 3.8, y: 17.4), control: CGPoint(x: 3.8, y: 19.8))
+                path.closeSubpath()
+            }
+            let slot = Path(roundedRect: CGRect(x: 8.2, y: 12.4, width: 7.6, height: 2.6), cornerRadius: 1.3)
+            return ([tray], [slot], 2.2)
+
+        case .schedule:
+            let page = Path(roundedRect: CGRect(x: 4.2, y: 5.6, width: 15.6, height: 14.2), cornerRadius: 3.6)
+            let pegs = [8.4, 15.6].map { Path(roundedRect: CGRect(x: $0 - 0.9, y: 3.2, width: 1.8, height: 4.2), cornerRadius: 0.9) }
+            let days = [8.3, 12, 15.7].map { Path(ellipseIn: CGRect(x: $0 - 1.2, y: 13.4 - 1.2, width: 2.4, height: 2.4)) }
+            return ([page] + pegs, days, 2.2)
         }
     }
 
@@ -83,6 +108,8 @@ enum BeckonTabIcon: CaseIterable, Identifiable {
         case .grooming: "Grooming"
         case .messages: "Messages"
         case .account: "Account"
+        case .requests: "Requests"
+        case .schedule: "Schedule"
         }
     }
 }

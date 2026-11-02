@@ -9,6 +9,8 @@ struct BeckonLedgeHeading: View {
     let title: String
     let systemImage: String
     var count: Int?
+    /// A few words at the far end of the line, for what the count cannot say ("3 of 6").
+    var detail: String?
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
@@ -32,6 +34,12 @@ struct BeckonLedgeHeading: View {
                     .accessibilityHidden(true)
             }
             Spacer(minLength: 0)
+            if let detail {
+                Text(detail)
+                    .font(DesignTokens.Typography.Expressive.label)
+                    .foregroundStyle(DesignTokens.Colors.customerDeep)
+                    .fixedSize()
+            }
         }
     }
 }
@@ -130,23 +138,26 @@ struct BeckonLedgePrimaryLabel: View {
 struct BeckonDateTile: View {
     let month: String
     let day: String
+    /// A date that no longer stands (a cancelled booking): the band and the day go grey, so the tile does not read as a live one (design).
+    var isMuted = false
 
     var body: some View {
         VStack(spacing: 0) {
             Text(month)
                 .font(DesignTokens.Typography.Expressive.micro)
-                .foregroundStyle(DesignTokens.Colors.customerInk)
+                .foregroundStyle(isMuted ? DesignTokens.Colors.statusNeutralText : DesignTokens.Colors.customerInk)
                 .lineLimit(1)
                 .fixedSize()
                 .frame(maxWidth: .infinity, minHeight: 20)
-                .background(DesignTokens.Colors.customerFill)
+                .background(isMuted ? DesignTokens.Colors.statusNeutralFill : DesignTokens.Colors.customerFill)
             Text(day)
                 .font(DesignTokens.Typography.Expressive.hero)
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                .foregroundStyle(isMuted ? DesignTokens.Colors.textSecondary : DesignTokens.Colors.textPrimary)
                 .lineLimit(1)
                 .fixedSize()
                 .frame(maxWidth: .infinity, minHeight: 44)
         }
+        .beckonAnimation(DesignTokens.Motion.morph, value: isMuted)
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .frame(minWidth: 62)
         .fixedSize(horizontal: true, vertical: false)

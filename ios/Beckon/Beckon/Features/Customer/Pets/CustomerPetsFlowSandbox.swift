@@ -36,7 +36,7 @@ struct CustomerPetsFlowSandbox: View {
                     .help("Reset sandbox")
                 }
             }
-            .sheet(isPresented: $store.isShowingPetForm) {
+            .beckonSheet(isPresented: $store.isShowingPetForm) {
                 CustomerPetFormView(store: store)
             }
             .background { CustomerPetsStatusView(store: store) }
