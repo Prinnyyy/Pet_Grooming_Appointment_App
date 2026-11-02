@@ -18,6 +18,16 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-072
+Date: 2026-11-02
+Task: T-442
+Decision: Adopt the approved retained-launch waiting and Schedule loading-layout studies by modifying production components, without importing prototype fixtures.
+Context: Account loading declared launch readiness too early, exposing the Getting things ready page; Schedule inserted its calendar button and omitted its zone/header footprint during loading.
+Consequences: Complete the intro once, retain the same scene until the role/onboarding/error route resolves, and delay the lower spinner 0.35 s without an extra minimum hold. Later authentication waits reuse the static final pose. Schedule shares its day-header layout, reserves the real calendar control and summary row, and masks unknown zone sizing text. Existing account calendar, verified booking reads and mutation guards remain authoritative.
+Linked files: docs/01_product/LIVELY_UI_SPEC.md; ios/Beckon/BeckonTests/LaunchRoleHandoffTests.swift; ios/Beckon/BeckonTests/ScheduleContinuityTests.swift.
+```
+
+```text
 Decision ID: D-071
 Date: 2026-11-02
 Task: T-441

@@ -7,6 +7,11 @@ enum AuthenticatedEntryState: Equatable {
     case customer(MarketplaceProfile)
     case groomer(MarketplaceProfile)
     case failure(message: String)
+
+    /// Loading cannot release the launch; onboarding and errors must remain actionable.
+    var isReadyForLaunch: Bool {
+        if case .loading = self { false } else { true }
+    }
 }
 
 @MainActor

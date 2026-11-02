@@ -16,7 +16,6 @@ struct GroomerScheduleView: View {
     let onOpenChat: (Booking) -> Void
     /// Where an empty day can send the groomer: the requests that could fill it. Without it the empty day has no button.
     var onSeeRequests: (() -> Void)?
-    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var selectedDayKey: String?
     @State private var isPickingDay = false
     @State private var pickedDate = Date()
@@ -86,24 +85,23 @@ struct GroomerScheduleView: View {
         isSettled = true
     }
 
-    private var titleRow: some View {
+    var titleRow: some View {
         HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
             BeckonPageTitle("Schedule")
-            if store.scheduleCalendar != nil {
-                Button {
-                    pickedDate = presentation?.selectedDate ?? Date()
-                    isPickingDay = true
-                } label: {
-                    Image(systemName: "calendar")
-                        .font(DesignTokens.Typography.Expressive.glyph)
-                        .dynamicTypeSize(...DynamicTypeSize.xLarge)
-                        .foregroundStyle(DesignTokens.Colors.customerDeep)
-                        .frame(width: DesignTokens.Metrics.minimumTouchTarget, height: DesignTokens.Metrics.minimumTouchTarget)
-                        .beckonLedge(.round)
-                }
-                .accessibilityLabel("Go to a day")
-                .accessibilityIdentifier("groomer.schedule.pick-day")
+            Button {
+                pickedDate = presentation?.selectedDate ?? Date()
+                isPickingDay = true
+            } label: {
+                Image(systemName: "calendar")
+                    .font(DesignTokens.Typography.Expressive.glyph)
+                    .dynamicTypeSize(...DynamicTypeSize.xLarge)
+                    .foregroundStyle(DesignTokens.Colors.customerDeep)
+                    .frame(width: DesignTokens.Metrics.minimumTouchTarget, height: DesignTokens.Metrics.minimumTouchTarget)
+                    .beckonLedge(.round)
             }
+            .accessibilityLabel("Go to a day")
+            .accessibilityIdentifier("groomer.schedule.pick-day")
+            .disabled(store.scheduleCalendar == nil)
         }
     }
 
@@ -119,13 +117,13 @@ struct GroomerScheduleView: View {
             }
         } placeholder: {
             VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionSpacing) {
-                GroomerDayStripSkeleton()
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    DesignSkeletonLine(width: 0.55, font: DesignTokens.Typography.Expressive.section)
-                    DesignSkeletonLine(width: 0.75)
+                GroomerDayStripSkeleton(calendar: store.scheduleCalendar)
+                VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
+                    GroomerScheduleDayHeader(date: presentation?.selectedDate ?? Date(), calendar: store.scheduleCalendar,
+                        isToday: store.scheduleCalendar?.isDateInToday(presentation?.selectedDate ?? Date()) ?? true,
+                        summary: nil, isLoading: true)
+                    GroomerDayShapeBarSkeleton()
                 }
-                .designSkeletonOnPage()
-                .designSkeleton(label: nil)
                 GroomerNowCardSkeleton()
                 GroomerAppointmentRowSkeleton()
             }
@@ -235,9 +233,11 @@ struct GroomerScheduleView: View {
         }
         return VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionSpacing) {
             VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
-                dayHeader(title: dayTitle, isToday: isToday, calendar: calendar, date: presentation.selectedDate,
-                    summary: read.hasSnapshot ? summary : nil)
-                if scopeMatches, !slots.isEmpty {
+                GroomerScheduleDayHeader(date: presentation.selectedDate, calendar: calendar, isToday: isToday,
+                    summary: read.hasSnapshot ? summary : nil, isLoading: read.showsPlaceholder)
+                if read.showsPlaceholder {
+                    GroomerDayShapeBarSkeleton()
+                } else if scopeMatches, !slots.isEmpty {
                     GroomerDayShapeBar(shape: GroomerDayShape(items: plan.sequence + plan.behind,
                         dayStart: calendar.startOfDay(for: presentation.selectedDate),
                         open: GroomerScheduleHours.open(window), now: isToday ? now : nil))
@@ -264,44 +264,6 @@ struct GroomerScheduleView: View {
                 emptyDay(dayTitle: dayTitle, window: window)
             } else if scopeMatches && !presentation.selectedBookings.isEmpty {
                 appointments(plan, calendar: calendar, now: now)
-            }
-        }
-    }
-
-    /// The day's name and, in one line, how it is booked; the time zone sits at the end of the first line (it was a line of its own).
-    private func dayHeader(title: String, isToday: Bool, calendar: Calendar, date: Date, summary: String?) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            (typeSize.isAccessibilitySize
-                ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.xs))
-                : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm))) {
-                Text(title)
-                    .font(DesignTokens.Typography.Expressive.section)
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
-                if isToday {
-                    Text("Today")
-                        .font(DesignTokens.Typography.Expressive.chip)
-                        .foregroundStyle(DesignTokens.Colors.customerDeep)
-                        .padding(.horizontal, DesignTokens.Spacing.sm)
-                        .padding(.vertical, DesignTokens.Spacing.xs)
-                        .background(DesignTokens.Colors.customerTint, in: Capsule())
-                }
-                if !typeSize.isAccessibilitySize { Spacer(minLength: DesignTokens.Spacing.sm) }
-                HStack(spacing: DesignTokens.Spacing.xs) {
-                    Image(systemName: "globe")
-                    Text(BeckonDateTimeFormatter.zoneLabel(calendar.timeZone, at: date))
-                }
-                .font(DesignTokens.Typography.Expressive.chip)
-                .foregroundStyle(DesignTokens.Colors.textTertiary)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(calendar.timeZone.identifier)
-                .accessibilityIdentifier("groomer.schedule.time-zone")
-            }
-            if let summary {
-                Text(summary)
-                    .designSupportingText()
-                    .accessibilityIdentifier("groomer.schedule.summary")
             }
         }
     }

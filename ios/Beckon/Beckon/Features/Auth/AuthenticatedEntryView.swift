@@ -106,7 +106,7 @@ struct AuthenticatedEntryView: View {
                 loadFailureView(message: message)
             }
         }
-        .preference(key: LaunchReadyKey.self, value: true)
+        .preference(key: LaunchReadyKey.self, value: store.state.isReadyForLaunch)
         .task(id: session.userID) {
             await store.load(userID: session.userID)
         }
@@ -259,33 +259,20 @@ struct AuthenticatedEntryView: View {
     }
 }
 
-/// The role is not known yet. Keep the shared background, without implying an Account page
-/// or a particular role. The destination owns its only skeleton-to-content reveal.
+/// Cold launch keeps its existing artwork. Later sign-ins reuse the final brand pose,
+/// without replaying the arrival or presenting an intermediate account page.
 struct AccountEntryLoadingView: View {
+    @Environment(\.isInsideLaunchGate) private var hosted
     @Environment(\.beckonEntranceActive) private var pageIsActive
-    @State private var showsProgress = false
 
     var body: some View {
-        ZStack {
-            BeckonExpressiveBackdrop()
-            ProgressView("Getting things ready…")
-                .font(DesignTokens.Typography.Expressive.supporting)
-                .tint(DesignTokens.Colors.textSecondary)
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-                .padding(DesignTokens.Spacing.xl)
-                .opacity(showsProgress ? 1 : 0)
-                .animation(DesignTokens.Motion.reduced, value: showsProgress)
+        Group {
+            if hosted && !pageIsActive { Color.clear }
+            else { LaunchScene(showsLoading: true).environment(\.isInsideLaunchGate, false) }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Loading your account")
         .accessibilityIdentifier("profile.loading")
-        .task(id: pageIsActive) {
-            showsProgress = false
-            guard pageIsActive else { return }
-            try? await Task.sleep(for: .seconds(DesignTokens.Motion.skeletonShowDelay))
-            guard !Task.isCancelled else { return }
-            showsProgress = true
-        }
     }
 }
 

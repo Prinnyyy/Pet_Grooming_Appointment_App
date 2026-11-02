@@ -20,6 +20,7 @@ struct AuthenticationLanding: View {
     var playsArrivalReaction = true
     var onArrivalReactionFinished: () -> Void = {}
     var brandOffset: CGFloat = 0
+    var showsLoadingIndicator = false
     /// The pup perks up while the primary button is held, as the Home hero's does.
     @State private var isGetStartedPressed = false
     @State private var scrollOffset: CGFloat = 0
@@ -42,6 +43,18 @@ struct AuthenticationLanding: View {
                 .frame(minHeight: proxy.size.height)
             }
             .accessibilityIdentifier(showsActions ? "auth.landing" : "launch.brand.layout")
+            .overlay(alignment: .bottom) {
+                if showsLoadingIndicator {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(DesignTokens.Colors.textTertiary)
+                        .frame(width: 24, height: 24)
+                        .padding(.bottom, DesignTokens.Spacing.lg)
+                        .accessibilityLabel("Loading your home")
+                        .allowsHitTesting(false)
+                        .transition(.opacity)
+                }
+            }
             .onScrollGeometryChange(for: CGFloat.self) { $0.contentOffset.y + $0.contentInsets.top } action: { _, offset in
                 if isInsideLaunchGate && showsActions { scrollOffset = offset }
             }

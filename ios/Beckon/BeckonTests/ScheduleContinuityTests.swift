@@ -93,6 +93,38 @@ import XCTest
 }
 
 @MainActor final class SkeletonParityTests: XCTestCase {
+    func testScheduleHeaderMaskKeepsNativeTextAndAccessibilitySizing() {
+        let date = Date()
+        let calendar = Calendar.current
+        for size: DynamicTypeSize in [.large, .xxxLarge, .accessibility3] {
+            for width: CGFloat in [320, 380] {
+                let actual = GroomerScheduleDayHeader(date: date, calendar: calendar, isToday: true,
+                    summary: "2 appointments · 2 hr · $120")
+                let placeholder = GroomerScheduleDayHeader(date: date, calendar: calendar, isToday: true,
+                    summary: "2 appointments · 2 hr · $120", isLoading: true)
+                XCTAssertEqual(height(placeholder, width: width, size: size), height(actual, width: width, size: size),
+                    accuracy: 0.5, "\(width) / \(size)")
+            }
+        }
+        let empty = GroomerScheduleDayHeader(date: date, calendar: calendar, isToday: true, summary: nil)
+        let booked = GroomerScheduleDayHeader(date: date, calendar: calendar, isToday: true, summary: "2 appointments")
+        XCTAssertEqual(height(empty, width: 380, size: .large), height(booked, width: 380, size: .large), accuracy: 0.5)
+    }
+
+    func testScheduleTitleKeepsTheCalendarControlFootprintBeforeCalendarReadiness() async {
+        let session = GroomerSandboxSession(state: .empty)
+        let view = GroomerScheduleView(store: session.bookings, focusedBooking: .constant(nil),
+            isActiveTab: false, onOpenChat: { _ in })
+        func width() -> CGFloat {
+            let host = UIHostingController(rootView: view.titleRow.fixedSize(horizontal: true, vertical: false))
+            return host.sizeThatFits(in: CGSize(width: 1000, height: 500)).width
+        }
+        let unknown = width()
+        await session.bookings.load()
+        XCTAssertNotNil(session.bookings.scheduleCalendar)
+        XCTAssertEqual(width(), unknown, accuracy: 0.5, "Calendar readiness must not insert a new control")
+    }
+
     func testHomeTileSkeletonUsesTheActualTileFootprint() {
         for size: DynamicTypeSize in [.large, .xxxLarge, .accessibility3] {
             for width: CGFloat in [110, 180, 350] {

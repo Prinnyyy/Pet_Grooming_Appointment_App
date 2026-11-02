@@ -118,8 +118,9 @@ private struct GroomerDayTile: View {
 
 
 struct GroomerDayStripSkeleton: View {
+    var calendar: Calendar?
     var body: some View {
-        let calendar = Calendar.current
+        let calendar = calendar ?? Calendar.current
         let start = calendar.startOfDay(for: Date())
         let days = (0..<7).map { offset in
             let date = calendar.date(byAdding: .day, value: offset, to: start)!
@@ -135,6 +136,91 @@ struct GroomerDayStripSkeleton: View {
 
 
 // MARK: The day's shape
+
+/// Loading and verified content share the date, badge, zone and summary geometry.
+/// The device calendar is used only to size masked placeholders, never as an account time zone.
+struct GroomerScheduleDayHeader: View {
+    let date: Date
+    let calendar: Calendar?
+    let isToday: Bool
+    let summary: String?
+    var isLoading = false
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            (typeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.xs))
+                : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm))) {
+                GroomerScheduleHeaderText(text: GroomerScheduleDateFormatting.longDayTitle(from: date,
+                    calendar: calendar ?? .current), isLoading: calendar == nil)
+                    .font(DesignTokens.Typography.Expressive.section)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                if isToday {
+                    GroomerScheduleHeaderText(text: "Today", isLoading: calendar == nil)
+                        .font(DesignTokens.Typography.Expressive.chip)
+                        .foregroundStyle(DesignTokens.Colors.customerDeep)
+                        .padding(.horizontal, DesignTokens.Spacing.sm)
+                        .padding(.vertical, DesignTokens.Spacing.xs)
+                        .background(DesignTokens.Colors.customerTint, in: Capsule())
+                }
+                if !typeSize.isAccessibilitySize { Spacer(minLength: DesignTokens.Spacing.sm) }
+                HStack(spacing: DesignTokens.Spacing.xs) {
+                    Image(systemName: "globe")
+                    GroomerScheduleHeaderText(text: calendar.map { BeckonDateTimeFormatter.zoneLabel($0.timeZone, at: date) }
+                        ?? "PST", isLoading: calendar == nil)
+                }
+                .font(DesignTokens.Typography.Expressive.chip)
+                .foregroundStyle(DesignTokens.Colors.textTertiary)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(calendar?.timeZone.identifier ?? "Loading schedule time zone")
+                .accessibilityIdentifier("groomer.schedule.time-zone")
+            }
+            // Reserve the summary line even on an empty day; refresh never inserts a new row.
+            GroomerScheduleHeaderText(text: summary ?? "Appointments · duration · total", isLoading: isLoading)
+                .designSupportingText()
+                .opacity(summary != nil || isLoading ? 1 : 0)
+                .accessibilityHidden(summary == nil)
+                .accessibilityIdentifier("groomer.schedule.summary")
+        }
+        .designSkeletonOnPage()
+    }
+}
+
+private struct GroomerScheduleHeaderText: View {
+    let text: String
+    let isLoading: Bool
+    var body: some View {
+        if isLoading {
+            Text(text).hidden().overlay {
+                DesignSkeletonBlock(cornerRadius: 4)
+                    .mask(Text(text).redacted(reason: .placeholder))
+            }
+            .designSkeleton(label: nil)
+            .accessibilityHidden(true)
+        } else { Text(text) }
+    }
+}
+
+struct GroomerDayShapeBarSkeleton: View {
+    var body: some View {
+        VStack(spacing: DesignTokens.Spacing.xs) {
+            DesignSkeletonBlock(cornerRadius: DesignTokens.Metrics.dayShapeHeight / 2)
+                .frame(height: DesignTokens.Metrics.dayShapeHeight)
+            HStack {
+                GroomerScheduleHeaderText(text: "8 am", isLoading: true)
+                Spacer(minLength: 0)
+                GroomerScheduleHeaderText(text: "6 pm", isLoading: true)
+            }
+            .font(DesignTokens.Typography.Expressive.micro)
+        }
+        .designSkeletonOnPage()
+        .designSkeleton(label: nil)
+        .accessibilityHidden(true)
+    }
+}
 
 /// The day as a strip of hours: the hours the groomer is open as a light band, each booking where it stands (done, under way, still
 /// to come), and a line where now is. It says in a glance how full the day is; the rows say the rest.

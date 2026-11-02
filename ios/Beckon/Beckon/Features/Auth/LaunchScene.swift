@@ -8,25 +8,34 @@ struct LaunchScene: View {
     var isLanding = false
     var isExcited = false
     var scrollOffset: CGFloat = 0
+    var showsLoading = false
     var onIntroFinished: () -> Void = {}
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var orbEntered = false
     @State private var wordsEntered = false
     @State private var started = false
     @State private var completion = LaunchIntroCompletionState()
+    @State private var showsLoadingIndicator = false
 
     var body: some View {
         AuthenticationLanding(hasEntered: !playsIntro || orbEntered, isBusy: true,
             onGetStarted: {}, onSignIn: {}, showsActions: false, showsWords: !playsIntro || wordsEntered,
             showsBackdrop: !isLanding, brandIsExcited: isExcited, playsArrivalReaction: playsIntro || started,
             onArrivalReactionFinished: { completion.arrivalFinished = true },
-            brandOffset: -scrollOffset)
+            brandOffset: -scrollOffset, showsLoadingIndicator: showsLoadingIndicator)
         .background {
             if !isLanding { DesignTokens.Colors.appBackground.ignoresSafeArea() }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(isLanding ? "Beckon. Pet groomers at your beck and call." : "Beckon, loading")
         .accessibilityIdentifier(isLanding ? "auth.landing.brand" : "launch.scene")
+        .task(id: showsLoading) {
+            showsLoadingIndicator = false
+            guard showsLoading else { return }
+            try? await Task.sleep(for: .milliseconds(350))
+            guard !Task.isCancelled else { return }
+            withAnimation(DesignTokens.Motion.reduced) { showsLoadingIndicator = true }
+        }
         .onAppear {
             guard playsIntro, !started else { return }
             started = true
@@ -94,7 +103,8 @@ struct LaunchGate<Content: View>: View {
                 // Keep this exact instance through the welcome handoff so the pup's reaction
                 // and idle timeline finish continuously. Only its background leaves.
                 LaunchScene(playsIntro: !isOver, isLanding: isOver,
-                    isExcited: landingBrand?.isExcited == true, scrollOffset: landingBrand?.scrollOffset ?? 0) {
+                    isExcited: landingBrand?.isExcited == true, scrollOffset: landingBrand?.scrollOffset ?? 0,
+                    showsLoading: presentation.introFinished && !isReady && !isOver) {
                     presentation.introFinished = true
                 }
                     // Fade the finished scene as one layer. Fading its wash and artwork
