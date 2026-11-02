@@ -46,6 +46,20 @@ final class SupabaseBookingRepository: BookingRepository {
         } catch { throw Self.map(error) }
     }
 
+    func upcomingBookings(participantID: UUID, role: UserRole, now: Date, limit: Int) async throws -> [Booking] {
+        guard (1...4).contains(limit) else { throw BookingRepositoryError.invalidInput }
+        do {
+            let rows: [SupabaseBookingRow] = try await client.from("bookings")
+                .select(Self.bookingColumns + "," + SupabaseBookingRow.fulfillmentColumns)
+                .eq(role == .customer ? "customer_id" : "groomer_id", value: participantID.uuidString.lowercased())
+                .eq("status", value: "confirmed")
+                .gte("scheduled_end", value: GroomingRequestDateFormatting.serverString(from: now))
+                .order("scheduled_start", ascending: true).order("id", ascending: true)
+                .limit(limit).execute().value
+            return try await hydrate(rows)
+        } catch { throw Self.map(error) }
+    }
+
     func reminderSnapshot(participantID: UUID, role: UserRole) async throws -> AppointmentReminderSnapshot {
         struct Input: Encodable { let p_participant_id: UUID; let p_role: String }
         do {

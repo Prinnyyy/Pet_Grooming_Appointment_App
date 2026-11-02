@@ -51,7 +51,7 @@ struct GroomerProfileEditorView: View {
         .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .navigationTitle("Profile settings")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .tabBar)
+        .beckonHidesTabBar()
         .onChange(of: focusedTarget) { _, target in
             if target != nil { addressFocusTarget = nil }
         }

@@ -29,6 +29,7 @@ enum BookingRepositoryError: Error, Equatable, Sendable {
 protocol BookingRepository: AnyObject {
     func reviewContext(bookingID: UUID) async throws -> BookingReviewContext
     func reminderSnapshot(participantID: UUID, role: UserRole) async throws -> AppointmentReminderSnapshot
+    func upcomingBookings(participantID: UUID, role: UserRole, now: Date, limit: Int) async throws -> [Booking]
     func nearestBooking(participantID: UUID, role: UserRole, now: Date) async throws -> Booking?
     func bookings(participantID: UUID, role: UserRole, interval: DateInterval,
         page: ListPageRequest) async throws -> ListPage<Booking>
@@ -76,6 +77,12 @@ protocol BookingRepository: AnyObject {
 }
 
 extension BookingRepository {
+    func upcomingBookings(participantID: UUID, role: UserRole, now: Date, limit: Int) async throws -> [Booking] {
+        guard (1...4).contains(limit) else { throw BookingRepositoryError.invalidInput }
+        // Compatibility for repositories that implement the original nearest-booking contract.
+        return try await nearestBooking(participantID: participantID, role: role, now: now).map { [$0] } ?? []
+    }
+
     func booking(customerID: UUID, requestID: UUID) async throws -> Booking? {
         throw BookingRepositoryError.unavailable
     }

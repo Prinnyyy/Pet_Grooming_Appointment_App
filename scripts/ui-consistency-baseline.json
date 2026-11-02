@@ -2,7 +2,7 @@
   "version": 1,
   "scope": "ios/Beckon/Beckon/Features",
   "lastChange": {
-    "reason": "T-421 adopts handoff 2 and retires resolved wizard geometry debt"
+    "reason": "T-430 replaces legacy Home styling with adopted shared kit and extracts HomeHeader"
   },
   "findings": [
     {
@@ -255,55 +255,6 @@
       "path": "ios/Beckon/Beckon/Features/Customer/Pets/CustomerPetFormView.swift",
       "fingerprint": "dd7cc02e40c87f4e748ed0edd756f91820cdde4bc032ce4ff5521dd59b260d88",
       "expressionHash": "0598f59613736a904b14411cc63c23357d8b52f8072eec54037494361288ed86",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Home/GroomerHomeView.swift",
-      "fingerprint": "a3e86878596384cc4b01cf418ac0fc7992b1caeaf99c1ca52d860f6a0d974a16",
-      "expressionHash": "19098692f3eb5d5d7f9bc7cf7c30890fd2e6134bd485c5830dc781393dbd3238",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Home/GroomerHomeView.swift",
-      "fingerprint": "3d9038a35cbf3b10885adada1dea317e8054f81f149b5fe95cb2be7ddf39bb5f",
-      "expressionHash": "f299e0fc5b5a476abfa0d8ce0157e80de57c5c5823c728f3f207d6c48a19443b",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Home/GroomerHomeView.swift",
-      "fingerprint": "244e595d4848ae64b84a238a4ea359bd7e0e658e2849a2a3f2984d7845a9f8c1",
-      "expressionHash": "40a9b22d2e446597d0a708726b9cd896fa7ad04651c7de6dd7435b18488720c2",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Home/GroomerHomeView.swift",
-      "fingerprint": "3fe0c6268b2a0f7a9b7e7253ef8a380f7ad4b253ba63d25d4e3c8756875f4b61",
-      "expressionHash": "c619a859e90fd333588c76c0432814127638fbdf8925125df4d9e6d245d312ea",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Home/GroomerHomeView.swift",
-      "fingerprint": "d2b371455040dd0e0f202987e2bd598b730fb4f544abc9c7957be107f70d58f1",
-      "expressionHash": "40a9b22d2e446597d0a708726b9cd896fa7ad04651c7de6dd7435b18488720c2",
-      "occurrence": 2
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Home/GroomerHomeView.swift",
-      "fingerprint": "0efc58e8787b3dc6a110a9fe67d29ccecc81bc5fb9e8ea030d75cbf04006f8c0",
-      "expressionHash": "ea989b58b277e762c2de6cfebda7ce750162d8a08593cd008f08e7467b296a71",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Home/GroomerHomeView.swift",
-      "fingerprint": "aa52391edaf84a513f7857634d0121935e8f0b1740c42215a624179c7433dc62",
-      "expressionHash": "65158038e24ad44407eb01a986bae98924a20a6fc8589099ecedd0ea1004cef2",
       "occurrence": 1
     },
     {

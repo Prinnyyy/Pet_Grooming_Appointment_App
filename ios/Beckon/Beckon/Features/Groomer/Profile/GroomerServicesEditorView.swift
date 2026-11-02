@@ -25,7 +25,7 @@ struct GroomerServicesEditorView: View {
         .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .navigationTitle("Services")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .tabBar)
+        .beckonHidesTabBar()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(action: startCreateService) {

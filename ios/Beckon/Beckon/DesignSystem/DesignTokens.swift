@@ -223,6 +223,8 @@ enum DesignTokens {
         static let homeTitleSize: CGFloat = 46
         // Adopted Home greeting only: a single decorative title may shrink before wrapping.
         static let homeTitleMinimumScale: CGFloat = 0.5
+        /// Approved Home count tile only; the owning button exposes the full count to VoiceOver.
+        static let homeCountMinimumScale: CGFloat = 0.6
         static let launchBottomReserve = ledgePrimaryButtonHeight * 2 + Spacing.xl
         static let groomingPathHeadroom: CGFloat = 48
         static let groomingPathConnector: CGFloat = 9

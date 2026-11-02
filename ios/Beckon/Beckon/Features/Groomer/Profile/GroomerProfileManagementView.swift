@@ -103,7 +103,7 @@ struct GroomerProfileManagementView: View {
             switch route {
             case .availability:
                 GroomerAvailabilityEditorView(store: store)
-                    .toolbar(.hidden, for: .tabBar)
+                    .beckonHidesTabBar()
             }
         }
         .task {

@@ -314,7 +314,7 @@ test("UI017 allows ledge surfaces only in declared Tier L/M screens", () => {
     Text(title).beckonLedge(.pill)
     // .beckonLedge(.card)
     Text(".beckonLedge(.card)")`;
-  const other = auditSwiftSource({ filePath: "ios/Beckon/Beckon/Features/Groomer/Home/GroomerHomeView.swift", source })
+  const other = auditSwiftSource({ filePath: "ios/Beckon/Beckon/Features/Unadopted/Example.swift", source })
     .filter(f => f.ruleID === "UI017");
   assert.ok(other.length >= 2);
   assert.ok(other.every(f => f.severity === "error"));

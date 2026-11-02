@@ -66,7 +66,14 @@ final class CustomerNavigation {
 
     func showHome() { cut(to: .home) { home = [] } }
 
-    /// Manual tab selection bypasses this method and preserves history. Action-driven handoffs
+    func selectManually(_ tab: CustomerTab) {
+        guard selection != tab else { return }
+        self[selection] = []
+        if selection == .requests || selection == .bookings { focusedGroomingID = nil }
+        selection = tab
+    }
+
+    /// Manual selection resets the outgoing path. Action-driven handoffs
     /// reset paths in one transaction without changing view identities or reconstructing stores.
     private func cut(to tab: CustomerTab, update: () -> Void) {
         var transaction = Transaction(animation: nil)

@@ -484,7 +484,7 @@ struct GroomerRequestDetailView: View {
 
     var body: some View {
         content
-            .toolbar(.hidden, for: .tabBar)
+            .beckonHidesTabBar()
             .task(id: matchID) { await store.openDetail(matchID: matchID) }
             .onDisappear { store.closeDetail(); form.cancelPendingLoads() }
     }

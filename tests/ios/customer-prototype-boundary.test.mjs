@@ -19,7 +19,7 @@ test("prototype UI is DEBUG-only and no production caller depends on it", () => 
 });
 
 test("adopted sandbox hosts real views with local dependencies", () => {
-  const hosts = paths.filter((path) => path.startsWith("FlowSandbox/Customer/") || path.endsWith("FlowSandbox.swift"));
+  const hosts = paths.filter((path) => path.startsWith("FlowSandbox/Customer/") || path.startsWith("FlowSandbox/Groomer/") || path.endsWith("FlowSandbox.swift"));
   for (const path of hosts) {
     const source = read(path).trim();
     assert.ok(source.startsWith("#if DEBUG"), path);
@@ -32,4 +32,9 @@ test("adopted sandbox hosts real views with local dependencies", () => {
   assert.match(host, /CustomerFavoriteGroomersView\(marketplace: session.marketplace\)/);
   assert.doesNotMatch(host, /sandbox.variant|CustomerGroomerListView|CustomerRequestProgressView/);
   assert.doesNotMatch(read("FlowSandbox/Customer/CustomerSandboxSession.swift"), /feedback.showNotice\("Preview only/);
+});
+
+test("groomer host runs the production shell on local repositories", () => {
+  assert.match(read("FlowSandbox/Groomer/GroomerFlowSandbox.swift"), /GroomerTabView\(sandbox: session/);
+  assert.match(read("FlowSandbox/Groomer/GroomerSandboxSession.swift"), /GroomerRequestsStore\(/);
 });

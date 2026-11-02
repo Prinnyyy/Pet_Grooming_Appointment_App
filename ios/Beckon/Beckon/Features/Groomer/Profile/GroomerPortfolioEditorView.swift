@@ -26,7 +26,7 @@ struct GroomerPortfolioEditorView: View {
         .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .navigationTitle("Portfolio")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .tabBar)
+        .beckonHidesTabBar()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 addPhotoPicker(disabled: presentation.isAddDisabled)
@@ -245,7 +245,7 @@ private struct GroomerPortfolioPhotoDetailView: View {
         .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .navigationTitle("Portfolio photo")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .tabBar)
+        .beckonHidesTabBar()
         .safeAreaInset(edge: .bottom, spacing: 0) {
             GroomerPortfolioFitNotesSaveBar(
                 presentation: presentation,

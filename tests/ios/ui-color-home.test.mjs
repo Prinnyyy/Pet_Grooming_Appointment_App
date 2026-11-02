@@ -24,11 +24,12 @@ test("Home offer counts reuse loaded Store data without fetching", () => {
   assert.doesNotMatch(count, /await|repository\./);
 });
 
-test("Groomer Home uses a role badge, shared count badges and non-color availability cues", () => {
+test("Groomer Home follows the approved coral scene, count tiles and exceptional availability alerts", () => {
   const home = read("Features/Groomer/Home/GroomerHomeView.swift");
-  assert.match(home, /BeckonRoleBadge/);
-  assert.match(home, /BeckonCountBadge/);
-  assert.match(home, /checkmark\.circle\.fill/);
+  assert.match(home, /HomeHeader/);
+  assert.match(home, /GroomerHomeTile/);
+  assert.match(home, /showsPup: false/);
+  assert.match(home, /case \.paused, \.needsSchedule/);
   assert.doesNotMatch(home, /let tint: Color|Colors\.groomerInk/);
 });
 

@@ -49,7 +49,8 @@ struct AppointmentReminderDestinationView: View {
                     }
                 } else { ProgressView().accessibilityLabel("Loading appointment") }
             }
-            .environment(\.beckonCustomerDesign, target.role == .customer)
+            .environment(\.beckonRole, target.role == .customer ? .customer : .groomer)
+            .environment(\.beckonCustomerDesign, true)
             .task(id: target.id) { await load() }
         }
     }

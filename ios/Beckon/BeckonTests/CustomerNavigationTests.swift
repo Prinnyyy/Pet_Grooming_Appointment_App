@@ -4,14 +4,14 @@ import Testing
 
 @MainActor
 struct CustomerNavigationTests {
-    @Test func manualTabsPreserveHistoryButActionHandoffsClearBothStacks() {
+    @Test func manualTabsResetOutgoingHistoryAndActionHandoffsKeepIncomingTarget() {
         let navigation = CustomerNavigation()
         navigation.open(.notifications)
-        navigation.selection = .account
+        navigation.selectManually(.account)
         navigation.open(.savedGroomers)
-        navigation.selection = .home
-        #expect(navigation.home == [.notifications])
-        #expect(navigation.account == [.savedGroomers])
+        navigation.selectManually(.home)
+        #expect(navigation.home.isEmpty)
+        #expect(navigation.account.isEmpty)
         let id = UUID()
         navigation.grooming = [.history]
         navigation.open(.grooming(.booking(id)))

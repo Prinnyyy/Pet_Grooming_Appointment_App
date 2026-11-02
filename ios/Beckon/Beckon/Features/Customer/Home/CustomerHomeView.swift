@@ -419,7 +419,7 @@ private struct CustomerHomeTop: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            CustomerHomeHeader(
+            HomeHeader(
                 displayName: displayName,
                 unreadNotificationCount: unreadNotificationCount,
                 notificationAction: notificationAction
@@ -446,33 +446,6 @@ private struct CustomerHomeTop: View {
 }
 
 
-private struct CustomerHomeHeader: View {
-    let displayName: String
-    let unreadNotificationCount: Int
-    let notificationAction: () -> Void
-    /// One size above `Expressive.display` (design): the greeting is the only text of the top, so it carries it; it still follows the
-    /// text size setting (up to the largest ordinary size) and shrinks before it wraps.
-    @ScaledMetric(relativeTo: .largeTitle) private var titleSize = DesignTokens.Metrics.homeTitleSize
-
-    var body: some View {
-        HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-            Text("Hi, \(displayName)!")
-                .font(DesignTokens.Typography.Expressive.homeGreeting(size: titleSize))
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(DesignTokens.Metrics.homeTitleMinimumScale)
-                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityAddTraits(.isHeader)
-
-            BeckonExpressiveNotificationBell(
-                unreadCount: unreadNotificationCount,
-                accessibilityIdentifier: "customer.home.notifications",
-                action: notificationAction
-            )
-        }
-    }
-}
 
 
 private struct CustomerHomeRequestHero: View {

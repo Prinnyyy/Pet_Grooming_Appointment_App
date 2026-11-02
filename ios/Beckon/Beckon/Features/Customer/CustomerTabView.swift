@@ -175,7 +175,7 @@ struct CustomerTabView: View {
     }
 
     private var tabs: some View {
-        TabView(selection: Binding(get: { navigation.selection }, set: { navigation.selection = $0 })) {
+        TabView(selection: Binding(get: { navigation.selection }, set: { navigation.selectManually($0) })) {
             ForEach(CustomerTab.allCases) { tab in
                 navigationRoot(for: tab)
                 .beckonEntranceActive(selection == tab)

@@ -57,7 +57,7 @@ struct GroomerAvailabilityEditorView: View {
         .navigationTitle("Availability")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden()
-        .toolbar(.hidden, for: .tabBar)
+        .beckonHidesTabBar()
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {

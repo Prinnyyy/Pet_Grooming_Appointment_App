@@ -29,6 +29,8 @@ const ruleByID = new Map(UI_RULES.map((rule) => [rule.id, rule]));
 // Spec: docs/01_product/LIVELY_UI_SPEC.md. Screens that may use ledge surfaces (Tier L or M). Adding a screen is a
 // deliberate act: record its tier in SCREEN_INVENTORY.md and a Decision Log entry, then add it here.
 export const LEDGE_TIER_PATHS = Object.freeze([
+  "Features/Groomer/Home/GroomerHomeView.swift",
+  "Features/Groomer/Notifications/GroomerNotificationsView.swift",
   "Features/Auth/AuthenticationLanding.swift",
   "Features/Customer/Discovery/GroomerProfileView.swift",
   "Features/Customer/Favorites/CustomerFavoriteRequestStrip.swift",

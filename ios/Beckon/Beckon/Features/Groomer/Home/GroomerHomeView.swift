@@ -1,624 +1,654 @@
+// The groomer's Home, redesigned in the customer Home's language with the groomer's coral (design). Same job as
+// Features/Groomer/Home/GroomerHomeView.swift: the next appointment, what needs attention (new matches, pending offers, unread
+// messages), whether the groomer is available, and the bell. The store (`GroomerHomeStore`), its counts and issues, the bell's
+// destination and every id are the real ones. What is new is the surface: the greeting and the bell over the scene (sky, two
+// ranges, a lawn, in coral; no pup: it was not asked for here), a card on it that says what is next, and tiles that carry the
+// counts as numbers.
+//
+// design: the Availability card is gone. It said "Available" every day, and the same hours are one tap away in Account; Home shows
+// what changes. In its place stands Coming up (the appointments after the one on the card, and the way to the whole schedule).
+// Availability is on Home only while it is why no request can reach the groomer (profile paused, no weekly hours): a strip card at
+// the top of Needs attention, in the family of the needs-you and error cards.
 import SwiftUI
 
+
 struct GroomerHomeView: View {
-    @State private var store: GroomerHomeStore
-    @State private var notificationRequestsStore: GroomerRequestsStore
-    @State private var notificationBookingsStore: BookingsStore
-    private let chatStore: ChatStore?
-    @State private var isShowingNotifications = false
-    let unreadNotificationCount: Int
+    let home: GroomerHomeStore
+    let notifications: GroomerNotificationsStore?
+    let requests: GroomerRequestsStore
+    let offers: GroomerOffersStore
+    let bookings: BookingsStore
+    let chat: ChatStore?
+    let isActiveTab: Bool
     let unreadMessageCount: Int
-    let notificationStore: GroomerNotificationsStore?
     let requestsAction: () -> Void
     let offersAction: () -> Void
     let bookingAction: (Booking) -> Void
     let messagesAction: () -> Void
     let availabilityAction: () -> Void
-
-    init(
-        groomerID: UUID,
-        displayName: String,
-        profileRepository: any GroomerProfileRepository,
-        requestRepository: any GroomerRequestRepository,
-        bookingRepository: any BookingRepository,
-        unreadNotificationCount: Int,
-        unreadMessageCount: Int,
-        notificationStore: GroomerNotificationsStore?,
-        debugRecorder: AppDebugEventRecorder? = nil,
-        chatStore: ChatStore? = nil,
-        requestsAction: @escaping () -> Void,
-        offersAction: @escaping () -> Void,
-        bookingAction: @escaping (Booking) -> Void,
-        messagesAction: @escaping () -> Void,
-        availabilityAction: @escaping () -> Void
-    ) {
-        _store = State(
-            initialValue: GroomerHomeStore(
-                groomerID: groomerID,
-                displayName: displayName,
-                profileRepository: profileRepository,
-                requestRepository: requestRepository,
-                bookingRepository: bookingRepository,
-                debugRecorder: debugRecorder
-            )
-        )
-        self.unreadNotificationCount = unreadNotificationCount
-        self.unreadMessageCount = unreadMessageCount
-        self.notificationStore = notificationStore
-        self.chatStore = chatStore
-        _notificationRequestsStore = State(initialValue: GroomerRequestsStore(groomerID: groomerID,
-            repository: requestRepository, profileRepository: profileRepository, debugRecorder: debugRecorder))
-        _notificationBookingsStore = State(initialValue: BookingsStore(participantID: groomerID, role: .groomer,
-            repository: bookingRepository, groomerProfileRepository: profileRepository, debugRecorder: debugRecorder))
-        self.requestsAction = requestsAction
-        self.offersAction = offersAction
-        self.bookingAction = bookingAction
-        self.messagesAction = messagesAction
-        self.availabilityAction = availabilityAction
-    }
+    /// Coming up's "See schedule": the Schedule tab.
+    let scheduleAction: () -> Void
+    /// Where a paused profile is switched back on: the Account tab (its Profile settings hold the Visibility switch; the real
+    /// `GroomerProfileRoute` has no route straight to it, only `.availability`).
+    let accountAction: () -> Void
+    /// The first load is over (design): until then each place shows its own shape in bars, never an empty state.
+    @State private var isSettled = false
+    @State private var isShowingNotifications = false
+    /// Where the page is scrolled (design): the scene's layers and the header read it; the page itself does not.
+    @State private var scrollDepth = BeckonScrollDepth()
+    @State private var isPullArmed = false
 
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                GroomerHomeHeader(
-                    greetingName: store.greetingName,
-                    businessName: store.businessName,
-                    avatarPhotoData: store.avatarPhotoData,
-                    unreadNotificationCount: unreadNotificationCount,
-                    showsNotifications: notificationStore != nil,
-                    notificationAction: {
-                        isShowingNotifications = true
-                    }
-                )
+        ZStack {
+            BeckonExpressiveBackdrop()
 
-                BeckonSection("Next appointment") {
-                    nextAppointmentContent
-                }
+            screenContent
 
-                BeckonSection("Needs attention") {
-                    GroomerHomeAttentionSurface(
-                        newMatchCount: store.newMatchCount,
-                        pendingOfferCount: store.pendingOfferCount,
-                        hasMoreMatches: store.hasMoreMatches,
-                        hasMoreOffers: store.hasMoreOffers,
-                        isLoading: store.isLoading,
-                        unreadMessageCount: unreadMessageCount,
-                        requestsAction: requestsAction,
-                        offersAction: offersAction,
-                        messagesAction: messagesAction
-                    )
-                }
-
-                BeckonSection("Availability") {
-                    GroomerHomeAvailabilityRow(
-                        state: store.availabilityState,
-                        isLoading: store.isLoading,
-                        action: availabilityAction
-                    )
-                }
-
-                if !store.issues.isEmpty {
-                    Button("Retry unavailable sections", systemImage: "arrow.clockwise") {
-                        Task { await store.load() }
-                    }
-                    .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
-                    .disabled(store.isLoading)
-                    .accessibilityIdentifier("groomer.home.retry")
-                }
-            }
-            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-            .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, DesignTokens.Spacing.xl)
         }
-        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+
         .navigationDestination(isPresented: $isShowingNotifications) {
-            if let notificationStore {
-                GroomerNotificationsView(
-                    store: notificationStore,
-                    requestStore: notificationRequestsStore,
-                    bookingStore: notificationBookingsStore,
-                    chatStore: chatStore
-                )
-                .toolbar(.visible, for: .navigationBar)
-            }
+            if let notifications { GroomerNotificationsView(store: notifications, requestStore: requests, offerStore: offers, bookingStore: bookings,
+                chatStore: chat, onOpenBooking: bookingAction) }
         }
-        .foregroundRefreshable {
-            await store.load()
-        }
-        .task {
-            await store.load()
-        }
-        .background {
-            ForEach(store.issues) { issue in
-                BeckonGlobalFeedbackForwarder(error: issue.feedbackError)
-            }
-        }
+        .foregroundRefreshable(isEnabled: isActiveTab) { await load() }
         .accessibilityIdentifier("groomer.home")
     }
 
+    /// Coming up reads the bookings list the Schedule tab reads (the real Home store only asks for the nearest booking).
+    private func load() async {
+        await home.load()
+        if !Task.isCancelled { isSettled = true }
+        await notifications?.load()
+    }
+
+    private var screenContent: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionSpacing) {
+                top
+                attention.beckonEntrance(2)
+                if showsComingUp {
+                    comingUp.beckonEntrance(3)
+                }
+                ForEach(home.issues) { issue in
+                    BeckonErrorBanner(title: issue.title, message: issue.message)
+                }
+                if !home.issues.isEmpty {
+                    Button { Task { await home.load() } } label: {
+                        DesignQuietAction(title: "Retry unavailable sections", systemImage: "arrow.clockwise")
+                    }
+                    .buttonStyle(BeckonGuardedPlainButtonStyle())
+                    .disabled(home.isLoading)
+                    .accessibilityIdentifier("groomer.home.retry")
+                    .beckonEntrance(4)
+                }
+            }
+            .beckonPageInsets(bottom: DesignTokens.Layout.pageBottomInset * 2)
+            .beckonEntranceClock()
+        }
+        .beckonTracksScroll()
+        .scrollContentBackground(.hidden)
+        .onScrollGeometryChange(for: CGFloat.self) { geometry in
+            geometry.contentOffset.y + geometry.contentInsets.top
+        } action: { _, offset in
+            scrollDepth.offset = offset
+            let armed = -offset >= BeckonScrollDepth.armedPull
+            if armed != isPullArmed { isPullArmed = armed }
+        }
+        // Pull down and let go: refresh the page (the same load as coming back to the app), as on the customer's Home.
+        .onScrollPhaseChange { old, new in
+            guard old == .interacting, new != .interacting, isPullArmed, isActiveTab, !scrollDepth.isRefreshing else { return }
+            scrollDepth.isRefreshing = true
+            Task {
+                let started = Date()
+                await load()
+                let rest = 1.0 - Date().timeIntervalSince(started)
+                if rest > 0 { try? await Task.sleep(for: .seconds(rest)) }
+                scrollDepth.isRefreshing = false
+            }
+        }
+        .sensoryFeedback(.impact(weight: .light), trigger: isPullArmed) { _, armed in armed }
+    }
+
+    // MARK: Top
+
+    private var top: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            header
+                .beckonEntrance(0)
+                .beckonStaysWhilePulled(scrollDepth)
+                // The scene stands behind the card and reaches up behind the title, so the title is drawn above it.
+                .zIndex(1)
+
+            BeckonLedgeHero(showsPup: false) {
+                DesignReveal(isLoading: !isSettled) {
+                    nextAppointment
+                } placeholder: {
+                    heroBars
+                }
+            }
+            .beckonEntrance(1)
+            .beckonScrollEase()
+            .background(alignment: .top) {
+                BeckonHomeScene(depth: scrollDepth)
+                    .padding(.horizontal, -DesignTokens.Layout.pageHorizontalInset)
+                    .offset(y: -BeckonHomeScene.headroom)
+            }
+        }
+    }
+
+    private var header: some View {
+        HomeHeader(displayName: home.greetingName, unreadNotificationCount: notifications?.unreadCount ?? 0,
+            notificationIdentifier: "groomer.home.notifications") {
+            isShowingNotifications = true
+        }
+    }
+
+    /// The card's words: the next appointment as it is in the Schedule, or what to do while there is none.
     @ViewBuilder
-    private var nextAppointmentContent: some View {
-        if let booking = store.nextBooking {
-            if store.isLoading || store.issues.contains(where: { $0.section == .bookings }) {
-                Text(store.isLoading ? "Refreshing appointment..." : "Appointment not refreshed. Pull to retry.")
-                    .font(DesignTokens.Typography.supporting).foregroundStyle(DesignTokens.Colors.textTertiary)
-            }
-            GroomerHomeNextBookingCard(
-                booking: booking,
-                photoData: store.nextBookingPhotoData,
-                action: { bookingAction(booking) }
-            )
-        } else if store.isLoading || (store.bookingsVerifiedAt == nil && !store.issues.contains(where: { $0.section == .bookings })) {
-            GroomerHomeLoadingSurface(
-                title: "Loading your schedule",
-                accessibilityIdentifier: "groomer.home.next-booking.loading"
-            )
-        } else if store.issues.contains(where: { $0.section == .bookings }) {
-            GroomerHomeUnavailableSurface(
-                title: "Schedule unavailable",
-                message: "Pull to refresh this section while the rest of Home remains available.",
-                accessibilityIdentifier: "groomer.home.next-booking.error"
-            )
-        } else {
-            GroomerHomeUnavailableSurface(
-                title: "No upcoming appointment",
-                message: "Confirmed bookings will appear here.",
-                accessibilityIdentifier: "groomer.home.next-booking.empty"
-            )
-        }
-    }
-}
-
-private struct GroomerHomeHeader: View {
-    let greetingName: String
-    let businessName: String
-    let avatarPhotoData: Data?
-    let unreadNotificationCount: Int
-    let showsNotifications: Bool
-    let notificationAction: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-          HStack(spacing: DesignTokens.Spacing.md) {
-            BeckonProfileAvatar(
-                data: avatarPhotoData,
-                tone: .groomer,
-                size: 48,
-                cornerRadius: 24,
-                placeholderSize: 26
-            )
-            .overlay {
-                Circle()
-                    .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
-            }
-
-                Text("Good \(GroomerHomeDateFormatting.dayPeriod), \(greetingName)")
-                    .font(DesignTokens.Typography.supporting)
-                    .foregroundStyle(DesignTokens.Colors.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-            if showsNotifications {
-                BeckonNotificationBellButton(
-                    unreadCount: unreadNotificationCount,
-                    accessibilityIdentifier: "groomer.home.notifications",
-                    action: notificationAction
-                )
-            }
-          }
-            Text(businessName)
-                .font(DesignTokens.Typography.sectionTitle)
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
-            BeckonRoleBadge(title: "Groomer", systemImage: "scissors", accent: .groomer)
-        }
-    }
-}
-
-private struct GroomerHomeNextBookingCard: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    let booking: Booking
-    let photoData: Data?
-    let action: () -> Void
-
-    var body: some View {
-        BeckonCard(padding: DesignTokens.Spacing.lg) {
-            VStack(spacing: DesignTokens.Spacing.lg) {
-                bookingLayout {
-                    BeckonModuleImage(data: photoData) {
-                        ZStack {
-                            DesignTokens.Colors.placeholderFill
-                            Image(systemName: "pawprint.fill")
-                                .font(DesignTokens.Typography.sectionTitle)
-                                .foregroundStyle(DesignTokens.Colors.textTertiary)
-                        }
-                    }
-                    .frame(width: 72, height: 72)
-                    .accessibilityHidden(true)
-                    .clipShape(
-                        RoundedRectangle(
-                            cornerRadius: DesignTokens.CornerRadius.input,
-                            style: .continuous
-                        )
-                    )
-
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+    private var nextAppointment: some View {
+        if let booking = home.nextBooking {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+                    GroomerPetAvatar(species: booking.requestPetSnapshot?.species ?? "Dog", data: home.nextBookingPhotoData)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Next appointment")
+                            .font(DesignTokens.Typography.Expressive.label)
+                            .foregroundStyle(DesignTokens.Colors.customerInk)
                         Text(booking.requestPetSnapshot?.name ?? "Pet appointment")
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+                            .font(DesignTokens.Typography.Expressive.hero)
+                            .foregroundStyle(DesignTokens.Colors.customerInk)
                             .fixedSize(horizontal: false, vertical: true)
-
-                        Text(booking.appointmentServiceTitle)
-                            .font(DesignTokens.Typography.body)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-
                     }
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    Label(booking.scheduledTimeSummary, systemImage: "calendar")
-                        .accessibilityLabel(booking.scheduledTimePresentation.accessibilityLabel)
-                        .font(DesignTokens.Typography.supporting.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    Label(booking.appointmentAddressSummary, systemImage: "mappin")
-                        .font(DesignTokens.Typography.supporting)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                BeckonFlowLayout(spacing: DesignTokens.Spacing.sm, rowSpacing: DesignTokens.Spacing.sm) {
+                    BeckonMetaChip(text: booking.appointmentServiceTitle, systemImage: "scissors")
+                    BeckonMetaChip(text: booking.scheduledTimeSummary, systemImage: "calendar")
+                    BeckonMetaChip(text: Self.shortAddress(of: booking), systemImage: "mappin")
                 }
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Divider()
-                    .overlay(DesignTokens.Colors.divider)
-
-                Button(action: action) {
-                    HStack {
-                        Text("View booking")
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                    }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(booking.appointmentServiceTitle), \(booking.scheduledTimePresentation.accessibilityLabel), \(booking.appointmentAddressSummary)")
+                if home.isLoading || home.issues.contains(where: { $0.section == .bookings }) {
+                    Text(home.isLoading ? "Refreshing appointment…" : "Appointment not refreshed. Pull to retry.")
+                        .font(DesignTokens.Typography.Expressive.chip)
+                        .foregroundStyle(DesignTokens.Colors.customerInk)
                 }
-                .buttonStyle(BeckonPrimaryButtonStyle(accent: .groomer))
-                .accessibilityIdentifier("groomer.home.next-booking.view")
+                heroButton(title: "View booking", systemImage: "calendar", identifier: "groomer.home.next-booking.view") {
+                    bookingAction(booking)
+                }
             }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("groomer.home.next-booking")
+        } else if home.issues.contains(where: { $0.section == .bookings }) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                heroWords(title: "Schedule unavailable",
+                    message: "Pull to refresh this section while the rest of Home remains available.")
+            }
+            .accessibilityIdentifier("groomer.home.next-booking.error")
+        } else {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                heroWords(title: "No upcoming appointment", message: "Confirmed bookings will appear here.")
+                heroButton(title: "See new requests", systemImage: "tray.full", identifier: "groomer.home.next-booking.requests",
+                    action: requestsAction)
+            }
+            .accessibilityIdentifier("groomer.home.next-booking.empty")
         }
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("groomer.home.next-booking")
     }
 
-    private var bookingLayout: AnyLayout {
-        dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
-            : AnyLayout(HStackLayout(alignment: .top, spacing: DesignTokens.Spacing.md))
+    /// Where the appointment is, as short as it can be said: the street and the city.
+    private static func shortAddress(of booking: Booking) -> String {
+        let parts = [booking.customerStreetAddress, booking.customerCity].compactMap { $0 }.filter { !$0.isEmpty }
+        return parts.isEmpty ? booking.appointmentAddressSummary : parts.joined(separator: ", ")
+    }
+
+    private func heroWords(title: String, message: String) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            Text(title)
+                .font(DesignTokens.Typography.Expressive.hero)
+                .foregroundStyle(DesignTokens.Colors.customerInk)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(message)
+                .font(DesignTokens.Typography.Expressive.body)
+                .foregroundStyle(DesignTokens.Colors.customerInk)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func heroButton(title: String, systemImage: String, identifier: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            BeckonLedgePrimaryLabel(title: title, systemImage: systemImage)
+        }
+        .buttonStyle(BeckonLedgeButtonStyle(.primary))
+        .padding(.top, DesignTokens.Spacing.sm)
+        .accessibilityIdentifier(identifier)
+    }
+
+    /// The card's room while the schedule is not known: the avatar and a name, three chips, the button.
+    private var heroBars: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                DesignSkeletonDisc()
+                    .frame(width: DesignTokens.Metrics.petAvatar, height: DesignTokens.Metrics.petAvatar)
+                VStack(alignment: .leading, spacing: 0) {
+                    DesignSkeletonLine(width: 0.4, font: DesignTokens.Typography.Expressive.label)
+                    DesignSkeletonLine(width: 0.6, font: DesignTokens.Typography.Expressive.hero)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                DesignSkeletonBlock(cornerRadius: DesignTokens.CornerRadius.pill)
+                    .frame(width: DesignTokens.Metrics.chipBarShort, height: DesignTokens.Metrics.chipHeight)
+                DesignSkeletonBlock(cornerRadius: DesignTokens.CornerRadius.pill)
+                    .frame(width: DesignTokens.Metrics.chipBarLong, height: DesignTokens.Metrics.chipHeight)
+            }
+            DesignSkeletonBlock(cornerRadius: DesignTokens.CornerRadius.ledgeButton)
+                .frame(height: DesignTokens.Metrics.ledgePrimaryButtonHeight)
+                .padding(.top, DesignTokens.Spacing.sm)
+        }
+        .designSkeleton(label: "Loading your schedule")
+        .accessibilityIdentifier("groomer.home.next-booking.loading")
+    }
+
+    // MARK: Needs attention
+
+    private var attention: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
+            BeckonLedgeHeading(title: "Needs attention", systemImage: "flag.fill")
+            DesignReveal(isLoading: !isSettled) {
+                VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
+                    if let blockedState {
+                        GroomerHomeAvailabilityAlert(state: blockedState,
+                            action: blockedState == .paused ? accountAction : availabilityAction)
+                    }
+                    tiles
+                }
+            } placeholder: {
+                tileBars
+            }
+        }
+    }
+
+    /// The two states of availability that stop requests from coming in. Available says nothing here, and "not read" is the retry
+    /// row's and the toast's.
+    private var blockedState: GroomerHomeAvailabilityState? {
+        switch home.availabilityState {
+        case .paused, .needsSchedule: home.availabilityState
+        case .available, .unavailable: nil
+        }
+    }
+
+    private var tiles: some View {
+        GroomerHomeTiles {
+            GroomerHomeTile(title: "New matches", systemImage: "tray.full.fill", count: home.newMatchCount,
+                hasMore: home.hasMoreMatches, isLoading: home.isLoading, identifier: "groomer.home.matches", action: requestsAction)
+            GroomerHomeTile(title: "Pending offers", systemImage: "tag.fill", count: home.pendingOfferCount,
+                hasMore: home.hasMoreOffers, isLoading: home.isLoading, identifier: "groomer.home.offers", action: offersAction)
+            GroomerHomeTile(title: "Unread messages", systemImage: "bubble.left.fill", count: unreadMessageCount,
+                hasMore: false, isLoading: false, identifier: "groomer.home.messages", action: messagesAction)
+        }
+    }
+
+    private var tileBars: some View {
+        GroomerHomeTiles {
+            ForEach(0..<3, id: \.self) { _ in GroomerHomeTileSkeleton() }
+        }
+        .accessibilityIdentifier("groomer.home.attention.loading")
+    }
+
+    // MARK: Coming up
+
+    private static let comingUpLimit = 3
+
+    /// The appointments after the one on the card, soonest first. With no card (nothing booked) there is nothing "after" it.
+    private var upcoming: [Booking] {
+        guard let next = home.nextBooking else { return [] }
+        let now = Date()
+        let rest = home.bookings.filter { booking in
+            guard booking.id != next.id, booking.status == .confirmed,
+                  let end = GroomingRequestDateFormatting.parsedDate(from: booking.scheduledEnd) else { return false }
+            return end >= now
+        }
+        return Array(rest.sortedByScheduledStart(ascending: true).prefix(Self.comingUpLimit))
+    }
+
+    /// Home's first load and the bookings list have both answered: until then the module is bars, never an absence.
+    private var comingUpIsReady: Bool { isSettled }
+
+    /// Bars while it loads; afterwards the module is there only when there is something to say (the card above already says
+    /// when nothing is booked).
+    private var showsComingUp: Bool { !comingUpIsReady || !upcoming.isEmpty }
+
+    private var comingUp: some View {
+        DesignReveal(isLoading: !comingUpIsReady) {
+            VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
+                BeckonLedgeHeading(title: "Coming up", systemImage: "calendar")
+                GroomerHomeComingUpCard(bookings: upcoming, openBooking: bookingAction, seeSchedule: scheduleAction)
+            }
+        } placeholder: {
+            GroomerHomeComingUpSkeleton()
+        }
     }
 }
 
-private struct GroomerHomeAttentionSurface: View {
-    let newMatchCount: Int?
-    let pendingOfferCount: Int?
-    let hasMoreMatches: Bool
-    let hasMoreOffers: Bool
-    let isLoading: Bool
-    let unreadMessageCount: Int
-    let requestsAction: () -> Void
-    let offersAction: () -> Void
-    let messagesAction: () -> Void
+
+// MARK: Parts
+
+/// Three tiles side by side; one under another at accessibility sizes, where a number and its label need the whole width.
+private struct GroomerHomeTiles<Content: View>: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @ViewBuilder let content: Content
 
     var body: some View {
-        BeckonGroupedSurface {
-            VStack(spacing: 0) {
-                GroomerHomeAttentionRow(
-                    title: "New matches",
-                    detail: countDetail(
-                        newMatchCount,
-                        hasMore: hasMoreMatches,
-                        singular: "request matches your services",
-                        plural: "requests match your services",
-                        empty: "No new matching requests"
-                    ),
-                    systemImage: "person.2",
-                    count: newMatchCount,
-                    hasMore: hasMoreMatches,
-                    identifier: "groomer.home.matches",
-                    action: requestsAction
-                )
-
-                BeckonGroupedDivider(leadingInset: 76)
-
-                GroomerHomeAttentionRow(
-                    title: "Pending offers",
-                    detail: countDetail(
-                        pendingOfferCount,
-                        hasMore: hasMoreOffers,
-                        singular: "offer is awaiting a response",
-                        plural: "offers are awaiting responses",
-                        empty: "No offers awaiting a response"
-                    ),
-                    systemImage: "tag",
-                    count: pendingOfferCount,
-                    hasMore: hasMoreOffers,
-                    identifier: "groomer.home.offers",
-                    action: offersAction
-                )
-
-                BeckonGroupedDivider(leadingInset: 76)
-
-                GroomerHomeAttentionRow(
-                    title: "Unread messages",
-                    detail: countDetail(
-                        unreadMessageCount,
-                        singular: "conversation needs attention",
-                        plural: "conversations need attention",
-                        empty: "Open messages to check for updates"
-                    ),
-                    systemImage: "message",
-                    count: unreadMessageCount,
-                    identifier: "groomer.home.messages",
-                    action: messagesAction
-                )
-            }
-        }
-    }
-
-    private func countDetail(
-        _ count: Int?,
-        hasMore: Bool = false,
-        singular: String,
-        plural: String,
-        empty: String
-    ) -> String {
-        guard let count else { return isLoading ? "Checking..." : "Not refreshed. Open to review." }
-        if hasMore { return "Open to review the complete list" }
-        return switch count {
-        case 0:
-            empty
-        case 1:
-            "1 \(singular)"
-        default:
-            "\(count) \(plural)"
+        (typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: DesignTokens.Spacing.md))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: DesignTokens.Spacing.md))) {
+            content
         }
     }
 }
 
-private struct GroomerHomeAttentionRow: View {
+
+/// What needs the groomer, as a number: the whole tile opens the list it counts.
+private struct GroomerHomeTile: View {
     let title: String
-    let detail: String
     let systemImage: String
     let count: Int?
-    var hasMore = false
+    let hasMore: Bool
+    let isLoading: Bool
     let identifier: String
     let action: () -> Void
 
+    private var countText: String {
+        guard let count else { return isLoading ? "…" : "–" }
+        return hasMore ? "\(count)+" : "\(count)"
+    }
+
+    /// Said only when there is no number to read: a count, once known, needs nothing under its label.
+    private var note: String? {
+        count == nil ? (isLoading ? "Checking" : "Not refreshed") : nil
+    }
+
     var body: some View {
         Button(action: action) {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                    Image(systemName: systemImage)
-                        .font(DesignTokens.Typography.headline)
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .frame(width: 48, height: 48)
-                        .background(DesignTokens.Colors.iconTileFill)
-                        .clipShape(
-                            RoundedRectangle(
-                                cornerRadius: DesignTokens.CornerRadius.input,
-                                style: .continuous
-                            )
-                        )
-
-                        .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
-                        Text(title)
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        if let count { BeckonCountBadge(count: count, accent: .groomer, hasMore: hasMore) }
-                    }
-
-                    Text(detail)
-                        .font(DesignTokens.Typography.supporting)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                HStack(alignment: .center, spacing: DesignTokens.Spacing.sm) {
+                    DesignIconDisc(systemImage: systemImage, font: DesignTokens.Typography.Expressive.glyph)
+                    Spacer(minLength: 0)
+                    Text(countText)
+                        .font(DesignTokens.Typography.Expressive.display)
+                        .foregroundStyle((count ?? 0) > 0 ? DesignTokens.Colors.customerDeep : DesignTokens.Colors.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(DesignTokens.Metrics.homeCountMinimumScale)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Image(systemName: "chevron.right")
-                    .font(DesignTokens.Typography.supporting.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.textTertiary)
-                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(title)
+                        .font(DesignTokens.Typography.Expressive.emphasis)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let note {
+                        Text(note)
+                            .font(DesignTokens.Typography.Expressive.chip)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    }
+                }
             }
-            .padding(DesignTokens.Spacing.lg)
-            .contentShape(Rectangle())
+            .padding(DesignTokens.Spacing.md)
+            .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.countTileHeight, alignment: .topLeading)
         }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .combine)
+        .buttonStyle(BeckonLedgeButtonStyle(.card))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title)
+        .accessibilityValue(count.map { "\($0)\(hasMore ? " or more" : "")" } ?? (note ?? ""))
         .accessibilityIdentifier(identifier)
     }
 }
 
-private struct GroomerHomeAvailabilityRow: View {
+
+private struct GroomerHomeTileSkeleton: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                DesignSkeletonDisc()
+                    .frame(width: DesignTokens.Metrics.ledgeIconTile, height: DesignTokens.Metrics.ledgeIconTile)
+                Spacer(minLength: 0)
+                DesignSkeletonLine(width: 1, font: DesignTokens.Typography.Expressive.display)
+                    .frame(maxWidth: DesignTokens.Metrics.chipHeight * 1.5)
+            }
+            VStack(alignment: .leading, spacing: 0) {
+                DesignSkeletonLine(width: 0.9, font: DesignTokens.Typography.Expressive.emphasis)
+                DesignSkeletonLine(width: 0.6, font: DesignTokens.Typography.Expressive.emphasis)
+            }
+        }
+        .designSkeleton(label: "Loading")
+        .padding(DesignTokens.Spacing.md)
+        .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.countTileHeight, alignment: .topLeading)
+        .beckonLedge(.card)
+    }
+}
+
+
+/// Availability, when it is why no request can reach the groomer: a strip card in the family of the needs-you and error cards (the
+/// kit's `BeckonStateStrip`), with the words and the way to fix it. A paused profile is switched back on in Profile
+/// settings (Visibility), missing weekly hours in Availability. Nothing of it is drawn while availability is fine.
+private struct GroomerHomeAvailabilityAlert: View {
     let state: GroomerHomeAvailabilityState
-    let isLoading: Bool
     let action: () -> Void
+
+    private var isPaused: Bool { state == .paused }
+    private var title: String { isPaused ? "Requests paused" : "Weekly hours needed" }
+    private var detail: String {
+        isPaused ? "Your profile is not accepting new requests." : "Add enabled hours before accepting requests."
+    }
+    private var symbol: String { isPaused ? "pause.circle.fill" : "calendar.badge.exclamationmark" }
+    private var actionTitle: String { isPaused ? "Open Account" : "Add weekly hours" }
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                Image(systemName: indicatorSymbol)
-                    .foregroundStyle(isLoading ? DesignTokens.Colors.textTertiary : indicatorColor)
-                    .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(title)
-                        .font(.headline)
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                    Text(detail)
-                        .font(.subheadline)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    Text("Manage availability")
-                        .font(DesignTokens.Typography.action)
-                        .foregroundStyle(DesignTokens.Colors.groomerDeep)
+            VStack(alignment: .leading, spacing: 0) {
+                BeckonStateStrip(title: title, systemImage: symbol, tone: .warning)
+                Text(detail)
+                    .designSupportingText()
+                    .padding(DesignTokens.Spacing.lg)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                DesignRowDivider()
+                HStack(spacing: DesignTokens.Spacing.xs) {
+                    Spacer(minLength: 0)
+                    Text(actionTitle)
+                    Image(systemName: "chevron.right").imageScale(.small)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Image(systemName: "chevron.right")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.groomerDeep)
-                    .accessibilityHidden(true)
+                .font(DesignTokens.Typography.Expressive.emphasis)
+                .foregroundStyle(DesignTokens.Colors.customerDeep)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.minimumTouchTarget)
             }
-            .padding(DesignTokens.Spacing.lg)
-            .frame(minHeight: 76)
-            .background(DesignTokens.Colors.surface)
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius: DesignTokens.CornerRadius.card,
-                    style: .continuous
-                )
-            )
-            .overlay {
-                RoundedRectangle(
-                    cornerRadius: DesignTokens.CornerRadius.card,
-                    style: .continuous
-                )
-                .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
-            }
-            .contentShape(Rectangle())
+            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous))
         }
-        .buttonStyle(BeckonTertiaryButtonStyle(accent: .groomer))
+        .buttonStyle(BeckonLedgeButtonStyle(.card))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title). \(detail)")
+        .accessibilityHint(actionTitle)
         .accessibilityIdentifier("groomer.home.availability")
     }
+}
 
-    private var indicatorSymbol: String {
-        if isLoading { return "clock" }
-        return switch state {
-        case .available: "checkmark.circle.fill"
-        case .needsSchedule: "calendar.badge.exclamationmark"
-        case .paused: "pause.circle"
-        case .unavailable: "questionmark.circle"
-        }
-    }
 
-    private var indicatorColor: Color {
-        switch state {
-        case .available:
-            DesignTokens.Colors.statusSuccessText
-        case .needsSchedule:
-            DesignTokens.Colors.statusWarningText
-        case .paused, .unavailable:
-            DesignTokens.Colors.textTertiary
-        }
-    }
+/// The appointments after the one on the card: when, who and what in a row, one tap to open it, and the way to the whole schedule.
+private struct GroomerHomeComingUpCard: View {
+    let bookings: [Booking]
+    let openBooking: (Booking) -> Void
+    let seeSchedule: () -> Void
 
-    private var title: String {
-        if isLoading { return "Checking availability..." }
-        return switch state {
-        case .available:
-            "Available"
-        case .paused:
-            "Requests paused"
-        case .needsSchedule:
-            "Weekly hours needed"
-        case .unavailable:
-            "Availability unavailable"
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(bookings, id: \.id) { booking in
+                GroomerHomeComingUpRow(booking: booking) { openBooking(booking) }
+                DesignRowDivider()
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+            }
+            Button(action: seeSchedule) {
+                HStack(spacing: DesignTokens.Spacing.xs) {
+                    Text("See schedule")
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right").imageScale(.small)
+                }
+                .font(DesignTokens.Typography.Expressive.emphasis)
+                .foregroundStyle(DesignTokens.Colors.customerDeep)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.minimumTouchTarget, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(BeckonGuardedPlainButtonStyle())
+            .accessibilityIdentifier("groomer.home.coming-up.schedule")
         }
-    }
-
-    private var detail: String {
-        if isLoading { return "Refreshing your saved hours" }
-        return switch state {
-        case .available:
-            "Accepting requests within your saved hours"
-        case .paused:
-            "Your profile is not accepting new requests"
-        case .needsSchedule:
-            "Add enabled hours before accepting requests"
-        case .unavailable:
-            "Open to review your saved hours"
-        }
+        .beckonLedge(.card)
+        .accessibilityIdentifier("groomer.home.coming-up")
     }
 }
 
-private struct GroomerHomeLoadingSurface: View {
-    let title: String
-    let accessibilityIdentifier: String
 
-    var body: some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
-            ProgressView()
-                .tint(DesignTokens.Colors.groomerDeep)
-            Text(title)
-                .font(.body.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-        }
-        .padding(DesignTokens.Spacing.lg)
-        .frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
-        .background(DesignTokens.Colors.surface)
-        .clipShape(
-            RoundedRectangle(
-                cornerRadius: DesignTokens.CornerRadius.card,
-                style: .continuous
-            )
-        )
-        .overlay {
-            RoundedRectangle(
-                cornerRadius: DesignTokens.CornerRadius.card,
-                style: .continuous
-            )
-            .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
-        }
-        .accessibilityIdentifier(accessibilityIdentifier)
+/// One appointment, laid out as the Schedule's rows are: the day and the start in a column (the day above it, the AM or PM under
+/// it), the pet's picture, its name and the service.
+private struct GroomerHomeComingUpRow: View {
+    let booking: Booking
+    let action: () -> Void
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @ScaledMetric(relativeTo: .subheadline) private var timeWidth = DesignTokens.Metrics.timeColumnWidth
+
+    private var petName: String { booking.requestPetSnapshot?.name ?? "Pet appointment" }
+
+    private var when: BeckonWhen? {
+        BeckonWhen(start: booking.scheduledStart, end: booking.scheduledEnd,
+            zoneIdentifier: booking.agreementSnapshot?.serviceTimeZoneIdentifier ?? booking.serviceTimeZoneIdentifier)
     }
-}
-
-private struct GroomerHomeUnavailableSurface: View {
-    let title: String
-    let message: String
-    let accessibilityIdentifier: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            Text(title)
-                .font(.headline)
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
-            Text(message)
-                .font(.body)
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
+        Button(action: action) {
+            let stacks = typeSize.isAccessibilitySize
+            let layout = stacks
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
+                : AnyLayout(HStackLayout(alignment: .center, spacing: DesignTokens.Spacing.md))
+            layout {
+                whenColumn
+                HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+                    GroomerPetAvatar(species: booking.requestPetSnapshot?.species ?? "Dog",
+                        size: DesignTokens.Metrics.petAvatarSmall)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(petName)
+                            .font(DesignTokens.Typography.Expressive.emphasis)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(booking.appointmentServiceTitle).designSupportingText()
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    if !stacks {
+                        Image(systemName: "chevron.right")
+                            .font(DesignTokens.Typography.Expressive.label)
+                            .foregroundStyle(DesignTokens.Colors.textTertiary)
+                            .accessibilityHidden(true)
+                    }
+                }
+            }
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, DesignTokens.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(BeckonGuardedPlainButtonStyle())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(petName), \(booking.appointmentServiceTitle), \(when?.full ?? booking.scheduledTimeSummary)")
+        .accessibilityHint("Opens the booking")
+        .accessibilityIdentifier("groomer.home.coming-up.\(booking.id.uuidString.lowercased())")
+    }
+
+    /// "Mon", "11:00", "AM": the day first, because here the rows are on different days. At accessibility sizes one line.
+    @ViewBuilder
+    private var whenColumn: some View {
+        if typeSize.isAccessibilitySize {
+            Text(when?.short ?? booking.scheduledTimeSummary)
+                .font(DesignTokens.Typography.Expressive.emphasis)
+                .foregroundStyle(DesignTokens.Colors.customerDeep)
                 .fixedSize(horizontal: false, vertical: true)
+        } else {
+            let start = (when?.start ?? "").split(separator: " ").map(String.init)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(when?.day ?? "")
+                    .font(DesignTokens.Typography.Expressive.chip)
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
+                Text(start.first ?? "")
+                    .font(DesignTokens.Typography.Expressive.emphasis)
+                    .foregroundStyle(DesignTokens.Colors.customerDeep)
+                Text(start.dropFirst().first ?? "")
+                    .font(DesignTokens.Typography.Expressive.chip)
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
+            }
+            .frame(width: timeWidth, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(DesignTokens.Spacing.lg)
-        .frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
-        .background(DesignTokens.Colors.surface)
-        .clipShape(
-            RoundedRectangle(
-                cornerRadius: DesignTokens.CornerRadius.card,
-                style: .continuous
-            )
-        )
-        .overlay {
-            RoundedRectangle(
-                cornerRadius: DesignTokens.CornerRadius.card,
-                style: .continuous
-            )
-            .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
-        }
-        .accessibilityIdentifier(accessibilityIdentifier)
     }
 }
 
-private enum GroomerHomeDateFormatting {
-    static var dayPeriod: String {
-        let hour = Calendar.current.component(.hour, from: Date())
-        return switch hour {
-        case 5..<12:
-            "morning"
-        case 12..<18:
-            "afternoon"
-        default:
-            "evening"
+
+/// Coming up while the schedule is not known: the heading, three rows as bars and the foot, in the card's own size.
+private struct GroomerHomeComingUpSkeleton: View {
+    @ScaledMetric(relativeTo: .subheadline) private var timeWidth = DesignTokens.Metrics.timeColumnWidth
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
+            DesignSkeletonHeading()
+            VStack(spacing: 0) {
+                ForEach(0..<3, id: \.self) { _ in
+                    HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+                        VStack(alignment: .leading, spacing: 0) {
+                            DesignSkeletonLine(width: 0.6, font: DesignTokens.Typography.Expressive.chip)
+                            DesignSkeletonLine(width: 1, font: DesignTokens.Typography.Expressive.emphasis)
+                            DesignSkeletonLine(width: 0.4, font: DesignTokens.Typography.Expressive.chip)
+                        }
+                        .frame(width: timeWidth)
+                        DesignSkeletonDisc()
+                            .frame(width: DesignTokens.Metrics.petAvatarSmall, height: DesignTokens.Metrics.petAvatarSmall)
+                        VStack(alignment: .leading, spacing: 0) {
+                            DesignSkeletonLine(width: 0.5, font: DesignTokens.Typography.Expressive.emphasis)
+                            DesignSkeletonLine(width: 0.7)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.vertical, DesignTokens.Spacing.md)
+                    DesignRowDivider()
+                        .padding(.horizontal, DesignTokens.Spacing.lg)
+                }
+                DesignSkeletonLine(width: 0.3, font: DesignTokens.Typography.Expressive.emphasis)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.minimumTouchTarget, alignment: .leading)
+            }
+            .designSkeleton(label: "Loading appointments")
+            .beckonLedge(.card)
         }
     }
-
 }
+
+
+// Compatibility initializer for existing local fixtures; the shipping shell injects shared Stores.
+#if DEBUG
+extension GroomerHomeView {
+    init(groomerID: UUID, displayName: String, profileRepository: any GroomerProfileRepository,
+         requestRepository: any GroomerRequestRepository, bookingRepository: any BookingRepository,
+         unreadNotificationCount: Int, unreadMessageCount: Int, notificationStore: GroomerNotificationsStore?,
+         debugRecorder: AppDebugEventRecorder? = nil, chatStore: ChatStore? = nil,
+         requestsAction: @escaping () -> Void, offersAction: @escaping () -> Void,
+         bookingAction: @escaping (Booking) -> Void, messagesAction: @escaping () -> Void,
+         availabilityAction: @escaping () -> Void) {
+        self.init(home: GroomerHomeStore(groomerID: groomerID, displayName: displayName,
+            profileRepository: profileRepository, requestRepository: requestRepository, bookingRepository: bookingRepository,
+            debugRecorder: debugRecorder), notifications: notificationStore,
+            requests: GroomerRequestsStore(groomerID: groomerID, repository: requestRepository, profileRepository: profileRepository),
+            offers: GroomerOffersStore(groomerID: groomerID, repository: requestRepository),
+            bookings: BookingsStore(participantID: groomerID, role: .groomer, repository: bookingRepository,
+                groomerProfileRepository: profileRepository), chat: chatStore, isActiveTab: true,
+            unreadMessageCount: unreadMessageCount, requestsAction: requestsAction, offersAction: offersAction,
+            bookingAction: bookingAction, messagesAction: messagesAction, availabilityAction: availabilityAction,
+            scheduleAction: {}, accountAction: availabilityAction)
+    }
+}
+#endif

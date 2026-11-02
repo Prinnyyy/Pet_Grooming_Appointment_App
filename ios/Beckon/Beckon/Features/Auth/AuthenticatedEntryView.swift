@@ -137,6 +137,11 @@ struct AuthenticatedEntryView: View {
             recordEntryState(newState)
         }
         .environment(\.appDebugEventRecorder, appDebugRecorder)
+        .environment(\.beckonRole, entryRole)
+    }
+
+    private var entryRole: BeckonRole {
+        if case .groomer = store.state { .groomer } else { .customer }
     }
 
     private var activeCustomerIDForPushRegistration: UUID? {

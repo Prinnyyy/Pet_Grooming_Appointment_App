@@ -295,10 +295,10 @@ final class GroomerHomeStore {
 
     private func loadBookings() async {
         do {
-            let booking = try await bookingRepository.nearestBooking(participantID: groomerID, role: .groomer, now: now())
+            let upcoming = try await bookingRepository.upcomingBookings(participantID: groomerID, role: .groomer, now: now(), limit: 4)
             try Task.checkCancellation()
-            guard booking == nil || booking?.groomerID == groomerID else { throw BookingRepositoryError.notAllowed }
-            bookings = booking.map { [$0] } ?? []
+            guard upcoming.allSatisfy({ $0.groomerID == groomerID }) else { throw BookingRepositoryError.notAllowed }
+            bookings = upcoming
             bookingsVerifiedAt = now()
         } catch BookingRepositoryError.cancelled {
             return

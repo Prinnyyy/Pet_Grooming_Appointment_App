@@ -43,7 +43,7 @@ struct GroomerFitSignalsEditorView: View {
         .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .navigationTitle("Fit signals")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .tabBar)
+        .beckonHidesTabBar()
         .onAppear {
             if store.canEditFitSignals { store.ensureSizeBandFitClaimRange() }
         }
@@ -213,7 +213,7 @@ struct GroomerEvidenceDashboardView: View {
         .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .navigationTitle("Evidence")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .tabBar)
+        .beckonHidesTabBar()
     }
 }
 

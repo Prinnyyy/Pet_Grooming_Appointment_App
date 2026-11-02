@@ -127,6 +127,10 @@ final class DebugBookingRepository: BookingRepository {
     }
 #endif
 
+    func upcomingBookings(participantID: UUID, role: UserRole, now: Date, limit: Int) async throws -> [Booking] {
+        try await base.upcomingBookings(participantID: participantID, role: role, now: now, limit: limit)
+    }
+
     func nearestBooking(participantID: UUID, role: UserRole, now: Date) async throws -> Booking? {
         try await base.nearestBooking(participantID: participantID, role: role, now: now)
     }

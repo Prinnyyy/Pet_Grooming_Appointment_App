@@ -9,7 +9,7 @@ test('home booking action forwards its booking to the bookings destination', () 
   const tabs = source('Features/Groomer/GroomerTabView.swift');
   assert.doesNotMatch(tabs, /bookingAction:\s*\{\s*_\s+in/);
   assert.match(tabs, /focusedBooking\s*=\s*booking/);
-  assert.match(tabs, /focusedBooking:\s*\$focusedBooking/);
+  assert.match(tabs, /focusedBooking:\s*Binding\(get:\s*\{ focusedBooking \}/);
   assert.match(source('Features/Bookings/BookingsView.swift'), /navigationDestination\(item:\s*\$focusedBooking\)/);
 });
 

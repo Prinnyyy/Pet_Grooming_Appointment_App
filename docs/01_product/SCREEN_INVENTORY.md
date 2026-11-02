@@ -42,7 +42,7 @@ Future UI work is screenshot-driven. Map every visible module to this table plus
 
 ## Customer composition and expressive tiers
 
-D-064 extends [Lively UI Spec](LIVELY_UI_SPEC.md). Customer Home and authentication landing use Tier L illustration; customer lists/details, form chrome, account/settings, notifications and dialogs use Tier M. Inputs and chat-thread content stay calm; chat receives no page entrance. Groomer workspaces retain Tier C, with the approved shared account actions/booking dialogs. `LEDGE_TIER_PATHS` enumerates the adopted files; role-scoped branches in shared files preserve groomer presentation.
+D-064 extends [Lively UI Spec](LIVELY_UI_SPEC.md). Customer Home and authentication landing use Tier L illustration; customer lists/details, form chrome, account/settings, notifications and dialogs use Tier M. Inputs and chat-thread content stay calm; chat receives no page entrance. D-069 adopts Groomer Home as Tier L and Notifications as Tier M; later groomer packages declare their own screens. Other groomer workspaces retain Tier C until adopted. `LEDGE_TIER_PATHS` enumerates the adopted files; role-scoped branches in shared files preserve groomer presentation.
 
 - `CustomerTabView` owns Home / Grooming / Messages / Account, entrance activation, programmatic routes and one shared request-modal presenter for all four tabs.
 - `CustomerRequestWizardView` and `CustomerRequestWizardChrome` own six steps; `CustomerGroomerDiscoveryView` supplies step six and Invite more. `GroomerChoice` owns selection, capacity hints and pool controls; the server retains final authority.

@@ -12,11 +12,33 @@ struct GroomerTabView: View {
     let accountContent: AnyView?
     let onSignOut: (() -> Void)?
     let sessionIsCurrent: @MainActor () -> Bool
-    @State private var selection: GroomerTab = .home
-    @State private var focusedBooking: Booking?
-    @State private var focusedConversationBookingID: UUID?
-    @State private var requestedProfileRoute: GroomerProfileRoute?
-    @State private var requestsRoute: GroomerRequestsRoute = .matches
+    @State private var navigation = GroomerNavigation()
+    private var selection: GroomerTab { navigation.selection }
+    private var paths: [GroomerTab: NavigationPath] {
+        get { navigation.paths }
+        nonmutating set { navigation.paths = newValue }
+    }
+    @State private var homeStore: GroomerHomeStore?
+    @State private var requestsStore: GroomerRequestsStore?
+    @State private var offersStore: GroomerOffersStore?
+    @State private var bookingsStore: BookingsStore?
+    @State private var profileStore: GroomerProfileStore?
+    private var focusedBooking: Booking? {
+        get { navigation.focusedBooking }
+        nonmutating set { navigation.focusedBooking = newValue }
+    }
+    private var focusedConversationBookingID: UUID? {
+        get { navigation.focusedConversationBookingID }
+        nonmutating set { navigation.focusedConversationBookingID = newValue }
+    }
+    private var requestedProfileRoute: GroomerProfileRoute? {
+        get { navigation.requestedProfileRoute }
+        nonmutating set { navigation.requestedProfileRoute = newValue }
+    }
+    private var requestsRoute: GroomerRequestsRoute {
+        get { navigation.requestsRoute }
+        nonmutating set { navigation.requestsRoute = newValue }
+    }
     @State private var notificationStore: GroomerNotificationsStore?
     @State private var chatStore: ChatStore?
     @State private var feedbackCenter = BeckonFeedbackCenter()
@@ -43,6 +65,16 @@ struct GroomerTabView: View {
         self.accountContent = accountContent
         self.onSignOut = onSignOut
         self.sessionIsCurrent = sessionIsCurrent
+        if let groomerID, let profileRepository, let requestRepository, let bookingRepository {
+            _homeStore = State(initialValue: GroomerHomeStore(groomerID: groomerID, displayName: groomerDisplayName,
+                profileRepository: profileRepository, requestRepository: requestRepository, bookingRepository: bookingRepository))
+            _requestsStore = State(initialValue: GroomerRequestsStore(groomerID: groomerID, repository: requestRepository,
+                profileRepository: profileRepository))
+            _offersStore = State(initialValue: GroomerOffersStore(groomerID: groomerID, repository: requestRepository))
+            _bookingsStore = State(initialValue: BookingsStore(participantID: groomerID, role: .groomer,
+                repository: bookingRepository, groomerProfileRepository: profileRepository))
+            _profileStore = State(initialValue: GroomerProfileStore(groomerID: groomerID, repository: profileRepository))
+        }
         _notificationStore = State(
             initialValue: Self.makeNotificationStore(
                 groomerID: groomerID,
@@ -59,14 +91,17 @@ struct GroomerTabView: View {
     }
 
     var body: some View {
-        TabView(selection: $selection) {
+        TabView(selection: Binding(get: { selection }, set: { select($0) })) {
             ForEach(GroomerTab.allCases) { tab in
-                NavigationStack {
+                BeckonTabBarOwner {
+                NavigationStack(path: Binding(get: { paths[tab] ?? NavigationPath() }, set: { paths[tab] = $0 })) {
                     destination(for: tab)
                         .background(DesignTokens.Colors.appBackground)
                 }
+                }
+                .beckonEntranceActive(selection == tab)
                 .tabItem {
-                    Label(tab.title, systemImage: tab.systemImage)
+                    Label { Text(tab.title) } icon: { BeckonTabIcons.image(tab.icon, isSelected: selection == tab) }
                         .accessibilityIdentifier(tab.accessibilityIdentifier)
                 }
                 .background(BeckonTabBadgeAppearance(accent: .groomer))
@@ -83,6 +118,8 @@ struct GroomerTabView: View {
         .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .toolbarBackground(DesignTokens.Colors.surface, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
+        .environment(\.beckonRole, .groomer)
+        .environment(\.beckonCustomerDesign, true)
         .environment(\.beckonFeedbackCenter, feedbackCenter)
         .environment(\.openBookingChat, openBookingChat)
         .overlay(alignment: .bottom) {
@@ -113,31 +150,14 @@ struct GroomerTabView: View {
 
     @ViewBuilder
     private func destination(for tab: GroomerTab) -> some View {
-        if tab == .home,
-           let groomerID,
-           let profileRepository,
-           let requestRepository,
-           let bookingRepository {
-            GroomerHomeView(
-                groomerID: groomerID,
-                displayName: groomerDisplayName,
-                profileRepository: profileRepository,
-                requestRepository: requestRepository,
-                bookingRepository: bookingRepository,
-                unreadNotificationCount: notificationUnreadCount,
+        if tab == .home, let homeStore, let requestsStore, let offersStore, let bookingsStore {
+            GroomerHomeView(home: homeStore, notifications: notificationStore, requests: requestsStore,
+                offers: offersStore, bookings: bookingsStore, chat: chatStore, isActiveTab: selection == .home,
                 unreadMessageCount: messageUnreadCount,
-                notificationStore: notificationStore,
-                debugRecorder: debugRecorder,
-                chatStore: chatStore,
-                requestsAction: { openRequests(.matches) },
-                offersAction: { openRequests(.offers) },
-                bookingAction: { booking in
-                    focusedBooking = booking
-                    select(.bookings)
-                },
-                messagesAction: { select(.messages) },
-                availabilityAction: openAvailability
-            )
+                requestsAction: { openRequests(.matches) }, offersAction: { openRequests(.offers) },
+                bookingAction: { booking in focusedBooking = booking; select(.bookings) }, messagesAction: { select(.messages) },
+                availabilityAction: openAvailability, scheduleAction: { select(.bookings) },
+                accountAction: { select(.account) })
         } else if tab == .requests,
            let groomerID,
            let requestRepository {
@@ -145,7 +165,7 @@ struct GroomerTabView: View {
                 groomerID: groomerID,
                 repository: requestRepository,
                 profileRepository: profileRepository,
-                route: $requestsRoute,
+                route: Binding(get: { requestsRoute }, set: { requestsRoute = $0 }),
                 debugRecorder: debugRecorder,
                 sessionIsCurrent: sessionIsCurrent
             )
@@ -158,7 +178,7 @@ struct GroomerTabView: View {
                 repository: bookingRepository,
                 groomerProfileRepository: profileRepository,
                 debugRecorder: debugRecorder,
-                focusedBooking: $focusedBooking,
+                focusedBooking: Binding(get: { focusedBooking }, set: { focusedBooking = $0 }),
                 onOpenChat: openBookingChat
             )
         } else if tab == .messages,
@@ -172,7 +192,7 @@ struct GroomerTabView: View {
                 bookingRepository: bookingRepository,
                 debugRecorder: debugRecorder,
                 store: chatStore,
-                focusedBookingID: $focusedConversationBookingID
+                focusedBookingID: Binding(get: { focusedConversationBookingID }, set: { focusedConversationBookingID = $0 })
             )
         } else if tab == .account,
            let groomerID,
@@ -181,7 +201,7 @@ struct GroomerTabView: View {
                 groomerID: groomerID,
                 repository: profileRepository,
                 debugRecorder: debugRecorder,
-                requestedRoute: $requestedProfileRoute,
+                requestedRoute: Binding(get: { requestedProfileRoute }, set: { requestedProfileRoute = $0 }),
                 accountContent: accountContent,
                 onSignOut: onSignOut
             )
@@ -202,11 +222,7 @@ struct GroomerTabView: View {
         select(.messages)
     }
 
-    private func select(_ tab: GroomerTab) {
-        withAnimation(.easeInOut(duration: 0.22)) {
-            selection = tab
-        }
-    }
+    private func select(_ tab: GroomerTab) { navigation.select(tab) }
 
     private func openAvailability() {
         requestedProfileRoute = .availability
@@ -227,19 +243,11 @@ struct GroomerTabView: View {
     }
 
     private func openNotificationRoute(_ route: GroomerNotificationRoute) {
-        withAnimation(.easeInOut(duration: 0.22)) {
-            switch route {
-            case .requests, .offers:
-                if let requestsRoute = GroomerRequestsRoute(notificationRoute: route) {
-                    self.requestsRoute = requestsRoute
-                }
-                selection = .requests
-            case .bookings:
-                selection = .bookings
-            case let .messages(bookingID):
-                focusedConversationBookingID = bookingID
-                selection = .messages
-            }
+        switch route {
+        case .requests, .offers:
+            if let target = GroomerRequestsRoute(notificationRoute: route) { openRequests(target) }
+        case .bookings: select(.bookings)
+        case let .messages(id): focusedConversationBookingID = id; select(.messages)
         }
     }
 
@@ -282,6 +290,18 @@ struct GroomerTabView: View {
     }
 }
 
+extension GroomerTab {
+    var icon: BeckonTabIcon {
+        switch self {
+        case .home: .home
+        case .requests: .requests
+        case .bookings: .schedule
+        case .messages: .messages
+        case .account: .account
+        }
+    }
+}
+
 private extension GroomerTab {
     var debugKey: String {
         switch self {
@@ -298,6 +318,22 @@ private extension GroomerTab {
         }
     }
 }
+
+#if DEBUG
+extension GroomerTabView {
+    init(sandbox: GroomerSandboxSession, initialTab: GroomerTab = .home, initialRoute: GroomerRequestsRoute = .matches) {
+        self.init(groomerID: sandbox.groomerID, groomerDisplayName: sandbox.groomerName,
+            profileRepository: sandbox.profileRepository, requestRepository: sandbox.requestRepository,
+            notificationRepository: sandbox.notificationRepository, bookingRepository: sandbox.bookingRepository,
+            chatRepository: sandbox.chatRepository)
+        _homeStore = State(initialValue: sandbox.home); _requestsStore = State(initialValue: sandbox.requests)
+        _offersStore = State(initialValue: sandbox.offers); _bookingsStore = State(initialValue: sandbox.bookings)
+        _profileStore = State(initialValue: sandbox.account); _notificationStore = State(initialValue: sandbox.notifications)
+        _chatStore = State(initialValue: sandbox.chat); _navigation = State(initialValue: GroomerNavigation(selection: initialTab))
+        navigation.requestsRoute = initialRoute
+    }
+}
+#endif
 
 #Preview {
     GroomerTabView()
