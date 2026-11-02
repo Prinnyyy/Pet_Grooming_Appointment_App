@@ -54,6 +54,7 @@ struct DesignSkeletonLine: View {
     var body: some View {
         Text("Ag")
             .font(font)
+            .lineLimit(1)
             .hidden()
             .frame(maxWidth: .infinity, alignment: .leading)
             .overlay(alignment: .leading) {

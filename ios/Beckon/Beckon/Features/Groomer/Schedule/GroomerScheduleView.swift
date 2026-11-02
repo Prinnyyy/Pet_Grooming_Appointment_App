@@ -40,13 +40,8 @@ struct GroomerScheduleView: View {
             }
             .scrollContentBackground(.hidden)
             .beckonTracksScroll()
-            .refreshable { await store.load() }
+            .refreshable { await refresh(forceRefresh: true) }
             .accessibilityIdentifier("groomer.schedule")
-            .task {
-                await store.load()
-                guard !Task.isCancelled else { return }
-                isSettled = true
-            }
         }
         .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(item: $focusedBooking) { booking in
@@ -55,7 +50,7 @@ struct GroomerScheduleView: View {
         .background {
             BookingsStatusView(store: store, role: .groomer, presentation: feedbackPresentation)
         }
-        .foregroundRefreshable(isEnabled: isActiveTab) { await store.load() }
+        .foregroundRefreshable(isEnabled: isActiveTab) { await refresh(forceRefresh: false) }
         .designModal(isPresented: $isPickingDay) {
             DesignModal(systemImage: "calendar", title: "Go to a day", actions: [
                 .primary("Show this day", systemImage: "checkmark", identifier: "groomer.schedule.pick-day.confirm") { showPickedDay() },
@@ -79,6 +74,16 @@ struct GroomerScheduleView: View {
     private var feedbackPresentation: BookingsFeedbackPresentation {
         BookingsFeedbackPresentation(role: .groomer, bookings: store.bookings, isLoading: store.isLoading,
             errorMessage: store.errorMessage)
+    }
+
+    private func refresh(forceRefresh: Bool) async {
+        await store.load()
+        guard !Task.isCancelled else { return }
+        if let calendar = store.scheduleCalendar {
+            await store.loadSchedule(interval: weekInterval(calendar: calendar), forceRefresh: forceRefresh)
+        }
+        guard !Task.isCancelled, store.scheduleReadState != .loading else { return }
+        isSettled = true
     }
 
     private var titleRow: some View {
@@ -106,7 +111,7 @@ struct GroomerScheduleView: View {
 
     @ViewBuilder
     private var content: some View {
-        DesignReveal(isLoading: !isSettled && presentation == nil) {
+        DesignReveal(isLoading: !isSettled && !hasCurrentWeekSnapshot) {
             if let calendar = store.scheduleCalendar {
                 loaded(calendar: calendar)
             } else {
@@ -133,6 +138,11 @@ struct GroomerScheduleView: View {
     private var presentation: GroomerSchedulePresentation? {
         guard let calendar = store.scheduleCalendar else { return nil }
         return agenda(calendar: calendar)
+    }
+
+    private var hasCurrentWeekSnapshot: Bool {
+        guard let calendar = store.scheduleCalendar else { return false }
+        return store.scheduleInterval == weekInterval(calendar: calendar) && store.scheduleVerifiedAt != nil
     }
 
     private func weekInterval(calendar: Calendar) -> DateInterval {
@@ -162,8 +172,8 @@ struct GroomerScheduleView: View {
         let interval = calendar.dateInterval(of: .day, for: presentation.selectedDate)
         let scope = weekInterval(calendar: calendar)
         let scopeMatches = store.scheduleInterval == scope
-        let isComplete = scopeMatches && store.scheduleReadState == .complete
-        let isReading = !scopeMatches || store.scheduleReadState == .idle || store.scheduleReadState == .loading
+        let read = GroomerScheduleReadPresentation(scopeMatches: scopeMatches, verifiedAt: store.scheduleVerifiedAt,
+            state: store.scheduleReadState, calendarState: store.scheduleCalendarReadState)
         return VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionSpacing) {
             if let message = store.appointmentReminderNotice {
                 GroomingReminderNotice(message: message)
@@ -171,31 +181,33 @@ struct GroomerScheduleView: View {
             }
 
             GroomerDayStrip(days: presentation.days, calendar: calendar, selectedDayKey: presentation.selectedDayKey,
-                loads: dayLoads(presentation, calendar: calendar, isComplete: isComplete)) {
+                loads: dayLoads(presentation, calendar: calendar, hasSnapshot: read.hasSnapshot), onSelect: {
                 selectedDayKey = $0.id
-            }
+            }, loadsAreKnown: read.hasSnapshot)
 
             // The clock moves the day on: what is due, what ran over, how far a service has got. A minute is as fine as it needs.
             TimelineView(.everyMinute) { context in
-                day(presentation, calendar: calendar, interval: interval, scopeMatches: scopeMatches, isComplete: isComplete,
-                    isReading: isReading, now: context.date)
+                day(presentation, calendar: calendar, interval: interval, scopeMatches: scopeMatches, read: read, now: context.date)
             }
         }
-        .task(id: "\(scope.start):\(store.scheduleRefreshID)") {
-            await store.loadSchedule(interval: scope)
+        .task(id: "\(isActiveTab):\(scope.start):\(store.scheduleRefreshID)") {
+            guard isActiveTab else { return }
+            await store.loadSchedule(interval: scope, forceRefresh: false)
+            guard !Task.isCancelled, store.scheduleReadState != .loading else { return }
+            isSettled = true
         }
     }
 
     /// How full each day is, for the bars under the dates: the day on the page by its own verified read, the others by the list.
     /// The open hours are the groomer's for that weekday; when they are not known the day is the same ten hours its strip shows.
-    private func dayLoads(_ presentation: GroomerSchedulePresentation, calendar: Calendar, isComplete: Bool) -> [String: GroomerDayLoad] {
+    private func dayLoads(_ presentation: GroomerSchedulePresentation, calendar: Calendar, hasSnapshot: Bool) -> [String: GroomerDayLoad] {
         var byDay: [String: [Booking]] = [:]
-        for booking in store.scheduleBookings where isComplete && !booking.status.isCancellation {
+        for booking in store.scheduleBookings where hasSnapshot && !booking.status.isCancellation {
             if let key = GroomerScheduleDateFormatting.dayKey(from: booking.scheduledStart, calendar: calendar) {
                 byDay[key, default: []].append(booking)
             }
         }
-        if isComplete { byDay[presentation.selectedDayKey] = presentation.selectedBookings }
+        if hasSnapshot { byDay[presentation.selectedDayKey] = presentation.selectedBookings }
         var loads: [String: GroomerDayLoad] = [:]
         for day in presentation.days {
             let bookings = byDay[day.id] ?? []
@@ -211,7 +223,7 @@ struct GroomerScheduleView: View {
     // MARK: The day
 
     private func day(_ presentation: GroomerSchedulePresentation, calendar: Calendar, interval: DateInterval?, scopeMatches: Bool,
-                     isComplete: Bool, isReading: Bool, now: Date) -> some View {
+                     read: GroomerScheduleReadPresentation, now: Date) -> some View {
         let isToday = presentation.days.first { $0.id == presentation.selectedDayKey }?.isToday ?? false
         let slots = presentation.selectedBookings.compactMap { GroomerScheduleSlot($0) }
         let plan = GroomerSchedulePlan(slots: slots, now: now, isToday: isToday)
@@ -224,7 +236,7 @@ struct GroomerScheduleView: View {
         return VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionSpacing) {
             VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
                 dayHeader(title: dayTitle, isToday: isToday, calendar: calendar, date: presentation.selectedDate,
-                    summary: scopeMatches ? summary : nil)
+                    summary: read.hasSnapshot ? summary : nil)
                 if scopeMatches, !slots.isEmpty {
                     GroomerDayShapeBar(shape: GroomerDayShape(items: plan.sequence + plan.behind,
                         dayStart: calendar.startOfDay(for: presentation.selectedDate),
@@ -232,10 +244,10 @@ struct GroomerScheduleView: View {
                 }
             }
 
-            if isReading {
+            if read.showsPlaceholder {
                 GroomerAppointmentRowSkeleton()
                     .accessibilityIdentifier("groomer.schedule.loading")
-            } else if !isComplete {
+            } else if read.showsVerificationWarning {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                     BeckonLedgeNote(systemImage: "exclamationmark.triangle.fill",
                         text: "This day's schedule is not verified. Refresh before relying on its availability.")
@@ -248,7 +260,7 @@ struct GroomerScheduleView: View {
                 }
             }
 
-            if isComplete && presentation.selectedBookings.isEmpty {
+            if read.hasSnapshot && presentation.selectedBookings.isEmpty {
                 emptyDay(dayTitle: dayTitle, window: window)
             } else if scopeMatches && !presentation.selectedBookings.isEmpty {
                 appointments(plan, calendar: calendar, now: now)

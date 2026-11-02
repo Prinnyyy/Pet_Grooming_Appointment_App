@@ -313,28 +313,40 @@ struct GroomerRequestRow: View {
 /// A row as bars, laid out as the real one, so the rows take their places.
 struct GroomerRequestRowSkeleton: View {
     var label = "Loading requests"
+    @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .subheadline) private var railWidth = DesignTokens.Metrics.timeColumnWidth
 
     var body: some View {
-        HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-            VStack(alignment: .leading, spacing: 0) {
-                DesignSkeletonLine(width: 0.7, font: DesignTokens.Typography.Expressive.chip)
-                DesignSkeletonLine(width: 0.9, font: DesignTokens.Typography.Expressive.emphasis)
-                DesignSkeletonLine(width: 0.5, font: DesignTokens.Typography.Expressive.chip)
+        HStack(alignment: .center, spacing: DesignTokens.Spacing.sm) {
+            (typeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
+                : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.md))) {
+                if typeSize.isAccessibilitySize {
+                    DesignSkeletonLine(width: 0.7, font: DesignTokens.Typography.Expressive.emphasis)
+                } else {
+                    VStack(alignment: .leading, spacing: 0) {
+                        DesignSkeletonLine(width: 0.7, font: DesignTokens.Typography.Expressive.chip)
+                        DesignSkeletonLine(width: 0.9, font: DesignTokens.Typography.Expressive.emphasis)
+                        DesignSkeletonLine(width: 0.5, font: DesignTokens.Typography.Expressive.chip)
+                    }
+                    .frame(width: railWidth)
+                }
+                DesignSkeletonDisc()
+                    .frame(width: DesignTokens.Metrics.petAvatarSmall, height: DesignTokens.Metrics.petAvatarSmall)
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs / 2) {
+                    DesignSkeletonLine(width: 0.5, font: DesignTokens.Typography.Expressive.title)
+                    DesignSkeletonLine(width: 0.7)
+                    DesignSkeletonLine(width: 0.6)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(width: railWidth)
-            DesignSkeletonDisc()
-                .frame(width: DesignTokens.Metrics.petAvatarSmall, height: DesignTokens.Metrics.petAvatarSmall)
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                DesignSkeletonLine(width: 0.5, font: DesignTokens.Typography.Expressive.title)
-                DesignSkeletonLine(width: 0.7)
-                DesignSkeletonLine(width: 0.6)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            Image(systemName: "chevron.right").font(DesignTokens.Typography.Expressive.label)
+                .hidden().overlay { DesignSkeletonBlock().frame(width: 6) }
         }
         .designSkeleton(label: label)
         .padding(DesignTokens.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
         .beckonLedge(.card)
+        .padding(.bottom, DesignTokens.Ledge.room - DesignTokens.Ledge.card)
     }
 }

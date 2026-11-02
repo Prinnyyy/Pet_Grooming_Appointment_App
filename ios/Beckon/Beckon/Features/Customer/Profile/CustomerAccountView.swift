@@ -98,8 +98,8 @@ struct CustomerAccountView: View {
                         }
                     } placeholder: {
                         DesignShortcutRow {
-                            DesignShortcutTileSkeleton()
-                            if marketplace != nil { DesignShortcutTileSkeleton() }
+                            DesignShortcutTileSkeleton(title: "Profile settings", summary: "Photo, nickname, contact, and address")
+                            if marketplace != nil { DesignShortcutTileSkeleton(title: "Saved groomers", summary: "Groomers you have hearted") }
                         }
                     }
 

@@ -606,23 +606,27 @@ struct DesignShortcutTile<Destination: View>: View {
 
 /// A shortcut tile as bars: the icon disc, the title, two lines of summary; the real tile's card and padding.
 struct DesignShortcutTileSkeleton: View {
+    var title = "Profile settings"
+    var summary = "Photo, nickname, contact, and address"
+
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             DesignSkeletonDisc()
                 .frame(width: DesignTokens.Metrics.minimumTouchTarget, height: DesignTokens.Metrics.minimumTouchTarget)
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                DesignSkeletonLine(width: 0.7, font: DesignTokens.Typography.Expressive.emphasis)
-                VStack(alignment: .leading, spacing: 0) {
-                    DesignSkeletonLine(width: 0.95, font: DesignTokens.Typography.Expressive.chip)
-                    DesignSkeletonLine(width: 0.6, font: DesignTokens.Typography.Expressive.chip)
-                }
+                Text(title).font(DesignTokens.Typography.Expressive.emphasis)
+                    .hidden().overlay { Text(title).font(DesignTokens.Typography.Expressive.emphasis).redacted(reason: .placeholder) }
+                Text(summary).font(DesignTokens.Typography.Expressive.chip)
+                    .hidden().overlay { Text(summary).font(DesignTokens.Typography.Expressive.chip).redacted(reason: .placeholder) }
             }
+            .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }
         .designSkeleton(label: nil)
         .padding(DesignTokens.Spacing.lg)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .beckonLedge(.card)
+        .padding(.bottom, DesignTokens.Ledge.room - DesignTokens.Ledge.card)
     }
 }
 

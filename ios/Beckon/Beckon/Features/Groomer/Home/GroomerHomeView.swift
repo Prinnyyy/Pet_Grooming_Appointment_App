@@ -225,20 +225,22 @@ struct GroomerHomeView: View {
             HStack(spacing: DesignTokens.Spacing.md) {
                 DesignSkeletonDisc()
                     .frame(width: DesignTokens.Metrics.petAvatar, height: DesignTokens.Metrics.petAvatar)
-                VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: 2) {
                     DesignSkeletonLine(width: 0.4, font: DesignTokens.Typography.Expressive.label)
                     DesignSkeletonLine(width: 0.6, font: DesignTokens.Typography.Expressive.hero)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                DesignSkeletonBlock(cornerRadius: DesignTokens.CornerRadius.pill)
-                    .frame(width: DesignTokens.Metrics.chipBarShort, height: DesignTokens.Metrics.chipHeight)
-                DesignSkeletonBlock(cornerRadius: DesignTokens.CornerRadius.pill)
-                    .frame(width: DesignTokens.Metrics.chipBarLong, height: DesignTokens.Metrics.chipHeight)
+            BeckonFlowLayout(spacing: DesignTokens.Spacing.sm, rowSpacing: DesignTokens.Spacing.sm) {
+                BeckonMetaChip(text: "Service", systemImage: "scissors")
+                BeckonMetaChip(text: "Appointment time", systemImage: "calendar")
+                BeckonMetaChip(text: "Service address", systemImage: "mappin")
             }
-            DesignSkeletonBlock(cornerRadius: DesignTokens.CornerRadius.ledgeButton)
-                .frame(height: DesignTokens.Metrics.ledgePrimaryButtonHeight)
+            .redacted(reason: .placeholder)
+            BeckonLedgePrimaryLabel(title: "View booking", systemImage: "calendar")
+                .hidden()
+                .overlay { DesignSkeletonBlock(cornerRadius: DesignTokens.CornerRadius.ledgeButton) }
+                .beckonLedge(.primary)
                 .padding(.top, DesignTokens.Spacing.sm)
         }
         .designSkeleton(label: "Loading your schedule")
@@ -286,7 +288,9 @@ struct GroomerHomeView: View {
 
     private var tileBars: some View {
         GroomerHomeTiles {
-            ForEach(0..<3, id: \.self) { _ in GroomerHomeTileSkeleton() }
+            GroomerHomeTileSkeleton(title: "New matches", systemImage: "tray.full.fill")
+            GroomerHomeTileSkeleton(title: "Pending offers", systemImage: "tag.fill")
+            GroomerHomeTileSkeleton(title: "Unread messages", systemImage: "bubble.left.fill")
         }
         .accessibilityIdentifier("groomer.home.attention.loading")
     }
@@ -353,6 +357,7 @@ struct GroomerHomeTile: View {
     let isLoading: Bool
     let identifier: String
     let action: () -> Void
+    var showsPlaceholder = false
 
     private var countText: String {
         guard let count else { return isLoading ? "…" : "–" }
@@ -364,19 +369,39 @@ struct GroomerHomeTile: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                 HStack(alignment: .center, spacing: DesignTokens.Spacing.sm) {
                     DesignIconDisc(systemImage: systemImage, font: DesignTokens.Typography.Expressive.glyph)
+                        .opacity(showsPlaceholder ? 0 : 1)
+                        .overlay { if showsPlaceholder { DesignSkeletonDisc() } }
                     Spacer(minLength: 0)
                     Text(countText)
                         .font(DesignTokens.Typography.Expressive.display)
-                        .foregroundStyle((count ?? 0) > 0 ? DesignTokens.Colors.customerDeep : DesignTokens.Colors.textPrimary)
                         .lineLimit(1)
-                        .minimumScaleFactor(DesignTokens.Metrics.homeCountMinimumScale)
+                        .hidden()
+                        .overlay(alignment: .trailing) {
+                            if showsPlaceholder {
+                                DesignSkeletonLine(width: 1, font: DesignTokens.Typography.Expressive.display)
+                            } else {
+                                // Scaling a count must not shrink its line box and change the tile's height.
+                                Text(countText)
+                                    .font(DesignTokens.Typography.Expressive.display)
+                                    .foregroundStyle((count ?? 0) > 0 ? DesignTokens.Colors.customerDeep : DesignTokens.Colors.textPrimary)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(DesignTokens.Metrics.homeCountMinimumScale)
+                            }
+                        }
                 }
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(title)
-                        .font(DesignTokens.Typography.Expressive.emphasis)
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                Text(title)
+                    .font(DesignTokens.Typography.Expressive.emphasis)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .opacity(showsPlaceholder ? 0 : 1)
+                    .overlay(alignment: .leading) {
+                        if showsPlaceholder {
+                            Text(title).font(DesignTokens.Typography.Expressive.emphasis)
+                                .redacted(reason: .placeholder)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
             }
             .padding(DesignTokens.Spacing.md)
             .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.countTileHeight, alignment: .topLeading)
@@ -390,25 +415,15 @@ struct GroomerHomeTile: View {
 }
 
 
-private struct GroomerHomeTileSkeleton: View {
+struct GroomerHomeTileSkeleton: View {
+    var title = "Pending offers"
+    var systemImage = "tag.fill"
+
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                DesignSkeletonDisc()
-                    .frame(width: DesignTokens.Metrics.ledgeIconTile, height: DesignTokens.Metrics.ledgeIconTile)
-                Spacer(minLength: 0)
-                DesignSkeletonLine(width: 1, font: DesignTokens.Typography.Expressive.display)
-                    .frame(maxWidth: DesignTokens.Metrics.chipHeight * 1.5)
-            }
-            VStack(alignment: .leading, spacing: 0) {
-                DesignSkeletonLine(width: 0.9, font: DesignTokens.Typography.Expressive.emphasis)
-                DesignSkeletonLine(width: 0.6, font: DesignTokens.Typography.Expressive.emphasis)
-            }
-        }
-        .designSkeleton(label: "Loading")
-        .padding(DesignTokens.Spacing.md)
-        .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.countTileHeight, alignment: .topLeading)
-        .beckonLedge(.card)
+        // Static labels are known before the read: reuse their wrapping, type and card surface.
+        GroomerHomeTile(title: title, systemImage: systemImage, count: nil, hasMore: false,
+            isLoading: true, identifier: "groomer.home.tile.loading", action: {}, showsPlaceholder: true)
+            .designSkeleton(label: "Loading")
     }
 }
 
@@ -576,6 +591,7 @@ private struct GroomerHomeComingUpRow: View {
 
 /// Coming up while the schedule is not known: the heading, three rows as bars and the foot, in the card's own size.
 private struct GroomerHomeComingUpSkeleton: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .subheadline) private var timeWidth = DesignTokens.Metrics.timeColumnWidth
 
     var body: some View {
@@ -583,23 +599,9 @@ private struct GroomerHomeComingUpSkeleton: View {
             DesignSkeletonHeading()
             VStack(spacing: 0) {
                 ForEach(0..<3, id: \.self) { _ in
-                    HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-                        VStack(alignment: .leading, spacing: 0) {
-                            DesignSkeletonLine(width: 0.6, font: DesignTokens.Typography.Expressive.chip)
-                            DesignSkeletonLine(width: 1, font: DesignTokens.Typography.Expressive.emphasis)
-                            DesignSkeletonLine(width: 0.4, font: DesignTokens.Typography.Expressive.chip)
-                        }
-                        .frame(width: timeWidth)
-                        DesignSkeletonDisc()
-                            .frame(width: DesignTokens.Metrics.petAvatarSmall, height: DesignTokens.Metrics.petAvatarSmall)
-                        VStack(alignment: .leading, spacing: 0) {
-                            DesignSkeletonLine(width: 0.5, font: DesignTokens.Typography.Expressive.emphasis)
-                            DesignSkeletonLine(width: 0.7)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .padding(.vertical, DesignTokens.Spacing.md)
+                    row
+                        .padding(.horizontal, DesignTokens.Spacing.lg)
+                        .padding(.vertical, DesignTokens.Spacing.md)
                     DesignRowDivider()
                         .padding(.horizontal, DesignTokens.Spacing.lg)
                 }
@@ -609,6 +611,36 @@ private struct GroomerHomeComingUpSkeleton: View {
             }
             .designSkeleton(label: "Loading appointments")
             .beckonLedge(.card)
+        }
+    }
+
+    private var row: some View {
+        (typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: DesignTokens.Spacing.md))) {
+            if typeSize.isAccessibilitySize {
+                DesignSkeletonLine(width: 0.7, font: DesignTokens.Typography.Expressive.emphasis)
+            } else {
+                VStack(alignment: .leading, spacing: 0) {
+                    DesignSkeletonLine(width: 0.6, font: DesignTokens.Typography.Expressive.chip)
+                    DesignSkeletonLine(width: 1, font: DesignTokens.Typography.Expressive.emphasis)
+                    DesignSkeletonLine(width: 0.4, font: DesignTokens.Typography.Expressive.chip)
+                }
+                .frame(width: timeWidth)
+            }
+            HStack(spacing: DesignTokens.Spacing.md) {
+                DesignSkeletonDisc()
+                    .frame(width: DesignTokens.Metrics.petAvatarSmall, height: DesignTokens.Metrics.petAvatarSmall)
+                VStack(alignment: .leading, spacing: 2) {
+                    DesignSkeletonLine(width: 0.5, font: DesignTokens.Typography.Expressive.emphasis)
+                    DesignSkeletonLine(width: 0.7)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                if !typeSize.isAccessibilitySize {
+                    Image(systemName: "chevron.right").font(DesignTokens.Typography.Expressive.label)
+                        .hidden().overlay { DesignSkeletonBlock().frame(width: 6) }
+                }
+            }
         }
     }
 }

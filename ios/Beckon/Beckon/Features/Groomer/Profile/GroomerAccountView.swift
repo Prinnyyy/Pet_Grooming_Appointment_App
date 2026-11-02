@@ -116,8 +116,8 @@ struct GroomerAccountView: View {
             }
         } placeholder: {
             DesignShortcutRow {
-                DesignShortcutTileSkeleton()
-                DesignShortcutTileSkeleton()
+                DesignShortcutTileSkeleton(title: "Services", summary: presentation.servicesSummary)
+                DesignShortcutTileSkeleton(title: "Availability", summary: presentation.availabilitySummary)
             }
         }
 

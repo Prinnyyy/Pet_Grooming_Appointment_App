@@ -7,17 +7,17 @@ import SwiftUI
 /// The four-stop path as bars: a disc for each stop on one line, a short bar under it for the stage name. The same room as the path
 /// (the headroom of the bubble, the size of the nodes), so the real path takes its place.
 struct GroomingPathSkeleton: View {
-    private let stops = BeckonJourneyStop.groomingPath.count
+    var stops = BeckonJourneyStop.groomingPath
     private var nodeSize: CGFloat { DesignTokens.Metrics.journeyNodeMedium }
 
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
-            ForEach(0..<stops, id: \.self) { column in
+            ForEach(stops.indices, id: \.self) { column in
                 VStack(spacing: DesignTokens.Spacing.sm) {
                     ZStack(alignment: .top) {
                         HStack(spacing: 0) {
                             connector(isDrawn: column > 0)
-                            connector(isDrawn: column < stops - 1)
+                            connector(isDrawn: column < stops.count - 1)
                         }
                         .padding(.top, (nodeSize - DesignTokens.Metrics.groomingPathConnector) / 2)
                         DesignSkeletonDisc()
@@ -130,12 +130,15 @@ struct GroomingCardSkeleton: View {
 
 /// The Grooming detail while the grooming is being found: the hero (who and when, the path as bars) and two cards.
 struct GroomingDetailSkeleton: View {
+    var pathStops = BeckonJourneyStop.groomingPath
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionSpacing) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+                (typeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
+                    : AnyLayout(HStackLayout(alignment: .center, spacing: DesignTokens.Spacing.md))) {
                     DesignSkeletonDisc()
                         .frame(width: 56, height: 56)
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
@@ -144,7 +147,7 @@ struct GroomingDetailSkeleton: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                GroomingPathSkeleton()
+                GroomingPathSkeleton(stops: pathStops)
             }
             .designSkeleton(label: "Loading your grooming")
             .designCardBody()

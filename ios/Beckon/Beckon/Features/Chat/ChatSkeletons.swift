@@ -30,6 +30,7 @@ struct ChatConversationRowSkeleton: View {
         .designSkeleton(label: label)
         .padding(DesignTokens.Spacing.md)
         .beckonLedge(.card)
+        .padding(.bottom, DesignTokens.Ledge.room - DesignTokens.Ledge.card)
     }
 }
 

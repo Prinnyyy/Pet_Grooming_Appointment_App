@@ -1,5 +1,21 @@
 import Foundation
 
+/// A refresh is not absence. Only a complete read of the same interval establishes an empty day.
+nonisolated struct GroomerScheduleReadPresentation {
+    let hasSnapshot: Bool
+    let isReading: Bool
+    let showsPlaceholder: Bool
+    let showsVerificationWarning: Bool
+
+    init(scopeMatches: Bool, verifiedAt: Date?, state: BookingScopeReadState, calendarState: BookingScopeReadState) {
+        hasSnapshot = scopeMatches && verifiedAt != nil
+        isReading = !scopeMatches || state == .idle || state == .loading
+        showsPlaceholder = isReading && !hasSnapshot
+        showsVerificationWarning = !isReading && calendarState != .loading
+            && (state != .complete || calendarState != .complete)
+    }
+}
+
 nonisolated struct BookingDetailActionPresentation: Equatable, Sendable {
     let canComplete: Bool
     let canCancel: Bool

@@ -56,7 +56,7 @@ struct GroomerRequestDetailView: View {
         } else if requests.isLoadingDetail || offers.isLoading || !hasOpened {
             ZStack {
                 BeckonExpressiveBackdrop()
-                DesignPage(cascades: false) { GroomingDetailSkeleton() }
+                DesignPage(cascades: false) { GroomingDetailSkeleton(pathStops: BeckonJourneyStop.groomerRequestPath) }
                     .accessibilityIdentifier("groomer.requests.detail.loading")
             }
             .navigationTitle("Request")

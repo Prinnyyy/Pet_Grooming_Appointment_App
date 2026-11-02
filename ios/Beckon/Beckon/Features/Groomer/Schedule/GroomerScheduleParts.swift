@@ -34,6 +34,7 @@ struct GroomerDayStrip: View {
     /// How full each day is, by day key.
     let loads: [String: GroomerDayLoad]
     let onSelect: (GroomerScheduleDay) -> Void
+    var loadsAreKnown = true
 
     private let spacing = DesignTokens.Spacing.xs
 
@@ -47,7 +48,8 @@ struct GroomerDayStrip: View {
                     ForEach(days) { day in
                         let isSelected = day.id == selectedDayKey
                         Button { onSelect(day) } label: {
-                            GroomerDayTile(day: day, calendar: calendar, load: loads[day.id] ?? .empty, isSelected: isSelected)
+                            GroomerDayTile(day: day, calendar: calendar, load: loads[day.id] ?? .empty, isSelected: isSelected,
+                                isKnown: loadsAreKnown)
                         }
                         .buttonStyle(BeckonLedgeButtonStyle(isSelected ? .pill : .card))
                         .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -73,6 +75,7 @@ private struct GroomerDayTile: View {
     let calendar: Calendar
     let load: GroomerDayLoad
     let isSelected: Bool
+    var isKnown = true
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.xs / 2) {
@@ -89,7 +92,7 @@ private struct GroomerDayTile: View {
         .fixedSize(horizontal: false, vertical: true)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(GroomerScheduleDateFormatting.longDayTitle(from: day.date, calendar: calendar) + (day.isToday ? ", today" : ""))
-        .accessibilityValue(load.count == 0 ? "Nothing booked" : "\(load.count) appointment\(load.count == 1 ? "" : "s")")
+        .accessibilityValue(isKnown ? (load.count == 0 ? "Nothing booked" : "\(load.count) appointment\(load.count == 1 ? "" : "s")") : "Not yet verified")
     }
 
     /// A track as long as the day's open hours, filled as far as they are booked. A day with nothing booked has no track but the
@@ -98,7 +101,9 @@ private struct GroomerDayTile: View {
         Color.clear
             .frame(width: DesignTokens.Metrics.dayLoadWidth, height: DesignTokens.Metrics.dayLoadHeight)
             .overlay {
-                if load.count > 0 {
+                if !isKnown {
+                    Capsule().fill(DesignTokens.Colors.skeleton)
+                } else if load.count > 0 {
                     Capsule()
                         .fill(isSelected ? DesignTokens.Colors.customerTint : DesignTokens.Colors.border)
                         .overlay(alignment: .leading) {
@@ -113,17 +118,16 @@ private struct GroomerDayTile: View {
 
 
 struct GroomerDayStripSkeleton: View {
-    @Environment(\.dynamicTypeSize) private var typeSize
-    @ScaledMetric(relativeTo: .caption) private var height = DesignTokens.Metrics.dayChipHeight
-
     var body: some View {
-        HStack(spacing: DesignTokens.Spacing.xs) {
-            ForEach(0..<(typeSize.isAccessibilitySize ? 4 : 7), id: \.self) { _ in
-                DesignSkeletonBlock(cornerRadius: DesignTokens.CornerRadius.card)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: height)
-            }
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: Date())
+        let days = (0..<7).map { offset in
+            let date = calendar.date(byAdding: .day, value: offset, to: start)!
+            return GroomerScheduleDay(id: "\(offset)", date: date, isToday: offset == 0)
         }
+        // Calendar-only sizing data; no booking or availability is invented.
+        GroomerDayStrip(days: days, calendar: calendar, selectedDayKey: "0", loads: [:], onSelect: { _ in })
+        .redacted(reason: .placeholder)
         .designSkeletonOnPage()
         .designSkeleton(label: "Loading schedule")
     }
@@ -416,22 +420,32 @@ struct GroomerNowCard: View {
 
 
 struct GroomerNowCardSkeleton: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
+
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            DesignSkeletonBlock(cornerRadius: DesignTokens.CornerRadius.pill)
-                .frame(width: DesignTokens.Metrics.chipBarShort, height: DesignTokens.Metrics.chipHeight)
+            (typeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.sm))
+                : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.sm))) {
+                Text("Next").font(DesignTokens.Typography.Expressive.chip)
+                    .padding(.horizontal, DesignTokens.Spacing.md)
+                    .padding(.vertical, DesignTokens.Spacing.xs)
+                    .hidden().overlay { DesignSkeletonBlock(cornerRadius: DesignTokens.CornerRadius.pill) }
+                DesignSkeletonLine(width: 0.6, font: DesignTokens.Typography.Expressive.label)
+            }
             HStack(spacing: DesignTokens.Spacing.md) {
                 DesignSkeletonDisc()
                     .frame(width: DesignTokens.Metrics.petAvatar, height: DesignTokens.Metrics.petAvatar)
-                VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: 2) {
                     DesignSkeletonLine(width: 0.5, font: DesignTokens.Typography.Expressive.hero)
                     DesignSkeletonLine(width: 0.8, font: DesignTokens.Typography.Expressive.body)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             DesignSkeletonLine(width: 0.6, font: DesignTokens.Typography.Expressive.label)
-            DesignSkeletonBlock(cornerRadius: DesignTokens.CornerRadius.ledgeButton)
-                .frame(height: DesignTokens.Metrics.ledgePrimaryButtonHeight)
+            DesignActionLabel(title: "Message", systemImage: "bubble.left.fill")
+                .hidden().overlay { DesignSkeletonBlock(cornerRadius: DesignTokens.CornerRadius.ledgeButton) }
+                .beckonLedge(.primary)
         }
         .designSkeleton(label: "Loading appointments")
         .designBanner()
@@ -554,25 +568,43 @@ struct GroomerAppointmentRow: View {
 
 
 struct GroomerAppointmentRowSkeleton: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .subheadline) private var timeWidth = DesignTokens.Metrics.timeColumnWidth
 
     var body: some View {
-        HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-            VStack(alignment: .leading, spacing: 0) {
-                DesignSkeletonLine(width: 0.9, font: DesignTokens.Typography.Expressive.emphasis)
-                DesignSkeletonLine(width: 0.5, font: DesignTokens.Typography.Expressive.chip)
-                DesignSkeletonLine(width: 0.6, font: DesignTokens.Typography.Expressive.chip)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            HStack(alignment: .center, spacing: DesignTokens.Spacing.sm) {
+                (typeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
+                    : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.md))) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        DesignSkeletonLine(width: 0.9, font: DesignTokens.Typography.Expressive.emphasis)
+                        DesignSkeletonLine(width: 0.5, font: DesignTokens.Typography.Expressive.chip)
+                        DesignSkeletonLine(width: 0.6, font: DesignTokens.Typography.Expressive.chip)
+                    }
+                    .frame(width: typeSize.isAccessibilitySize ? nil : timeWidth, alignment: .leading)
+                    HStack(spacing: DesignTokens.Spacing.md) {
+                        DesignSkeletonDisc()
+                            .frame(width: DesignTokens.Metrics.petAvatarSmall, height: DesignTokens.Metrics.petAvatarSmall)
+                        VStack(alignment: .leading, spacing: 2) {
+                            DesignSkeletonLine(width: 0.5, font: DesignTokens.Typography.Expressive.title)
+                            DesignSkeletonLine(width: 0.8)
+                            BeckonMetaChip(text: "Mobile", systemImage: "car.fill")
+                                .hidden().overlay { DesignSkeletonBlock(cornerRadius: DesignTokens.CornerRadius.pill) }
+                                .padding(.top, DesignTokens.Spacing.xs)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                if !typeSize.isAccessibilitySize {
+                    DesignSkeletonDisc()
+                        .frame(width: DesignTokens.Metrics.minimumTouchTarget, height: DesignTokens.Metrics.minimumTouchTarget)
+                }
             }
-            .frame(width: timeWidth)
-            DesignSkeletonDisc()
-                .frame(width: DesignTokens.Metrics.petAvatarSmall, height: DesignTokens.Metrics.petAvatarSmall)
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                DesignSkeletonLine(width: 0.5, font: DesignTokens.Typography.Expressive.title)
-                DesignSkeletonLine(width: 0.8)
-                DesignSkeletonBlock(cornerRadius: DesignTokens.CornerRadius.pill)
-                    .frame(width: DesignTokens.Metrics.chipBarShort, height: DesignTokens.Metrics.chipHeight)
+            if typeSize.isAccessibilitySize {
+                DesignQuietAction(title: "Message", systemImage: "bubble.left.fill")
+                    .hidden().overlay { DesignSkeletonLine(width: 0.4) }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .designSkeleton(label: "Loading appointments")
         .padding(DesignTokens.Spacing.md)

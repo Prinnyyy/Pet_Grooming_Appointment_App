@@ -286,6 +286,7 @@ struct AccountDangerActionsSkeleton: View {
                 .designSkeleton(label: nil)
                 .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.ledgePrimaryButtonHeight)
                 .beckonLedge(.card)
+                .padding(.bottom, DesignTokens.Ledge.room - DesignTokens.Ledge.card)
 
             if showsDelete {
             DesignSkeletonLine(width: 0.34)

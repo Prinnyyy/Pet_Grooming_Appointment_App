@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-enum BookingScopeReadState { case idle, loading, complete, stale, failed }
+nonisolated enum BookingScopeReadState: Sendable { case idle, loading, complete, stale, failed }
 
 @MainActor
 @Observable
@@ -11,6 +11,7 @@ final class BookingsStore {
     private let repository: any BookingRepository
     private let groomerProfileRepository: (any GroomerProfileRepository)?
     private(set) var scheduleCalendar: Calendar?
+    private(set) var scheduleCalendarReadState: BookingScopeReadState = .idle
     private(set) var scheduleAvailabilityWindows: [GroomerAvailabilityWindow] = []
     private(set) var scheduleInterval: DateInterval?
     private(set) var scheduleBookings: [Booking] = []
@@ -178,12 +179,20 @@ final class BookingsStore {
         }
     }
 
-    func loadSchedule(interval: DateInterval) async {
+    func loadSchedule(interval: DateInterval, forceRefresh: Bool = true) async {
+        guard sessionIsCurrent(), !Task.isCancelled else { return }
+        if scheduleInterval == interval {
+            guard scheduleReadState != .loading else { return }
+            if !forceRefresh, scheduleReadState == .complete, let verifiedAt = scheduleVerifiedAt,
+               Date().timeIntervalSince(verifiedAt) < ForegroundRefreshGate.defaultMinimumForegroundRefreshInterval { return }
+        }
+        let previousState = scheduleInterval == interval ? scheduleReadState : .idle
         let operation = UUID()
         scheduleReadID = operation
         if scheduleInterval != interval { scheduleBookings = []; scheduleVerifiedAt = nil }
         scheduleInterval = interval
         scheduleReadState = .loading
+        defer { if scheduleReadID == operation, scheduleReadState == .loading { scheduleReadState = previousState } }
         var collected: [Booking] = []
         var page = ListPageRequest.first
         do {
@@ -191,7 +200,7 @@ final class BookingsStore {
             while true {
                 let result = try await repository.bookings(participantID: participantID, role: role, interval: interval, page: page)
                 try Task.checkCancellation()
-                guard scheduleReadID == operation else { return }
+                guard scheduleReadID == operation, sessionIsCurrent() else { return }
                 guard result.items.allSatisfy({
                     (role == .customer ? $0.customerID : $0.groomerID) == participantID
                         && Self.overlaps($0, interval: interval) && !$0.status.isCancellation
@@ -202,14 +211,15 @@ final class BookingsStore {
                 guard let next = result.nextRequest else { break }
                 page = next
             }
-            guard scheduleReadID == operation else { return }
+            guard scheduleReadID == operation, sessionIsCurrent() else { return }
             scheduleBookings = collected.sortedByScheduledStart(ascending: true)
             scheduleReadState = .complete
             scheduleVerifiedAt = Date()
             for booking in collected { if !replace(booking) { bookings.append(booking) } }
         } catch {
             guard scheduleReadID == operation else { return }
-            scheduleReadState = scheduleVerifiedAt == nil ? .failed : .stale
+            scheduleReadState = (error as? BookingRepositoryError) == .cancelled || AppDebugErrorClassifier.isCancellation(error)
+                ? previousState : (scheduleVerifiedAt == nil ? .failed : .stale)
         }
     }
 
@@ -310,20 +320,38 @@ final class BookingsStore {
 
     private func loadScheduleCalendar() async {
         guard role == .groomer, let groomerProfileRepository else { return }
-        scheduleCalendar = nil
-        scheduleAvailabilityWindows = []
+        let previousState = scheduleCalendarReadState
+        scheduleCalendarReadState = .loading
         do {
             let snapshot = try await groomerProfileRepository.availabilitySnapshot(groomerID: participantID)
-            guard !Task.isCancelled else { return }
+            try Task.checkCancellation()
+            guard sessionIsCurrent() else { return }
             let zones = Set(snapshot.windows.map(\.timezone))
             guard snapshot.windows.count == 7,
                   Set(snapshot.windows.map(\.weekday)).count == 7,
                   snapshot.windows.allSatisfy({ $0.groomerID == participantID }),
-                  zones.count == 1, let identifier = zones.first else { return }
-            scheduleCalendar = try GroomingServiceTiming.locationCalendar(identifier)
+                  zones.count == 1, let identifier = zones.first,
+                  let calendar = try? GroomingServiceTiming.locationCalendar(identifier) else {
+                // An invalid authoritative response is different from an interrupted network read.
+                scheduleCalendar = nil
+                scheduleAvailabilityWindows = []
+                scheduleCalendarReadState = .failed
+                return
+            }
+            scheduleCalendar = calendar
             scheduleAvailabilityWindows = snapshot.windows
+            scheduleCalendarReadState = .complete
         } catch {
-            scheduleCalendar = nil
+            guard sessionIsCurrent() else { return }
+            if (error as? GroomerProfileRepositoryError) == .cancelled || AppDebugErrorClassifier.isCancellation(error) {
+                scheduleCalendarReadState = previousState
+            } else if (error as? GroomerProfileRepositoryError) == .notAllowed {
+                scheduleCalendar = nil
+                scheduleAvailabilityWindows = []
+                scheduleCalendarReadState = .failed
+            } else {
+                scheduleCalendarReadState = scheduleCalendar == nil ? .failed : .stale
+            }
         }
     }
 

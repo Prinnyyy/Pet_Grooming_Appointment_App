@@ -150,7 +150,7 @@ struct BookingsStoreTests {
     }
 
     @Test @MainActor
-    func scheduleSourceFailureClearsZoneWithoutDroppingBookings() async {
+    func transientScheduleSourceFailureRetainsDisplayAsUnverifiedWithoutDroppingBookings() async {
         let owner = UUID()
         let booking = Self.booking(groomerID: owner)
         let windows = GroomerAvailabilityWeekday.allCases.map {
@@ -166,7 +166,9 @@ struct BookingsStoreTests {
         #expect(store.bookings == [booking])
         profiles.availabilityResult = .failure(.networkUnavailable)
         await store.load()
-        #expect(store.scheduleCalendar == nil)
+        #expect(store.scheduleCalendar?.timeZone.identifier == "America/New_York")
+        #expect(store.scheduleAvailabilityWindows == windows)
+        #expect(store.scheduleCalendarReadState == .stale)
         #expect(store.bookings == [booking])
         #expect(store.errorMessage == nil)
     }
