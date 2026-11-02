@@ -52,7 +52,7 @@ final class GroomerOfferTimingRenderingTests: XCTestCase {
         let host = UIHostingController(rootView: NavigationStack(path: Binding(
             get: { navigation.path }, set: { navigation.path = $0 }
         )) {
-            GroomerRequestDetailView(matchID: matched.id, store: store)
+            GroomerRequestDetailView(target: .match(matched.id), requests: store, offers: GroomerOffersStore(groomerID: owner, repository: repository))
                 .navigationDestination(for: Int.self) { _ in Text("Temporary destination") }
         })
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
@@ -158,7 +158,7 @@ final class GroomerOfferTimingRenderingTests: XCTestCase {
         await store.load()
         let environment = OfferDeviceEnvironment()
         let host = UIHostingController(rootView: OfferEnvironmentHost(matchID: matched.id,
-            store: store, device: environment))
+            store: store, device: environment, offers: GroomerOffersStore(groomerID: owner, repository: repository)))
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let previous = scene.windows.first(where: \.isKeyWindow)
         let window = UIWindow(windowScene: scene)
@@ -354,8 +354,9 @@ private struct OfferEnvironmentHost: View {
     let matchID: UUID
     let store: GroomerRequestsStore
     let device: OfferDeviceEnvironment
+    let offers: GroomerOffersStore
     var body: some View {
-        NavigationStack { GroomerRequestDetailView(matchID: matchID, store: store) }
+        NavigationStack { GroomerRequestDetailView(target: .match(matchID), requests: store, offers: offers) }
             .environment(\.timeZone, device.timeZone)
             .environment(\.calendar, device.calendar)
             .environment(\.dynamicTypeSize, device.textSize)

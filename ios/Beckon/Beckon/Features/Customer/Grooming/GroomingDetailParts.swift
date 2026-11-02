@@ -25,12 +25,27 @@ struct GroomingDetailHero: View {
     var closed: Closed?
     /// "Closes in 23 hours" on an open request.
     var closes: String?
+    /// A path of its own instead of the card's: the groomer's booking (design) has other stops and other words.
+    var path: Path?
+    /// The owner's page and the groomer's booking page share the hero; each says its own id.
+    var identifier = "customer.grooming.detail.hero"
     @Environment(\.dynamicTypeSize) private var typeSize
+
+    struct Path {
+        let stops: [BeckonJourneyStop]
+        let current: Int
+        let fills: [Double]
+        var bubble: BeckonJourney.Bubble?
+        /// What VoiceOver says of it.
+        let status: String
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
             identity
-            if let card {
+            if let path {
+                BeckonJourney(stops: path.stops, current: path.current, fills: path.fills, bubble: path.bubble)
+            } else if let card {
                 BeckonJourney(stops: BeckonJourneyStop.groomingPath, current: card.current, fills: card.fills,
                     bubble: card.bubble, celebratingColumn: card.celebratesColumn)
             } else if let closed {
@@ -46,8 +61,8 @@ struct GroomingDetailHero: View {
         }
         .designCardBody()
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(([title, time] + [card?.status, closed?.message].compactMap { $0 }).joined(separator: ". "))
-        .accessibilityIdentifier("customer.grooming.detail.hero")
+        .accessibilityLabel(([title, time] + [path?.status ?? card?.status, closed?.message].compactMap { $0 }).joined(separator: ". "))
+        .accessibilityIdentifier(identifier)
     }
 
     private var identity: some View {
@@ -353,14 +368,19 @@ struct GroomingTimeline: View {
     /// A link under the line (the offers, when there were some).
     var offersDestination: AnyView?
     var offersTitle = "See all offers"
+    let identifier: String
+    let toggleIdentifier: String
     @State private var isOpen: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(entries: [GroomingTimelineEntry], offersDestination: AnyView? = nil, offersTitle: String = "See all offers",
+         identifier: String = "customer.grooming.detail.activity", toggleIdentifier: String = "customer.grooming.detail.activity.toggle",
          startsOpen: Bool = false) {
         self.entries = entries
         self.offersDestination = offersDestination
         self.offersTitle = offersTitle
+        self.identifier = identifier
+        self.toggleIdentifier = toggleIdentifier
         _isOpen = State(initialValue: startsOpen)
     }
 
@@ -384,7 +404,7 @@ struct GroomingTimeline: View {
             .buttonStyle(BeckonGuardedPlainButtonStyle())
             .accessibilityValue(isOpen ? "Expanded" : "Collapsed")
             .accessibilityHint("Shows what has happened to this grooming, and when.")
-            .accessibilityIdentifier("customer.grooming.detail.activity.toggle")
+            .accessibilityIdentifier(toggleIdentifier)
 
             if isOpen {
                 VStack(alignment: .leading, spacing: 0) {
@@ -405,7 +425,7 @@ struct GroomingTimeline: View {
             }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("customer.grooming.detail.activity")
+        .accessibilityIdentifier(identifier)
     }
 
     private func row(_ entry: GroomingTimelineEntry, isLast: Bool) -> some View {

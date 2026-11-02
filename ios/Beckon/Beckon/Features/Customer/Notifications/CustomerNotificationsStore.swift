@@ -15,6 +15,8 @@ final class CustomerNotificationsStore {
     private(set) var nextPageRequest: ListPageRequest?
     private var needsReloadAfterCurrentLoad = false
 
+    private(set) var actionErrorMessage: String?
+    private(set) var loadMoreErrorMessage: String?
     var errorMessage: String?
 
     var unreadCount: Int {
@@ -41,6 +43,8 @@ final class CustomerNotificationsStore {
 
         isLoading = true
         errorMessage = nil
+        actionErrorMessage = nil
+        loadMoreErrorMessage = nil
         defer {
             isLoading = false
             schedulePendingReloadIfNeeded()
@@ -71,6 +75,7 @@ final class CustomerNotificationsStore {
 
         isLoadingMore = true
         errorMessage = nil
+        loadMoreErrorMessage = errorMessage
         defer {
             isLoadingMore = false
             schedulePendingReloadIfNeeded()
@@ -89,10 +94,12 @@ final class CustomerNotificationsStore {
             return
         } catch let error as CustomerNotificationRepositoryError {
             errorMessage = Self.message(for: error, action: "load")
+            loadMoreErrorMessage = errorMessage
         } catch where AppDebugErrorClassifier.isCancellation(error) {
             return
         } catch {
             errorMessage = Self.message(for: .unavailable, action: "load")
+            loadMoreErrorMessage = errorMessage
         }
     }
 
@@ -129,11 +136,13 @@ final class CustomerNotificationsStore {
                     resolved = await chat.resolveConversation(bookingID: id)
                 } else {
                     errorMessage = "This older notification does not identify its conversation. You can mark it as read."
+                    actionErrorMessage = errorMessage
                     return nil
                 }
                 try Task.checkCancellation()
                 guard let conversation = resolved else {
                     errorMessage = chat.errorMessage ?? "This conversation is no longer available."
+                    actionErrorMessage = errorMessage
                     return nil
                 }
                 destination = .message(conversation)
@@ -147,6 +156,7 @@ final class CustomerNotificationsStore {
         catch {
             guard !Task.isCancelled else { return nil }
             errorMessage = "This notification's destination could not be opened. Refresh and try again."
+            actionErrorMessage = errorMessage
             return nil
         }
     }
@@ -158,6 +168,7 @@ final class CustomerNotificationsStore {
 
         markingNotificationIDs.insert(notification.id)
         errorMessage = nil
+        actionErrorMessage = errorMessage
         defer {
             markingNotificationIDs.remove(notification.id)
         }
@@ -173,10 +184,12 @@ final class CustomerNotificationsStore {
             return
         } catch let error as CustomerNotificationRepositoryError {
             errorMessage = Self.message(for: error, action: "mark read")
+            actionErrorMessage = errorMessage
         } catch where AppDebugErrorClassifier.isCancellation(error) {
             return
         } catch {
             errorMessage = Self.message(for: .unavailable, action: "mark read")
+            actionErrorMessage = errorMessage
         }
     }
 
@@ -185,6 +198,7 @@ final class CustomerNotificationsStore {
 
         isMarkingAllRead = true
         errorMessage = nil
+        actionErrorMessage = errorMessage
         defer { isMarkingAllRead = false }
 
         do {
@@ -195,10 +209,12 @@ final class CustomerNotificationsStore {
             return
         } catch let error as CustomerNotificationRepositoryError {
             errorMessage = Self.message(for: error, action: "mark all read")
+            actionErrorMessage = errorMessage
         } catch where AppDebugErrorClassifier.isCancellation(error) {
             return
         } catch {
             errorMessage = Self.message(for: .unavailable, action: "mark all read")
+            actionErrorMessage = errorMessage
         }
     }
 

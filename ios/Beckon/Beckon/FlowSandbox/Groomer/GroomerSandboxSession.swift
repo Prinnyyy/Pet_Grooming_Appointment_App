@@ -244,15 +244,46 @@ final class GroomerSandboxRequestRepository: GroomerRequestRepository {
 
     func createOffer(draft: GroomerOfferDraft) async throws -> CreateGroomerOfferResult {
         try await boundary.check()
+        guard let index = matches.firstIndex(where: { $0.request.id == draft.requestID }), matches[index].canCreateOffer else {
+            throw GroomerRequestRepositoryError.matchNotFound
+        }
         try await Task.sleep(for: .milliseconds(600))
-        return CreateGroomerOfferResult(offerID: UUID(), offerStatus: .pending, requestStatus: .hasOffers)
+        let matched = matches[index]
+        let now = GroomingRequestDateFormatting.serverString(from: Date())
+        let start = GroomingRequestDateFormatting.serverString(from: draft.proposedStart)
+        let end = GroomingRequestDateFormatting.serverString(from: draft.proposedEnd)
+        let offer = GroomerOffer(id: UUID(), requestID: draft.requestID, matchID: matched.match.id,
+            customerID: matched.request.customerID, groomerID: matched.match.groomerID,
+            proposedStart: start, proposedEnd: end, priceEstimate: draft.priceEstimate, message: draft.message,
+            status: .pending, expiresAt: matched.request.expiresAt, withdrawnAt: nil, createdAt: now, updatedAt: now,
+            appliedTimingBuffers: try GroomingTimingBuffers(preparation: 0, cleanup: 0,
+                inboundTravel: 0, outboundTravel: 0),
+            serviceTimeZoneIdentifier: matched.request.preferenceTimeZoneIdentifier ?? GroomerSandboxFixtures.timeZone,
+            scheduleTimeZoneIdentifier: GroomerSandboxFixtures.timeZone, occupiedStart: start, occupiedEnd: end,
+            timingSnapshotLoaded: true)
+        matches[index] = matched.replacing(matchStatus: .offered, requestStatus: .hasOffers, offer: offer)
+        offerItems.insert(GroomerOfferListItem(offer: offer, request: matches[index].request, booking: nil), at: 0)
+        return CreateGroomerOfferResult(offerID: offer.id, offerStatus: .pending, requestStatus: .hasOffers)
     }
 
     func withdrawOffer(offerID: UUID) async throws -> WithdrawGroomerOfferResult {
         try await boundary.check()
+        guard let offer = offerItems.first(where: { $0.id == offerID })?.offer
+            ?? matches.first(where: { $0.offer?.id == offerID })?.offer, offer.status == .pending else {
+            throw GroomerRequestRepositoryError.matchNotFound
+        }
+        let stamp = GroomingRequestDateFormatting.serverString(from: Date())
+        let withdrawn = offer.replacing(status: .withdrawnByGroomer, withdrawnAt: stamp)
+        matches = matches.map { matched in
+            matched.offer?.id == offerID ? matched.replacing(matchStatus: .viewed, requestStatus: .open, offer: withdrawn) : matched
+        }
+        offerItems = offerItems.map { item in
+            item.id == offerID ? GroomerOfferListItem(offer: withdrawn, request: item.request, booking: item.booking) : item
+        }
         return WithdrawGroomerOfferResult(offerID: offerID, offerStatus: .withdrawnByGroomer,
-            withdrawnTimestamp: GroomerSandboxFixtures.iso(hours: 0), requestStatus: .open)
+            withdrawnTimestamp: stamp, requestStatus: .open)
     }
+
 }
 
 

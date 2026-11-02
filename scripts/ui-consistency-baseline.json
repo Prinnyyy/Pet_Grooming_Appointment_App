@@ -2,7 +2,7 @@
   "version": 1,
   "scope": "ios/Beckon/Beckon/Features",
   "lastChange": {
-    "reason": "T-430 replaces legacy Home styling with adopted shared kit and extracts HomeHeader"
+    "reason": "T-431 replaces legacy request and offer pages with unified adopted workflow"
   },
   "findings": [
     {
@@ -258,13 +258,6 @@
       "occurrence": 1
     },
     {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Offers/GroomerOffersView.swift",
-      "fingerprint": "e0cedc9b10ad4c5514d1a030f32dbce8bc3860319b22c234e519d19308189b75",
-      "expressionHash": "a4dc36b024e2abe97de60d67566f8d21bbe5857b848fc21b5c400f26bf255937",
-      "occurrence": 1
-    },
-    {
       "ruleID": "UI002",
       "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerAvailabilityEditorView.swift",
       "fingerprint": "a91b38e730167b06f5b9f28fdab825850860a183a4331546246135e4e9da9d91",
@@ -459,76 +452,6 @@
       "fingerprint": "c81a6f62118751b70170e72312368856970a9284b829602544b8731c2f45529e",
       "expressionHash": "65158038e24ad44407eb01a986bae98924a20a6fc8589099ecedd0ea1004cef2",
       "occurrence": 3
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Requests/GroomerRequestsView.swift",
-      "fingerprint": "c996af4a7ce9733de1c401051399677a06f9e7ad92928296ca69e9faa27ea9a0",
-      "expressionHash": "592ce8aa09ea9407ba247daf95babc71b8af5cd02b534f4b45342118be455f39",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Requests/GroomerRequestsView.swift",
-      "fingerprint": "ae4bfc55e00a475feb51518f4fa049d7df9333923a53078ed01da2fe1ffcf4a6",
-      "expressionHash": "2f028c80d50a791ee2054773ab08af77d9822fd4594cf9d3d4d48cee7cef6010",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Requests/GroomerRequestsView.swift",
-      "fingerprint": "26ae8db08d8760b924d39139cade6048150ba5d24e678c7fac96443d74225467",
-      "expressionHash": "b9bb4ec90621deb5beca54874e500ffb8e4d1381007ad4dad3e74452f29b8b6b",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Requests/GroomerRequestsView.swift",
-      "fingerprint": "487dbd5543f0656fe06beac1888539dbf388e1ef0c4a072824d40641fb2d8568",
-      "expressionHash": "a6c86ff42722705d13fdc5cf778bec956a69125914a05ba5c10a2431c75f4f71",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Requests/GroomerRequestsView.swift",
-      "fingerprint": "101e9133d733e82cadf251a59089ad28b6779b310b59e34448850202df6d741a",
-      "expressionHash": "9319188001d1a476b69807bf70e7390f1e3983801d36b2573913f3d87790fa53",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI005",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Requests/GroomerRequestsView.swift",
-      "fingerprint": "6ede15785573826ef1e25a39033e4e0bb7ea9bb9375dca3e27d315527b8c9d65",
-      "expressionHash": "117835f3dd56574edb9bcf4156c421d0fc816c3cb8bbf49d9a9e8ec935daee3f",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Requests/GroomerRequestsView.swift",
-      "fingerprint": "241e33ad63b5e7118d0862e6cff0552b2ffe0bb1ce6dc6f50618dd0c1c0f7cde",
-      "expressionHash": "a4dc36b024e2abe97de60d67566f8d21bbe5857b848fc21b5c400f26bf255937",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Requests/GroomerRequestsView.swift",
-      "fingerprint": "589b425dd4cbd072ecca8df721a800c079068b530c405f4ca8ee07afadef0355",
-      "expressionHash": "a4dc36b024e2abe97de60d67566f8d21bbe5857b848fc21b5c400f26bf255937",
-      "occurrence": 2
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Requests/GroomerRequestsView.swift",
-      "fingerprint": "8c6ba3bdff718fe986c8ecbe6fd121eaf2d7c640cd67eab0bcd1e186c81db6dc",
-      "expressionHash": "bb47e31fd8a8467b36b626c10561e99309bae27e88f254bc47037b167f9e6290",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI005",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Requests/GroomerRequestsView.swift",
-      "fingerprint": "3ad34ae69d8eb06b4893b8d04616728073ed3f14baf89533c8decf4d81be61ff",
-      "expressionHash": "04df45d9331b1eb9cdf87061ccedc605d02e1d8b3609248a2f03317f578418f8",
-      "occurrence": 1
     }
   ]
 }

@@ -12,6 +12,8 @@ final class GroomerOffersStore {
     private(set) var isLoadingMore = false
     private(set) var nextPageRequest: ListPageRequest?
 
+    private(set) var loadMoreErrorMessage: String?
+    private(set) var loadErrorMessage: String?
     var errorMessage: String?
 
     var canLoadMore: Bool {
@@ -45,6 +47,8 @@ final class GroomerOffersStore {
 
         isLoading = true
         errorMessage = nil
+        loadMoreErrorMessage = nil
+        loadErrorMessage = errorMessage
         defer { isLoading = false }
 
         do {
@@ -58,10 +62,12 @@ final class GroomerOffersStore {
             return
         } catch let error as GroomerRequestRepositoryError {
             errorMessage = Self.message(for: error)
+            loadErrorMessage = errorMessage
         } catch where AppDebugErrorClassifier.isCancellation(error) {
             return
         } catch {
             errorMessage = Self.message(for: .unavailable)
+            loadErrorMessage = errorMessage
         }
     }
 
@@ -72,6 +78,7 @@ final class GroomerOffersStore {
 
         isLoadingMore = true
         errorMessage = nil
+        loadMoreErrorMessage = errorMessage
         defer { isLoadingMore = false }
 
         do {
@@ -87,10 +94,12 @@ final class GroomerOffersStore {
             return
         } catch let error as GroomerRequestRepositoryError {
             errorMessage = Self.message(for: error)
+            loadMoreErrorMessage = errorMessage
         } catch where AppDebugErrorClassifier.isCancellation(error) {
             return
         } catch {
             errorMessage = Self.message(for: .unavailable)
+            loadMoreErrorMessage = errorMessage
         }
     }
 

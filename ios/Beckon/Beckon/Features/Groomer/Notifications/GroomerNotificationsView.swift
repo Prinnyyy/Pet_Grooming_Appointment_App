@@ -55,7 +55,7 @@ struct GroomerNotificationsView: View {
                         accessibilityIdentifier: "groomer.notifications.load-more", title: "Load more", failed: moreFailed) {
                         moreFailed = false
                         await store.loadNextPage()
-                        moreFailed = store.errorMessage != nil
+                        moreFailed = store.loadMoreErrorMessage != nil
                     }
                 }
             }
@@ -67,6 +67,12 @@ struct GroomerNotificationsView: View {
             await store.load()
         }
         .task { await store.load() }
+        .background {
+            BeckonGlobalFeedbackForwarder(error: store.actionErrorMessage.map {
+                BeckonGlobalFeedbackError(scope: .page("groomer.notifications"), sourceKey: "groomer.notifications.action",
+                    title: "Notification update failed", message: $0)
+            })
+        }
         .overlay { if selectedID != nil { ProgressView().accessibilityLabel("Opening notification") } }
         .task(id: selectedID) {
             guard let id = selectedID, let notification = store.notifications.first(where: { $0.id == id }) else { return }
@@ -79,7 +85,7 @@ struct GroomerNotificationsView: View {
             switch target {
             case let .request(id):
                 if let requestStore, let offerStore {
-                    GroomerRequestDetailView(matchID: id, store: requestStore)
+                    GroomerRequestDetailView(target: .match(id), requests: requestStore, offers: offerStore, onOpenBooking: onOpenBooking)
                 }
             case let .booking(id):
                 if let bookingStore { BookingDetailView(bookingID: id, role: .groomer, store: bookingStore) }
@@ -157,6 +163,12 @@ private struct GroomerNotificationCard: View {
     }
 
     var body: some View {
+        VStack(spacing: 0) { button }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("groomer.notifications.row")
+    }
+
+    private var button: some View {
         Button(action: action) {
             HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
                 DesignIconDisc(systemImage: glyph, size: .touch, font: DesignTokens.Typography.Expressive.glyph,
@@ -188,6 +200,6 @@ private struct GroomerNotificationCard: View {
         .buttonStyle(BeckonLedgeButtonStyle(.card))
         .accessibilityElement(children: .combine)
         .accessibilityValue(notification.isRead ? "Read" : "Unread")
-        .accessibilityIdentifier("groomer.notifications.row")
+        .accessibilityIdentifier("groomer.notifications.open")
     }
 }

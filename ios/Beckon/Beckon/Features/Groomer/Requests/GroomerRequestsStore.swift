@@ -31,6 +31,9 @@ final class GroomerRequestsStore {
     private var listGeneration = UUID()
     private var sessionIsCurrent: @MainActor () -> Bool = { true }
 
+    private(set) var actionErrorMessage: String?
+    private(set) var loadMoreErrorMessage: String?
+    private(set) var loadErrorMessage: String?
     var errorMessage: String?
     var noticeMessage: String?
 
@@ -80,6 +83,8 @@ final class GroomerRequestsStore {
 
     func invalidateSession() {
         closeDetail()
+        actionErrorMessage = nil
+        loadMoreErrorMessage = nil
         listGeneration = UUID()
         matchedRequests = []
         rankedPage = nil
@@ -177,6 +182,9 @@ final class GroomerRequestsStore {
         recordStoreStart("load")
         isLoading = true
         errorMessage = nil
+        actionErrorMessage = nil
+        loadErrorMessage = errorMessage
+        loadMoreErrorMessage = nil
         defer { if listGeneration == generation { isLoading = false } }
 
         do {
@@ -206,6 +214,7 @@ final class GroomerRequestsStore {
         } catch let error as GroomerRequestRepositoryError {
             guard listGeneration == generation, sessionIsCurrent() else { return }
             errorMessage = message(for: error, action: "load")
+            loadErrorMessage = errorMessage
             recordStoreFailure(
                 "load",
                 error: error,
@@ -217,6 +226,7 @@ final class GroomerRequestsStore {
         } catch {
             guard listGeneration == generation, sessionIsCurrent() else { return }
             errorMessage = message(for: .unavailable, action: "load")
+            loadErrorMessage = errorMessage
             recordStoreFailure(
                 "load",
                 error: error,
@@ -237,6 +247,7 @@ final class GroomerRequestsStore {
         recordStoreStart("loadNextPage")
         isLoadingMore = true
         errorMessage = nil
+        loadMoreErrorMessage = errorMessage
         defer { if listGeneration == generation { isLoadingMore = false } }
 
         do {
@@ -272,6 +283,7 @@ final class GroomerRequestsStore {
         } catch let error as GroomerRequestRepositoryError {
             guard listGeneration == generation, sessionIsCurrent() else { return }
             errorMessage = message(for: error, action: "load")
+            loadMoreErrorMessage = errorMessage
             recordStoreFailure(
                 "loadNextPage",
                 error: error,
@@ -283,6 +295,7 @@ final class GroomerRequestsStore {
         } catch {
             guard listGeneration == generation, sessionIsCurrent() else { return }
             errorMessage = message(for: .unavailable, action: "load")
+            loadMoreErrorMessage = errorMessage
             recordStoreFailure(
                 "loadNextPage",
                 error: error,
@@ -296,6 +309,7 @@ final class GroomerRequestsStore {
         guard !isDismissing else { return }
         guard matchedRequest.match.status.isDismissible else {
             errorMessage = "This match can no longer be dismissed."
+            actionErrorMessage = errorMessage
             return
         }
 
@@ -306,6 +320,7 @@ final class GroomerRequestsStore {
             metadata: ["matchID": matchedRequest.match.id.uuidString]
         )
         errorMessage = nil
+        actionErrorMessage = errorMessage
         noticeMessage = nil
         defer { isDismissing = false }
 
@@ -321,6 +336,7 @@ final class GroomerRequestsStore {
             recordStoreCancelled("dismiss", startedAt: startedAt)
         } catch let error as GroomerRequestRepositoryError {
             errorMessage = message(for: error, action: "dismiss")
+            actionErrorMessage = errorMessage
             recordStoreFailure(
                 "dismiss",
                 error: error,
@@ -331,6 +347,7 @@ final class GroomerRequestsStore {
             recordStoreCancelled("dismiss", startedAt: startedAt)
         } catch {
             errorMessage = message(for: .unavailable, action: "dismiss")
+            actionErrorMessage = errorMessage
             recordStoreFailure(
                 "dismiss",
                 error: error,
@@ -353,6 +370,7 @@ final class GroomerRequestsStore {
 
         let startedAt = Date()
         errorMessage = nil
+        actionErrorMessage = errorMessage
         noticeMessage = nil
 
         let draft: GroomerOfferDraft
@@ -368,6 +386,7 @@ final class GroomerRequestsStore {
             )
         } catch let error as GroomerOfferFormError {
             errorMessage = error.message
+            actionErrorMessage = errorMessage
             recordStoreFailure(
                 "submitOffer",
                 error: error,
@@ -379,6 +398,7 @@ final class GroomerRequestsStore {
             return
         } catch {
             errorMessage = "Check the offer details and try again."
+            actionErrorMessage = errorMessage
             recordStoreFailure(
                 "submitOffer",
                 error: error,
@@ -434,6 +454,7 @@ final class GroomerRequestsStore {
             recordStoreCancelled("submitOffer", startedAt: startedAt)
         } catch let error as GroomerRequestRepositoryError {
             errorMessage = message(for: error, action: "submit offer")
+            actionErrorMessage = errorMessage
             recordStoreFailure(
                 "submitOffer",
                 error: error,
@@ -445,6 +466,7 @@ final class GroomerRequestsStore {
             recordStoreCancelled("submitOffer", startedAt: startedAt)
         } catch {
             errorMessage = message(for: .unavailable, action: "submit offer")
+            actionErrorMessage = errorMessage
             recordStoreFailure(
                 "submitOffer",
                 error: error,
@@ -458,14 +480,17 @@ final class GroomerRequestsStore {
     func withdrawOffer(for matchedRequest: GroomerMatchedRequest) async {
         guard !isWithdrawingOffer else { return }
         errorMessage = nil
+        actionErrorMessage = errorMessage
         noticeMessage = nil
 
         guard let offer = matchedRequest.offer else {
             errorMessage = "No offer is available to withdraw."
+            actionErrorMessage = errorMessage
             return
         }
         guard offer.status == .pending else {
             errorMessage = "This offer can no longer be withdrawn."
+            actionErrorMessage = errorMessage
             return
         }
 
@@ -495,6 +520,7 @@ final class GroomerRequestsStore {
             recordStoreCancelled("withdrawOffer", startedAt: startedAt)
         } catch let error as GroomerRequestRepositoryError {
             errorMessage = message(for: error, action: "withdraw offer")
+            actionErrorMessage = errorMessage
             recordStoreFailure(
                 "withdrawOffer",
                 error: error,
@@ -506,6 +532,7 @@ final class GroomerRequestsStore {
             recordStoreCancelled("withdrawOffer", startedAt: startedAt)
         } catch {
             errorMessage = message(for: .unavailable, action: "withdraw offer")
+            actionErrorMessage = errorMessage
             recordStoreFailure(
                 "withdrawOffer",
                 error: error,

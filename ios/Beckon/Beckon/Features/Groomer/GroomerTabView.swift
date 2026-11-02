@@ -126,11 +126,15 @@ struct GroomerTabView: View {
             BeckonGlobalFeedbackOverlay(center: feedbackCenter)
         }
         .onAppear {
+            requestsStore?.setSessionValidation(sessionIsCurrent)
             feedbackCenter.setDebugRecorder(debugRecorder)
             chatStore?.setDebugRecorder(debugRecorder)
         }
         .task {
             await refreshBadgeSources()
+        }
+        .onChange(of: sessionIsCurrent()) { _, current in
+            if !current { requestsStore?.invalidateSession() }
         }
         .onChange(of: selection) { oldValue, newValue in
             debugRecorder?.record(
@@ -158,17 +162,10 @@ struct GroomerTabView: View {
                 bookingAction: { booking in focusedBooking = booking; select(.bookings) }, messagesAction: { select(.messages) },
                 availabilityAction: openAvailability, scheduleAction: { select(.bookings) },
                 accountAction: { select(.account) })
-        } else if tab == .requests,
-           let groomerID,
-           let requestRepository {
-            GroomerRequestsView(
-                groomerID: groomerID,
-                repository: requestRepository,
-                profileRepository: profileRepository,
-                route: Binding(get: { requestsRoute }, set: { requestsRoute = $0 }),
-                debugRecorder: debugRecorder,
-                sessionIsCurrent: sessionIsCurrent
-            )
+        } else if tab == .requests, let requestsStore, let offersStore {
+            GroomerRequestsView(route: Binding(get: { requestsRoute }, set: { requestsRoute = $0 }),
+                requests: requestsStore, offers: offersStore,
+                onOpenBooking: { focusedBooking = $0; select(.bookings) }, sessionIsCurrent: sessionIsCurrent)
         } else if tab == .bookings,
                   let groomerID,
                   let bookingRepository {

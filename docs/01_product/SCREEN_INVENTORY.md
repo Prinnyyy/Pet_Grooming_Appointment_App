@@ -27,8 +27,8 @@ Future UI work is screenshot-driven. Map every visible module to this table plus
 | Fit Signals / Evidence | Groomer | Editable claims versus read-only outcome evidence / `GroomerProfileStore` | `Features/Groomer/Profile/GroomerFitSignalsEditorView.swift` | beckon adapted; separate user jobs |
 | GroomerNotificationsView | Groomer | Existing notification inbox and destination stores | `Features/Groomer/Notifications/GroomerNotificationsView.swift` | beckon adapted; opens from Home |
 | MatchedRequestFeedView | Groomer | `request_matches`, `grooming_requests` / `GroomerRequestsStore` | `Features/Groomer/Requests/GroomerRequestsView.swift` | beckon adapted |
-| GroomerRequestDetailView / MakeOfferSection | Groomer | match/request reads, offer RPCs / `GroomerRequestsStore` | `Features/Groomer/Requests/GroomerRequestsView.swift` | beckon adapted |
-| GroomerOffersView | Groomer | offers with visible request/booking context / `GroomerOffersStore` | `Features/Groomer/Offers/GroomerOffersView.swift` | beckon adapted |
+| GroomerRequestDetailView / GroomerOfferForm | Groomer | match/request reads, offer RPCs / `GroomerRequestsStore` | `Features/Groomer/Requests/GroomerRequestDetailView.swift`, `GroomerOfferForm.swift` | Tier M, merged request/offer story |
+| Offers stage groups | Groomer | offers and authorized request/booking context / `GroomerOffersStore` | `Features/Groomer/Requests/GroomerRequestsView.swift`, `GroomerRequestStage.swift` | Tier M, Needs attention/Pending/Booked/Earlier; old Offers detail retired |
 | GroomerBookingListView | Groomer | participant bookings, reviews, cancel/complete RPCs / `BookingsStore` | `Features/Bookings/BookingsView.swift` | beckon adapted |
 | BookingDetailView / BookingReviewSection | Shared | booking, review, cancel/complete/review RPCs / `BookingsStore` | `Features/Bookings/BookingsView.swift` | beckon adapted |
 | ChatConversationsView / ChatThreadView / ChatComposerBar | Shared | participant-pair `conversations`, typed `messages`, live bookings / `ChatStore`, `BookingsStore` | `Features/Chat/ChatView.swift` | beckon adapted; booking-event cards route to role Booking detail |
@@ -82,3 +82,5 @@ All files below are Tier M except the Tier L authentication landing. The existin
 `DesignSystem/DesignSkeleton.swift` owns shared bars, reveal timing and accessibility. `Features/Customer/Grooming/GroomingSkeletons.swift` supplies Tier M placeholders for the existing Grooming card/detail/History modules; `Features/Chat/ChatSkeletons.swift` supplies the existing customer Messages rows. These are placeholders of the owning pages, not navigation destinations. Both paths are explicitly declared in `LEDGE_TIER_PATHS`.
 
 `AppRootView` owns the single `Features/Auth/LaunchScene.swift` gate; auth/bootstrap/profile leaves report readiness, including failures. `DesignSystem/BeckonHomeScene.swift` owns Home's decorative layers and scroll-depth state. Home owns pet editing; the tab shell routes Grooming's add-pet request to that owner. Each existing Store owns its first-answer flag; no timer infers data completion.
+
+D-069 / P3 adopts groomer Requests and its shared row/detail/form/pet blocks as Tier M. Matches contains unanswered requests; Offers is grouped by workflow stage; the same detail follows a request through offer and booking.

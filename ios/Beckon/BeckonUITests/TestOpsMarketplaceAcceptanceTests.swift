@@ -937,7 +937,7 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
                     format: "label CONTAINS %@ AND label CONTAINS %@", row.petName, quote.price)).firstMatch
                 reveal(offer)
                 tap(offer)
-                let detailOpened = element("groomer.offers.detail").waitForExistence(timeout: 10)
+                let detailOpened = element("groomer.requests.detail").waitForExistence(timeout: 10)
                 if !detailOpened {
                     let hierarchy = XCTAttachment(string: app.debugDescription)
                     hierarchy.name = "Offer navigation hierarchy"
@@ -945,10 +945,7 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
                     add(hierarchy)
                 }
                 XCTAssertTrue(detailOpened, "Selected offer did not open its detail")
-                let manage = element("groomer.offers.view-request")
-                XCTAssertTrue(manage.waitForExistence(timeout: 5),
-                    "Pending Offers detail must expose its existing request management flow")
-                tap(manage)
+
             } else {
                 let stamp = try localDate(XCTUnwrap(row.notificationCreatedAt)).formatted(
                     Date.FormatStyle(date: .abbreviated, time: .shortened,
@@ -1067,8 +1064,7 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
                 row.petName, row.price, row.timeText ?? "")).firstMatch
             reveal(offer)
             tap(offer)
-            XCTAssertTrue(element("groomer.offers.detail").waitForExistence(timeout: 10))
-            tap(element("groomer.offers.view-request"))
+            XCTAssertTrue(element("groomer.requests.detail").waitForExistence(timeout: 10))
             XCTAssertTrue(element("groomer.requests.detail").waitForExistence(timeout: 15))
             assertVisibleText(row.petName, within: element("groomer.requests.detail"))
             assertVisibleText(row.message, within: element("groomer.requests.detail"))
@@ -1076,12 +1072,17 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
             reveal(withdraw)
             evidence("\(row.id) withdrawal ready")
             tap(withdraw)
+            let confirmation = element("groomer.offers.withdraw.confirm")
+            XCTAssertTrue(confirmation.waitForExistence(timeout: 5))
+            tap(confirmation)
             XCTAssertTrue(withdraw.waitForNonExistence(timeout: 35))
             evidence("\(row.id) withdrawal returned")
-            tap(app.navigationBars.buttons.firstMatch)
-            XCTAssertTrue(element("groomer.offers.detail").waitForExistence(timeout: 10))
-            assertVisibleText("Withdrawn", within: element("groomer.offers.detail"))
-            evidence("\(row.id) parent offer refreshed to withdrawn")
+            XCTAssertTrue(element("groomer.requests.detail").exists)
+            let activity = element("groomer.requests.activity.toggle")
+            reveal(activity)
+            tap(activity)
+            assertVisibleText("Offer withdrawn", within: element("groomer.requests.detail"))
+            evidence("\(row.id) unified request records withdrawal")
             tap(app.navigationBars.buttons.firstMatch)
         }
     }

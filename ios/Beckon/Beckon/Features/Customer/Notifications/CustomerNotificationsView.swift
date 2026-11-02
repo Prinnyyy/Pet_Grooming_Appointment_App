@@ -24,6 +24,12 @@ struct CustomerNotificationsView: View {
         .foregroundRefreshable { await store.load() }
         .task { await store.load() }
         .accessibilityIdentifier("customer.notifications")
+        .background {
+            BeckonGlobalFeedbackForwarder(error: store.actionErrorMessage.map {
+                BeckonGlobalFeedbackError(scope: .page("customer.notifications"), sourceKey: "customer.notifications.action",
+                    title: "Notification update failed", message: $0)
+            })
+        }
         .overlay { if selectedID != nil { ProgressView().accessibilityLabel("Opening notification") } }
         .task(id: selectedID) {
             guard let id = selectedID, let notification = store.notifications.first(where: { $0.id == id }) else { return }
@@ -78,7 +84,7 @@ private struct CustomerNotificationListContent: View {
                 summary.beckonEntrance(0)
                 if !unread.isEmpty { group("New", systemImage: "bell.fill", items: unread, order: 1) }
                 if !earlier.isEmpty { group("Earlier", systemImage: "clock.fill", items: earlier, order: 1 + (unread.isEmpty ? 0 : min(unread.count, 4))) }
-                if let message = store.errorMessage, message != moreError {
+                if let message = store.errorMessage, message != moreError, message != store.actionErrorMessage {
                     loadError(message)
                 }
                 if store.canLoadMore || store.isLoadingMore {
@@ -86,7 +92,7 @@ private struct CustomerNotificationListContent: View {
                         accessibilityIdentifier: "customer.notifications.load-more", title: "Load more", failed: moreError != nil) {
                         moreError = nil
                         await store.loadNextPage()
-                        moreError = store.errorMessage
+                        moreError = store.loadMoreErrorMessage
                     }
                 }
             }
