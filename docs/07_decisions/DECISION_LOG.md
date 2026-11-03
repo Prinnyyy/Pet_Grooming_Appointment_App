@@ -18,6 +18,16 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-074
+Date: 2026-11-02
+Task: T-445
+Decision: Adopt handoff 5 as one independent press-feedback package, preserving screen geometry and business activation timing.
+Context: The 80 ms-only visual gate suppresses quick-tap feedback. The user answered section 6 before base-action or haptic edits.
+Consequences: Medium impact once for ledge/Primary activations, other types quiet; original strength including 40% touch and 70 ms pulse approved. Cards tint but photos retain original colors, so protect shared image/mascot bounds. Base actions become counting PrimitiveButtonStyle wrappers with their APIs and keyboard-tolerant behavior retained; scrolling controls keep the existing guard. Reset cancels work; accepted overlapping taps must not lose feedback. User owns final feel and physical buzz. No handoff 4 prerequisite, prototype edits, navigation hold or new dependency.
+Linked files: docs/01_product/LIVELY_UI_SPEC.md; ios/Beckon/Beckon/DesignSystem/BeckonPressMachine.swift; ios/Beckon/Beckon/DesignSystem/BeckonPress.swift.
+```
+
+```text
 Decision ID: D-073
 Date: 2026-11-02
 Task: T-443

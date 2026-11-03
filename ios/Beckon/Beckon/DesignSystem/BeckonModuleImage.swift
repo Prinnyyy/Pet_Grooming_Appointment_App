@@ -58,6 +58,7 @@ struct BeckonModuleImage<Placeholder: View>: View {
                     .position(x: frame.midX, y: frame.midY)
             }
             .clipped()
+            .beckonPreservesPressColors()
         } else {
             ZStack {
                 placeholder

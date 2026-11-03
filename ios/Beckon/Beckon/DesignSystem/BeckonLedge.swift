@@ -99,8 +99,8 @@ extension View {
 /// same for every surface (`Ledge.room`) and only the lip inside it differs, so a button that changes surface changes nothing around
 /// it: not the height of its row, and not the faces of its neighbours (design).
 ///
-/// Physical press: the face sinks into its lip, then springs back with overshoot, with a medium haptic. The press starts only
-/// once the touch has settled (see `BeckonSettledPress`), so scrolling over buttons neither sinks them nor buzzes.
+/// Touch-down acknowledges softly; a settled press or an accepted quick tap reaches the full press and buzzes once.
+/// Scroll cancellation fades quietly; the existing guarded body still decides whether the action can fire.
 /// Reduce Motion keeps the haptic and drops the travel.
 struct BeckonLedgePressStyle: ButtonStyle {
     let surface: BeckonLedgeSurface
@@ -114,14 +114,18 @@ struct BeckonLedgePressStyle: ButtonStyle {
     }
 
     func makeBody(configuration: Configuration) -> some View {
-        // Read once here: the content closure runs later, inside the wrapper's body.
         let surface = surface, onPressChange = onPressChange, reduceMotion = reduceMotion, isEnabled = isEnabled
-        return BeckonSettledPress(isPressed: configuration.isPressed) { pressed in
+        return BeckonPressEngine(isPressed: configuration.isPressed && isEnabled, haptic: .impact(weight: .medium)) { amount in
             let shape = RoundedRectangle(cornerRadius: surface.radius, style: .continuous)
             // A surface without an edge draws its edge in the colour of its face: invisible, and a colour the real edge can fade to.
             let edge = surface.edge ?? surface.face
             configuration.label
-                .background(shape.fill(surface.face))
+                .background {
+                    ZStack {
+                        shape.fill(surface.face)
+                        shape.fill(surface.pressedFace).opacity(min(1, max(0, amount)))
+                    }
+                }
                 .overlay {
                     ZStack {
                         shape.strokeBorder(edge, lineWidth: DesignTokens.Ledge.edgeWidth)
@@ -131,15 +135,13 @@ struct BeckonLedgePressStyle: ButtonStyle {
                             .opacity(surface.isDashed ? 1 : 0)
                     }
                 }
-                .offset(y: pressed && !reduceMotion ? surface.depth : 0)
+                .offset(y: reduceMotion ? 0 : surface.depth * amount)
                 .background { shape.fill(surface.lip).offset(y: surface.depth) }
                 .padding(.bottom, DesignTokens.Ledge.room)
                 .contentShape(Rectangle())
-                // The look turning into another look. Under the press animation below, so a press is still the press spring.
+                // The look turning into another look; the press itself is animated by the engine.
                 .animation(reduceMotion ? DesignTokens.Motion.reduced : DesignTokens.Motion.morph, value: surface)
-                .animation(reduceMotion ? DesignTokens.Motion.reduced : DesignTokens.Motion.press, value: pressed)
-                .sensoryFeedback(.impact(weight: .medium), trigger: pressed) { _, now in now }
-                .onChange(of: pressed) { _, now in onPressChange?(now) }
+                .onChange(of: amount >= 0.99) { _, now in onPressChange?(now) }
                 .opacity(isEnabled ? 1 : 0.5)
         }
     }

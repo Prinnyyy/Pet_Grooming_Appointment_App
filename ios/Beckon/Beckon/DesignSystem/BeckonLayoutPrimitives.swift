@@ -439,7 +439,7 @@ struct BeckonSettingsNavigationRow<Destination: View>: View {
             if let action { Button(action: action) { rowLabel } }
             else { BeckonNavigationLink(destination: destination) { rowLabel } }
         }
-        .buttonStyle(BeckonGuardedPlainButtonStyle())
+        .buttonStyle(BeckonGuardedPlainButtonStyle(.row))
     }
 
     private var rowLabel: some View {

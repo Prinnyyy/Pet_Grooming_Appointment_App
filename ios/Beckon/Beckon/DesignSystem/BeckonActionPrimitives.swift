@@ -13,33 +13,7 @@ struct BeckonPrimaryActionAvailability: Equatable {
     }
 }
 
-private struct BeckonLedgeFace: ViewModifier {
-    let face: Color
-    let lip: Color
-    var edge: Color?
-    /// Face while pressed, when it should change colour as well as sink.
-    var pressedFace: Color?
-    let depth: CGFloat
-    let isPressed: Bool
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    func body(content: Content) -> some View {
-        let face = face, pressedFace = pressedFace, lip = lip, edge = edge, depth = depth, reduceMotion = reduceMotion
-        return BeckonSettledPress(isPressed: isPressed) { pressed in
-            let shape = RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.ledgeButton, style: .continuous)
-            content
-                .background(shape.fill(pressed ? pressedFace ?? face : face))
-                .overlay { if let edge { shape.strokeBorder(edge, lineWidth: DesignTokens.Ledge.edgeWidth) } }
-                .offset(y: pressed && !reduceMotion ? depth : 0)
-                .background { shape.fill(lip).offset(y: depth) }
-                .padding(.bottom, depth)
-                .contentShape(Rectangle())
-                .animation(reduceMotion ? DesignTokens.Motion.reduced : DesignTokens.Motion.press, value: pressed)
-        }
-    }
-}
-
-struct BeckonPrimaryButtonStyle: ButtonStyle {
+struct BeckonPrimaryButtonStyle: PrimitiveButtonStyle {
 
     enum Accent {
         case customer
@@ -70,30 +44,36 @@ struct BeckonPrimaryButtonStyle: ButtonStyle {
     }
 
     @ViewBuilder func makeBody(configuration: Configuration) -> some View {
-        customerBody(configuration: configuration)
+        let enabled = isEnabled
+        BeckonPressCountingBody(configuration: configuration, style: BeckonPressActionLook { inner in
+            customerBody(configuration: inner, isEnabled: enabled)
+        })
     }
 
-    private func customerBody(configuration: Configuration) -> some View {
+    private func customerBody(configuration: ButtonStyleConfiguration, isEnabled: Bool) -> some View {
         let availability = BeckonPrimaryActionAvailability(
             isEnvironmentEnabled: isEnabled,
             isVisuallyEnabled: isVisuallyEnabled
         )
 
-        return configuration.label
-            .font(DesignTokens.Typography.Expressive.headline)
-            .foregroundStyle(availability.rendersEnabled ? accent.foreground : DesignTokens.Colors.textTertiary)
-            .frame(maxWidth: isFullWidth ? .infinity : nil, minHeight: DesignTokens.Metrics.ledgePrimaryButtonHeight)
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .modifier(BeckonLedgeFace(
-                face: availability.rendersEnabled ? accent.fill : DesignTokens.Colors.iconTileFill,
-                lip: availability.rendersEnabled ? (accent == .customer ? DesignTokens.Colors.customerDeep : DesignTokens.Colors.groomerDeep) : DesignTokens.Colors.borderSoft,
-                depth: DesignTokens.Ledge.button,
-                isPressed: configuration.isPressed && availability.rendersEnabled))
+        return BeckonPressEngine(isPressed: configuration.isPressed && availability.rendersEnabled, haptic: .impact(weight: .medium)) { amount in
+            configuration.label
+                .font(DesignTokens.Typography.Expressive.headline)
+                .foregroundStyle(availability.rendersEnabled ? accent.foreground : DesignTokens.Colors.textTertiary)
+                .frame(maxWidth: isFullWidth ? .infinity : nil, minHeight: DesignTokens.Metrics.ledgePrimaryButtonHeight)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .modifier(BeckonPressFace(
+                    face: availability.rendersEnabled ? accent.fill : DesignTokens.Colors.iconTileFill,
+                    pressedFace: accent.fillPressed,
+                    lip: availability.rendersEnabled ? (accent == .customer ? DesignTokens.Colors.customerDeep : DesignTokens.Colors.groomerDeep) : DesignTokens.Colors.borderSoft,
+                    depth: DesignTokens.Ledge.button, radius: DesignTokens.CornerRadius.ledgeButton,
+                    amount: availability.rendersEnabled ? amount : 0))
+        }
     }
 
 }
 
-struct BeckonSecondaryButtonStyle: ButtonStyle {
+struct BeckonSecondaryButtonStyle: PrimitiveButtonStyle {
 
     enum Accent {
         case customer
@@ -138,68 +118,93 @@ struct BeckonSecondaryButtonStyle: ButtonStyle {
     }
 
     @ViewBuilder func makeBody(configuration: Configuration) -> some View {
-        customerBody(configuration: configuration)
+        let enabled = isEnabled
+        BeckonPressCountingBody(configuration: configuration, style: BeckonPressActionLook { inner in
+            customerBody(configuration: inner, isEnabled: enabled)
+        })
     }
 
-    private func customerBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(DesignTokens.Typography.Expressive.emphasis)
-            .foregroundStyle(isEnabled ? accent.foreground : DesignTokens.Colors.textTertiary)
-            .frame(maxWidth: isFullWidth ? .infinity : nil, minHeight: DesignTokens.Metrics.minimumTouchTarget)
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .modifier(BeckonLedgeFace(
-                face: isSelected && isEnabled ? accent.pressedBackground : DesignTokens.Colors.surface,
-                lip: isSelected && isEnabled ? accent.foreground : DesignTokens.Colors.border,
-                edge: DesignTokens.Colors.border,
-                depth: DesignTokens.Ledge.control,
-                isPressed: configuration.isPressed && isEnabled))
-    }
-
-}
-
-struct BeckonTertiaryButtonStyle: ButtonStyle {
-
-    @Environment(\.isEnabled) private var isEnabled
-    var accent: BeckonRoleAccent = .customer
-
-    @ViewBuilder func makeBody(configuration: Configuration) -> some View {
-        customerBody(configuration: configuration)
-    }
-
-    private func customerBody(configuration: Configuration) -> some View {
-        let isEnabled = isEnabled, accent = accent
-        return BeckonSettledPress(isPressed: configuration.isPressed) { pressed in
+    private func customerBody(configuration: ButtonStyleConfiguration, isEnabled: Bool) -> some View {
+        BeckonPressEngine(isPressed: configuration.isPressed && isEnabled) { amount in
             configuration.label
                 .font(DesignTokens.Typography.Expressive.emphasis)
-                .foregroundStyle(isEnabled ? accent.deep : DesignTokens.Colors.textTertiary)
-                .frame(minWidth: DesignTokens.Metrics.minimumTouchTarget, minHeight: DesignTokens.Metrics.minimumTouchTarget)
-                .contentShape(Rectangle())
-                .background(isEnabled && pressed ? accent.tint : .clear)
+                .foregroundStyle(isEnabled ? accent.foreground : DesignTokens.Colors.textTertiary)
+                .frame(maxWidth: isFullWidth ? .infinity : nil, minHeight: DesignTokens.Metrics.minimumTouchTarget)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .modifier(BeckonPressFace(
+                    face: isSelected && isEnabled ? accent.pressedBackground : DesignTokens.Colors.surface,
+                    pressedFace: accent.pressedBackground,
+                    lip: isSelected && isEnabled ? accent.foreground : DesignTokens.Colors.border,
+                    edge: DesignTokens.Colors.border,
+                    depth: DesignTokens.Ledge.control, radius: DesignTokens.CornerRadius.ledgeButton,
+                    amount: isEnabled ? amount : 0))
         }
     }
 
 }
 
-struct BeckonDestructiveButtonStyle: ButtonStyle {
+struct BeckonTertiaryButtonStyle: PrimitiveButtonStyle {
+
+    @Environment(\.isEnabled) private var isEnabled
+    var accent: BeckonRoleAccent = .customer
+
+    @ViewBuilder func makeBody(configuration: Configuration) -> some View {
+        let enabled = isEnabled
+        BeckonPressCountingBody(configuration: configuration, style: BeckonPressActionLook { inner in
+            customerBody(configuration: inner, isEnabled: enabled)
+        })
+    }
+
+    private func customerBody(configuration: ButtonStyleConfiguration, isEnabled: Bool) -> some View {
+        let isEnabled = isEnabled, accent = accent
+        return BeckonPressEngine(isPressed: configuration.isPressed && isEnabled) { amount in
+            configuration.label
+                .font(DesignTokens.Typography.Expressive.emphasis)
+                .foregroundStyle(isEnabled ? accent.deep : DesignTokens.Colors.textTertiary)
+                .frame(minWidth: DesignTokens.Metrics.minimumTouchTarget, minHeight: DesignTokens.Metrics.minimumTouchTarget)
+                .contentShape(Rectangle())
+                .background {
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.pill, style: .continuous)
+                        .fill(accent.tint).opacity(isEnabled ? min(1, max(0, amount)) : 0)
+                }
+        }
+    }
+
+}
+
+struct BeckonDestructiveButtonStyle: PrimitiveButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
     var isFullWidth = true
 
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(DesignTokens.Typography.action)
-            .foregroundStyle(isEnabled ? DesignTokens.Colors.statusErrorText : DesignTokens.Colors.textTertiary)
-            .frame(maxWidth: isFullWidth ? .infinity : nil, minHeight: DesignTokens.Metrics.actionHeight)
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .background {
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                    .fill(isEnabled && configuration.isPressed ? DesignTokens.Colors.statusErrorFill : DesignTokens.Colors.surface)
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                    .stroke(DesignTokens.Colors.statusErrorBorder, lineWidth: 1)
-            }
+    @ViewBuilder func makeBody(configuration: Configuration) -> some View {
+        let enabled = isEnabled
+        BeckonPressCountingBody(configuration: configuration, style: BeckonPressActionLook { inner in
+            customerBody(configuration: inner, isEnabled: enabled)
+        })
+    }
+
+    private func customerBody(configuration: ButtonStyleConfiguration, isEnabled: Bool) -> some View {
+        BeckonPressEngine(isPressed: configuration.isPressed && isEnabled) { amount in
+            configuration.label
+                .font(DesignTokens.Typography.action)
+                .foregroundStyle(isEnabled ? DesignTokens.Colors.statusErrorText : DesignTokens.Colors.textTertiary)
+                .frame(maxWidth: isFullWidth ? .infinity : nil, minHeight: DesignTokens.Metrics.actionHeight)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .background {
+                    let shape = RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
+                    ZStack {
+                        shape.fill(DesignTokens.Colors.surface)
+                        shape.fill(DesignTokens.Colors.statusErrorFill).opacity(isEnabled ? min(1, max(0, amount)) : 0)
+                    }
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
+                        .stroke(DesignTokens.Colors.statusErrorBorder, lineWidth: 1)
+                }
+        }
     }
 }
+
 
 struct BeckonLoadMoreButton: View {
     let isLoading: Bool
@@ -499,42 +504,34 @@ private struct BeckonObservesMotionModifier: ViewModifier {
 /// The one place that decides whether a lift is a tap. The platform cancels a tap when the touch turns into a scroll; this
 /// repeats that rule explicitly for every ledge and plain button and link, because a drag that starts on a big card and ends
 /// over it must never open it. It adds no gesture, so scrolling that starts on a card is untouched, and the wrapped button
-/// keeps its own press look (delayed until the touch settles) and its accessibility.
+/// keeps its own touch/settle/pulse look and its accessibility.
 struct BeckonGuardedButtonBody<Style: ButtonStyle>: View {
     let configuration: PrimitiveButtonStyleConfiguration
     let style: Style
     @Environment(\.beckonScrollActivity) private var activity
     @State private var tapGuard = BeckonTapGuard()
+    @State private var taps = 0
 
     var body: some View {
         Button(role: configuration.role) {
             guard tapGuard.allowsTap(activity: activity) else { return }
+            taps += 1
             configuration.trigger()
         } label: {
             configuration.label
         }
         .buttonStyle(style)
+        .environment(\.beckonTapCount, taps)
         .modifier(BeckonObservesMotionModifier(tapGuard: tapGuard))
     }
 }
 
-/// `.plain` made scroll-friendly: no chrome, a light dim while pressed, and the dim waits for the touch to settle like every
-/// other press, so scrolling over a row does not flash it.
-struct BeckonBarePressStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-
-    func makeBody(configuration: Configuration) -> some View {
-        let isEnabled = isEnabled
-        return BeckonSettledPress(isPressed: configuration.isPressed) { pressed in
-            configuration.label.opacity(!isEnabled ? 0.4 : pressed ? 0.6 : 1)
-        }
-    }
-}
-
-/// `.plain` for cards and rows that are links or buttons in a scrolling page, with the same drag-is-not-a-tap rule.
+/// Plain scrolling controls keep the production drag guard and choose their feedback from label geometry.
 struct BeckonGuardedPlainButtonStyle: PrimitiveButtonStyle {
+    let kind: BeckonPressKind
+    init(_ kind: BeckonPressKind = .automatic) { self.kind = kind }
     func makeBody(configuration: Configuration) -> some View {
-        BeckonGuardedButtonBody(configuration: configuration, style: BeckonBarePressStyle())
+        BeckonGuardedButtonBody(configuration: configuration, style: BeckonPressPlainStyle(kind: kind))
     }
 }
 

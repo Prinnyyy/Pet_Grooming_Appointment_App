@@ -126,7 +126,7 @@ struct AccountReleaseLinksSection: View {
                 trailingSystemImage: "arrow.up.right"
             )
         }
-        .buttonStyle(BeckonGuardedPlainButtonStyle())
+        .buttonStyle(BeckonGuardedPlainButtonStyle(.row))
         .accessibilityIdentifier(accessibilityIdentifier)
     }
 }

@@ -166,6 +166,7 @@ struct GroomerAvailabilityEditorView: View {
                         .frame(width: DesignTokens.Metrics.minimumTouchTarget, height: DesignTokens.Metrics.minimumTouchTarget)
                         .beckonLedge(.round)
                 }
+                .buttonStyle(BeckonGuardedPlainButtonStyle())
                 .accessibilityLabel("Add time off")
                 .accessibilityIdentifier("groomer.availability.time-off.add")
                 .disabled(store.isBusy)

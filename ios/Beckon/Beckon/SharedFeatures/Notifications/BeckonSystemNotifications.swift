@@ -79,7 +79,7 @@ struct BeckonNotificationBellButton: View {
                 }
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BeckonGuardedPlainButtonStyle())
         .accessibilityIdentifier(accessibilityIdentifier)
         .accessibilityLabel("Notifications")
         .accessibilityValue(presentation.accessibilityValue)
@@ -207,7 +207,7 @@ struct BeckonSystemNotificationsView: View {
             } label: {
                 BeckonSystemNotificationRow(notification: notification)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(BeckonGuardedPlainButtonStyle())
             .accessibilityIdentifier("\(presentation.accessibilityPrefix).open")
         } else {
             BeckonSystemNotificationRow(notification: notification)

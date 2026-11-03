@@ -517,7 +517,7 @@ struct DesignManageRow: View {
             .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.minimumTouchTarget)
             .contentShape(Rectangle())
         }
-        .buttonStyle(BeckonGuardedPlainButtonStyle())
+        .buttonStyle(BeckonGuardedPlainButtonStyle(.row))
     }
 }
 

@@ -41,6 +41,7 @@ struct AppointmentReminderDestinationView: View {
                         Button("Retry", systemImage: "arrow.clockwise") {
                             Task { await load() }
                         }
+                        .buttonStyle(BeckonGuardedPlainButtonStyle())
                     }
                     }
                 } else if target.role == .customer {

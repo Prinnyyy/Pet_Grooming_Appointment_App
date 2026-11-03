@@ -2,7 +2,7 @@
 
 **Status: Adopted** by D-063 (T-419, 2026-10-23), extended across the customer app by D-064 (T-420, 2026-10-25). It amends [Design System](DESIGN_SYSTEM.md), [Accessibility Rules](ACCESSIBILITY_RULES.md) and [UI Code Governance](../04_ios/UI_CODE_GOVERNANCE.md) as listed in section 9; everything not amended there is unchanged. Tier C screens keep the existing contract.
 
-Source of truth in code: `ios/Beckon/Beckon/DesignSystem/DesignTokens.swift` (`Ledge`, `Motion`, `CornerRadius`, `Metrics`, `Typography.Expressive`) and `BeckonLedge.swift`, `BeckonMotion.swift`, `BeckonExpressiveComponents.swift`, `BeckonJourney.swift`, `BeckonExpressiveIllustration.swift`, plus `SharedFeatures/Notifications/BeckonExpressiveNotificationBell.swift`. Numbers live in code; this document owns the rules. If they disagree, fix one of them in the same change.
+Source of truth in code: `ios/Beckon/Beckon/DesignSystem/DesignTokens.swift` (`Ledge`, `Motion`, `CornerRadius`, `Metrics`, `Typography.Expressive`) and `BeckonLedge.swift`, `BeckonPressMachine.swift`, `BeckonPress.swift`, `BeckonMotion.swift`, `BeckonExpressiveComponents.swift`, `BeckonJourney.swift`, `BeckonExpressiveIllustration.swift`, plus `SharedFeatures/Notifications/BeckonExpressiveNotificationBell.swift`. Numbers live in code; this document owns the rules. If they disagree, fix one of them in the same change.
 
 Initial adopter: Customer Home (`Features/Customer/Home/CustomerHomeView.swift`) and its request summary card (`Features/Customer/Grooming/GroomingCard.swift`). Preview: `CustomerHomeFlowSandbox.swift`, three Canvas previews (posted, offers waiting, booked).
 
@@ -65,7 +65,7 @@ Pairs the kit uses (all asserted in `ExpressiveTokenTests`):
 
 | Component | Purpose | Tier | Notes |
 |---|---|---|---|
-| `BeckonLedgeButtonStyle(_:)` | Button style with ledge and press travel | L, M | Takes a `BeckonLedgeSurface`. Haptic after a settled press; travel removed under Reduce Motion |
+| `BeckonLedgeButtonStyle(_:)` | Button style with ledge and press travel | L, M | Takes a `BeckonLedgeSurface`. Haptic once for a settled press or accepted quick-tap pulse; travel removed under Reduce Motion |
 | `beckonLedge(_:)` | Same surface for non-button content | L, M | Notes, tiles, pills |
 | `beckonEntrance(_:)`, `BeckonCascade`, `beckonEntranceClock()` | Synchronized entrance by step/detail/list family | L, M | First active arrival and explicit Replay only; ordinary tab returns stay visible; fade under Reduce Motion |
 | `beckonAnimation(_:value:)`, `beckonScrollEase()`, `beckonCarouselTilt()` | Reduce-Motion-aware animation and scroll-linked scale and tilt | L, M | Collapse or switch off under Reduce Motion |
@@ -87,7 +87,7 @@ Pairs the kit uses (all asserted in `ExpressiveTokenTests`):
 - Springs come from `DesignTokens.Motion`; a motion primitive in a Feature file is a UI015 error.
 - Entrance families: step (wizard/pet form, 45 ms per beat), detail (85 ms), list/tab (55 ms). `beckonEntranceActive` and onscreen state jointly gate replay; all six wizard steps share the step rhythm. Programmatic tab changes use one plain-cut shell function. Chat threads and system photo sheets have no entrance.
 - Idle budget: at most one idle loop per component and three distinct loops in view. Tier M and C have none. Loops redraw at 30 fps and stop under Reduce Motion and when the scene is not active.
-- Haptic: medium impact after an 80 ms settled press; scrolling cancels press feedback and accidental release taps. Decoration never intercepts touches. Quiet disabled actions use 0.4 opacity.
+- Press feedback follows the independent handoff 5 module below. Existing scroll/movement guards still reject accidental release taps. Decoration never intercepts touches. Quiet disabled actions use 0.4 opacity.
 - Motion never carries meaning alone (A11Y-R9). Stage, status and unread state always have a glyph and text.
 
 | Motion | Reduce Motion |
@@ -220,4 +220,12 @@ Schedule title always reserves its real calendar button; it is disabled until th
 
 Schedule uses one gated page refresh plus scoped range reads. Pending same-week reads retain the calendar, hours, appointment rows, day summary and occupancy bars without adding a loading row. First/new-scope reads use placeholders and never announce an unread day as empty. Transient metadata failures retain the display with verification feedback; explicit access loss revokes it. Automatic concurrent/recent same-scope reads coalesce; manual refresh and stale write invalidation still read, and cancellations cannot become spurious verification failures.
 
-Groomer Account reuses the customer AccountDangerActions through the authenticated session Store, including both deletion confirmations, busy protection, failure copy and successful local cleanup/sign-out. Keep the groomer sign-out accessibility identifier. Profile read failure does not block account deletion; auth failure stays visible. Both roles retain the existing sign-out button animation; its revision is deferred by the user. Preview auth remains in memory and never deletes a real account.
+Groomer Account reuses the customer AccountDangerActions through the authenticated session Store, including both deletion confirmations, busy protection, failure copy and successful local cleanup/sign-out. Keep the groomer sign-out accessibility identifier. Profile read failure does not block account deletion; auth failure stays visible. Both roles use the shared press feedback below for sign-out; its layout and action remain unchanged. Preview auth remains in memory and never deletes a real account.
+
+## Shared press feedback (handoff 5, D-074)
+
+`BeckonPressTiming` and `BeckonPressMeasure` own the new constants; the settle deadline stays in `DesignTokens.Motion`. One pure press machine and one engine own `rest → touched → pressed`: acknowledge touch-down at 40% with a 0.07 s ease-out; a touch held 80 ms reaches the full press; a shorter accepted tap pulses for 70 ms before spring release. A touch taken by scrolling fades back over 0.12 s, without bounce or buzz. Reset cancels pending work and returns immediately. Ledge controls and base Primary provide one medium impact at full press/accepted pulse; Secondary, Tertiary, Destructive and plain controls stay quiet. This supersedes feedback being reserved for held presses. No fixed delay is added before navigation or business actions.
+
+Ledge controls retain their existing face, lip, radius, rest layout and `Ledge.room`. Their face sinks and takes the role's pressed fill. Plain controls choose by size: compact icons shrink to 0.88 with a halo, inline text (height ≤48 pt) dims by 45% and scales to 0.97, larger surfaces lose 10 pt clamped to 2–6% scale, and named grouped rows receive an inset highlight without moving neighbours. Touch feedback uses the same fractions. Cards take the role tint, while shared photo/artwork bounds and the fixed mascot are excluded from the tint; pictures are never recolored as press feedback. Reduce Motion removes offset/scale while retaining colour/opacity feedback and the approved haptic.
+
+The guarded button body keeps native scroll cancellation and the production position/scroll guard, counting only accepted activations. Base actions count activations without that guard so keyboard movement cannot swallow Continue/Save, preserving their availability, accent and initializers. Menus/toolbars retain their system behavior; the existing ButtonStyle-only ledge look remains available to PhotosPicker/Menu. No press gesture is attached to scroll content. Gesture-owned selection/focus and scrim handling are unchanged. The prototype's gallery, forced levels, timing slow-down and tracing are not production features. Feeling and physical haptics remain user-reviewed.

@@ -171,6 +171,7 @@ struct CustomerConversationDestination: View {
                 DesignPage(cascades: false) {
                     BeckonErrorBanner(title: "Conversation unavailable", message: store.errorMessage ?? "Try opening this conversation again.") {
                         Button("Retry") { isLoading = true; retry += 1 }
+                            .buttonStyle(BeckonGuardedPlainButtonStyle())
                     }
                 }
             }

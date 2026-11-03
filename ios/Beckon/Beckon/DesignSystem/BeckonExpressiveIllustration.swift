@@ -339,6 +339,7 @@ struct BeckonPup: View {
         .frame(width: 120, height: 92)
         .rotationEffect(.degrees(tilt), anchor: .bottom)
         .animation(.spring(response: 0.28, dampingFraction: 0.5), value: excited)
+        .beckonPreservesPressColors()
     }
 
     private var earShape: some View {

@@ -99,6 +99,7 @@ struct GroomerScheduleView: View {
                     .frame(width: DesignTokens.Metrics.minimumTouchTarget, height: DesignTokens.Metrics.minimumTouchTarget)
                     .beckonLedge(.round)
             }
+            .buttonStyle(BeckonGuardedPlainButtonStyle())
             .accessibilityLabel("Go to a day")
             .accessibilityIdentifier("groomer.schedule.pick-day")
             .disabled(store.scheduleCalendar == nil)

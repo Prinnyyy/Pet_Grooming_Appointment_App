@@ -21,7 +21,7 @@ test("status chip tones are semantic and use opaque semantic surfaces", () => {
 
 test("shared text and destructive actions own their minimum hit areas", () => {
   for (const name of ["BeckonTertiaryButtonStyle", "BeckonDestructiveButtonStyle"]) {
-    assert.match(source, new RegExp(`struct ${name}: ButtonStyle`));
+    assert.match(source, new RegExp(`struct ${name}: PrimitiveButtonStyle`));
   }
   const textAction = source.slice(source.indexOf("struct BeckonTertiaryButtonStyle"), source.indexOf("struct BeckonDestructiveButtonStyle"));
   assert.match(textAction, /minimumTouchTarget/);

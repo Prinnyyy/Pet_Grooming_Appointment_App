@@ -269,6 +269,7 @@ struct GroomerPortfolioPhotoView: View {
                             .frame(width: DesignTokens.Metrics.ledgePrimaryButtonHeight, height: DesignTokens.Metrics.ledgePrimaryButtonHeight)
                             .beckonLedge(.round)
                     }
+                    .buttonStyle(BeckonGuardedPlainButtonStyle())
                     .disabled(presentation.isSaveDisabled)
                     .accessibilityLabel("Delete portfolio photo")
                     .accessibilityIdentifier("groomer.portfolio.delete")
@@ -401,6 +402,7 @@ private struct GroomerPortfolioFitNotesEditorSection: View {
                         else {
                             Text("Fit notes could not be refreshed.").font(DesignTokens.Typography.supporting)
                             Button("Retry", systemImage: "arrow.clockwise") { Task { await store.load() } }
+                                .buttonStyle(BeckonGuardedPlainButtonStyle())
                         }
                     }
                     if store.hasLoadedPortfolioTags {
@@ -507,7 +509,7 @@ private struct GroomerPortfolioFitTagChip: View {
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BeckonGuardedPlainButtonStyle())
         .accessibilityLabel("\(signal.title) portfolio fit tag")
         .accessibilityValue(isSelected ? "Selected" : "Not selected")
     }
@@ -529,7 +531,7 @@ private struct GroomerPortfolioFitNotesSaveBar: View {
                         .font(.body.weight(.semibold))
                         .frame(width: 44, height: 44)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(BeckonGuardedPlainButtonStyle())
                 .disabled(presentation.isSaveDisabled)
                 .accessibilityLabel("Delete portfolio photo")
                 .accessibilityIdentifier("groomer.portfolio.delete")

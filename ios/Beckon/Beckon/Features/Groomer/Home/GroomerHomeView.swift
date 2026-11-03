@@ -548,7 +548,7 @@ private struct GroomerHomeComingUpCard: View {
                 .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.minimumTouchTarget, alignment: .leading)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(BeckonGuardedPlainButtonStyle())
+            .buttonStyle(BeckonGuardedPlainButtonStyle(.row))
             .accessibilityIdentifier("groomer.home.coming-up.schedule")
         }
         .beckonLedge(.card)
@@ -604,7 +604,7 @@ private struct GroomerHomeComingUpRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
         }
-        .buttonStyle(BeckonGuardedPlainButtonStyle())
+        .buttonStyle(BeckonGuardedPlainButtonStyle(.row))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(petName), \(booking.appointmentServiceTitle), \(when?.full ?? booking.scheduledTimeSummary)")
         .accessibilityHint("Opens the booking")

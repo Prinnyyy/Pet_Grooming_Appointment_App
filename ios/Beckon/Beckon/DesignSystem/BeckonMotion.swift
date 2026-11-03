@@ -375,40 +375,6 @@ extension View {
 }
 
 
-/// A press that waits to be sure it is a tap. A finger that lands on a button and then drags to scroll cancels the press within
-/// a few hundredths of a second; reacting at touch-down made every scroll that began on a card or a pill sink it and fire a
-/// haptic, which felt like touching things by accident. `content` gets `false` until the touch has stayed down for
-/// `Motion.pressSettleMilliseconds`, and `false` again the moment it lifts or is cancelled.
-struct BeckonSettledPress<Content: View>: View {
-    let isPressed: Bool
-    let content: (_ settled: Bool) -> Content
-    @State private var settled = false
-    @State private var wait: Task<Void, Never>?
-
-    init(isPressed: Bool, @ViewBuilder content: @escaping (_ settled: Bool) -> Content) {
-        self.isPressed = isPressed
-        self.content = content
-    }
-
-    var body: some View {
-        content(settled)
-            .onChange(of: isPressed) { _, now in
-                wait?.cancel()
-                guard now else { settled = false; return }
-                wait = Task {
-                    try? await Task.sleep(for: .milliseconds(DesignTokens.Motion.pressSettleMilliseconds))
-                    if !Task.isCancelled { settled = true }
-                }
-            }
-            .onDisappear {
-                wait?.cancel()
-                wait = nil
-                settled = false
-            }
-    }
-}
-
-
 /// True while decorative loops must stand still: Reduce Motion, or the scene is not active.
 struct BeckonMotionGate {
     let reduceMotion: Bool
