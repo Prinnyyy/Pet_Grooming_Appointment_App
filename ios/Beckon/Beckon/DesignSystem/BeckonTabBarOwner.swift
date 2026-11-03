@@ -204,14 +204,25 @@ extension View {
 /// Restore the native edge-pop for pages with their own header/back button (such as chat).
 /// No replacement pan gesture or navigation animator: UIKit still owns progress/cancellation.
 extension View {
-    func beckonAllowsInteractiveBack() -> some View { background(BeckonInteractiveBackBridge()) }
+    func beckonAllowsInteractiveBack(shouldBegin: @escaping () -> Bool = { true }) -> some View {
+        background(BeckonInteractiveBackBridge(shouldBegin: shouldBegin))
+    }
 }
 
 struct BeckonInteractiveBackBridge: UIViewControllerRepresentable {
-    func makeUIViewController(context: Context) -> Controller { Controller() }
-    func updateUIViewController(_ controller: Controller, context: Context) { controller.installIfVisible() }
+    var shouldBegin: () -> Bool = { true }
+    func makeUIViewController(context: Context) -> Controller {
+        let controller = Controller()
+        controller.shouldBegin = shouldBegin
+        return controller
+    }
+    func updateUIViewController(_ controller: Controller, context: Context) {
+        controller.shouldBegin = shouldBegin
+        controller.installIfVisible()
+    }
 
     final class Controller: UIViewController, UIGestureRecognizerDelegate {
+        var shouldBegin: () -> Bool = { true }
         private weak var previousDelegate: (any UIGestureRecognizerDelegate)?
         private weak var gesture: UIGestureRecognizer?
         private var isVisible = false
@@ -221,6 +232,8 @@ struct BeckonInteractiveBackBridge: UIViewControllerRepresentable {
             super.viewDidAppear(animated)
             isVisible = true
             installIfVisible()
+            // UIKit can finish configuring a visible navigation bar after child appearance.
+            DispatchQueue.main.async { [weak self] in self?.installIfVisible() }
         }
         override func viewWillDisappear(_ animated: Bool) {
             super.viewWillDisappear(animated)
@@ -243,8 +256,9 @@ struct BeckonInteractiveBackBridge: UIViewControllerRepresentable {
         }
         func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
             guard let navigation = navigationController else { return false }
-            return navigation.viewControllers.count > 1 && navigation.transitionCoordinator == nil
-                && owns(navigation.topViewController)
+            guard navigation.viewControllers.count > 1, navigation.transitionCoordinator == nil,
+                  owns(navigation.topViewController) else { return false }
+            return shouldBegin()
         }
         private func owns(_ page: UIViewController?) -> Bool {
             var owner: UIViewController? = self

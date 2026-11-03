@@ -139,64 +139,22 @@ struct CustomerNavigationLink<Destination: View, Label: View>: View {
     }
 }
 
-/// Resolve outside the transition, with the existing repository's participant checks intact.
+/// Customer route adapter; both roles share the same cache-first chat destination.
 struct CustomerConversationDestination: View {
     let route: CustomerDestination
     let participantID: UUID
     let store: ChatStore
     var booking: Booking? = nil
-    @Environment(\.scenePhase) private var scenePhase
-    @State private var conversation: ChatConversation?
-    @State private var isLoading = true
-    @State private var retry = 0
 
-    private var previewConversation: ChatConversation? {
-        if let conversation { return conversation }
-        if let booking { return store.conversation(for: booking) }
-        if case .conversation(let id) = route { return store.conversations.first { $0.id == id } }
-        return nil
-    }
-
-    var body: some View {
-        Group {
-            if let shown = conversation ?? previewConversation {
-                ChatThreadView(participantID: participantID, role: .customer, conversation: shown, store: store)
-            } else if isLoading {
-                ChatThreadLoadingView(
-                    title: previewConversation?.listTitle(for: .customer) ?? booking?.partnerDisplayTitle(for: .customer) ?? "Messages",
-                    avatarPhotoData: previewConversation?.counterpartAvatarPhotoData,
-                    counterpartID: previewConversation?.groomerID ?? booking?.groomerID)
-            } else {
-                DesignPage(cascades: false) {
-                    BeckonErrorBanner(title: "Conversation unavailable", message: store.errorMessage ?? "Try opening this conversation again.") {
-                        Button("Retry") { isLoading = true; retry += 1 }
-                            .buttonStyle(BeckonGuardedPlainButtonStyle())
-                    }
-                }
-            }
-        }
-        .task(id: scenePhase == .active ? retry : -1) {
-            guard scenePhase == .active, isLoading else { return }
-            if let cached = previewConversation {
-                conversation = cached
-                isLoading = false
-                return
-            }
-            let resolved: ChatConversation?
-            switch route {
-            case .conversation(let id): resolved = await store.resolveConversation(conversationID: id)
-            case .bookingConversation(let id): resolved = await store.resolveConversation(bookingID: id)
-            default: resolved = nil
-            }
-            guard !Task.isCancelled else { return }
-            conversation = resolved
-            isLoading = false
-        }
-        .onDisappear {
-            if let conversation { store.stopMessageSubscription(for: conversation.id) }
-        }
-        .onChange(of: scenePhase) { _, phase in
-            if phase != .active, let conversation { store.stopMessageSubscription(for: conversation.id) }
+    @ViewBuilder var body: some View {
+        switch route {
+        case .conversation(let id):
+            ChatConversationDestination(route: .conversation(id), role: .customer,
+                participantID: participantID, store: store, booking: booking)
+        case .bookingConversation(let id):
+            ChatConversationDestination(route: .bookingConversation(id), role: .customer,
+                participantID: participantID, store: store, booking: booking)
+        default: EmptyView()
         }
     }
 }

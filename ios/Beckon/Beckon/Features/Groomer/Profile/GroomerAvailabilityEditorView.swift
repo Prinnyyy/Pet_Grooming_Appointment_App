@@ -2,8 +2,7 @@
 // Features/Groomer/Profile/GroomerAvailabilityEditorView.swift: the weekly hours (a day on or off, from when to when), the booking
 // preferences (how many a day, how much notice, auto-ready) and time off (a list, and a sheet to add one). There are no timing
 // buffers (design): the groomer picks each time in an offer and judges whether it fits, so this page asks for no estimate of
-// preparation, cleanup or travel. The page keeps its edits until Save: leaving with edits asks first, and reload asks before it
-// throws them away.
+// preparation, cleanup or travel. The page keeps its edits until Save: leaving with edits asks first.
 // The store, its edit tracking and every id are the real ones. What is new is the surface: one ledge card for the week, coral time
 // chips that open a menu, and one pinned Save.
 import SwiftUI
@@ -12,7 +11,6 @@ import SwiftUI
 struct GroomerAvailabilityEditorView: View {
     @Bindable var store: GroomerProfileStore
     @Environment(\.dismiss) private var dismiss
-    @State private var isConfirmingReload = false
     @State private var isConfirmingLeave = false
 
     var body: some View {
@@ -35,6 +33,11 @@ struct GroomerAvailabilityEditorView: View {
         .navigationTitle("Availability")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden()
+        .beckonAllowsInteractiveBack {
+            guard !store.isBusy else { return false }
+            if store.hasAvailabilityEdits { isConfirmingLeave = true; return false }
+            return true
+        }
         .beckonHidesTabBar()
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -46,19 +49,6 @@ struct GroomerAvailabilityEditorView: View {
                 .accessibilityLabel("Back")
                 .accessibilityIdentifier("BackButton")
                 .disabled(store.isSaving)
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { isConfirmingReload = true } label: {
-                    Image(systemName: "arrow.clockwise").foregroundStyle(DesignTokens.Colors.customerDeep)
-                }
-                .accessibilityLabel("Reload saved availability")
-                .disabled(store.isBusy)
-            }
-        }
-        .designAlertDialog(isPresented: $isConfirmingReload) {
-            .destructive(title: "Reload saved availability?", message: "Your edits are discarded and the saved hours come back.",
-                systemImage: "arrow.clockwise", keepTitle: "Keep editing", confirmTitle: "Reload", confirmSystemImage: "arrow.clockwise") {
-                Task { await store.reloadAvailability() }
             }
         }
         .designAlertDialog(isPresented: $isConfirmingLeave) {

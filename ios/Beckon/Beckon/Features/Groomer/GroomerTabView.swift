@@ -104,6 +104,7 @@ struct GroomerTabView: View {
                 NavigationStack(path: Binding(get: { paths[tab] ?? NavigationPath() }, set: { paths[tab] = $0 })) {
                     destination(for: tab)
                         .background(DesignTokens.Colors.appBackground)
+                        .beckonNavigationDestination(for: GroomerDestination.self) { detailDestination($0) }
                 }
                 }
                 .beckonEntranceActive(selection == tab)
@@ -167,13 +168,13 @@ struct GroomerTabView: View {
                 offers: offersStore, bookings: bookingsStore, chat: chatStore, isActiveTab: selection == .home,
                 unreadMessageCount: messageUnreadCount,
                 requestsAction: { openRequests(.matches) }, offersAction: { openRequests(.offers) },
-                bookingAction: { booking in focusedBooking = booking; select(.bookings) }, messagesAction: { select(.messages) },
+                bookingAction: { navigation.open(.booking($0.id)) }, messagesAction: { select(.messages) },
                 availabilityAction: openAvailability, scheduleAction: { select(.bookings) },
                 accountAction: { select(.account) })
         } else if tab == .requests, let requestsStore, let offersStore {
             GroomerRequestsView(route: Binding(get: { requestsRoute }, set: { requestsRoute = $0 }),
                 requests: requestsStore, offers: offersStore,
-                onOpenBooking: { focusedBooking = $0; select(.bookings) }, sessionIsCurrent: sessionIsCurrent)
+                onOpenBooking: { navigation.open(.booking($0.id)) }, sessionIsCurrent: sessionIsCurrent)
         } else if tab == .bookings, let bookingsStore {
             GroomerScheduleView(store: bookingsStore,
                 focusedBooking: Binding(get: { focusedBooking }, set: { focusedBooking = $0 }),
@@ -208,16 +209,31 @@ struct GroomerTabView: View {
         }
     }
 
+    @ViewBuilder
+    private func detailDestination(_ destination: GroomerDestination) -> some View {
+        switch destination {
+        case .booking(let id):
+            if let bookingsStore {
+                BookingDetailView(bookingID: id, role: .groomer, store: bookingsStore, onOpenChat: openBookingChat)
+            }
+        case .bookingConversation(let id):
+            if let groomerID, let chatStore {
+                ChatConversationDestination(route: .bookingConversation(id), role: .groomer,
+                    participantID: groomerID, store: chatStore, booking: bookingsStore?.booking(withID: id))
+            }
+        case .availability:
+            if let profileStore { GroomerAvailabilityDestination(store: profileStore) }
+        }
+    }
+
     private func openBookingChat(_ booking: Booking) {
-        focusedConversationBookingID = booking.id
-        select(.messages)
+        navigation.open(.bookingConversation(booking.id))
     }
 
     private func select(_ tab: GroomerTab) { navigation.select(tab) }
 
     private func openAvailability() {
-        requestedProfileRoute = .availability
-        select(.account)
+        navigation.open(.availability)
     }
 
     private func openRequests(_ route: GroomerRequestsRoute) {
@@ -231,15 +247,6 @@ struct GroomerTabView: View {
 
     private var messageUnreadCount: Int {
         chatStore?.unreadConversationCount ?? 0
-    }
-
-    private func openNotificationRoute(_ route: GroomerNotificationRoute) {
-        switch route {
-        case .requests, .offers:
-            if let target = GroomerRequestsRoute(notificationRoute: route) { openRequests(target) }
-        case .bookings: select(.bookings)
-        case let .messages(id): focusedConversationBookingID = id; select(.messages)
-        }
     }
 
     private static func makeNotificationStore(

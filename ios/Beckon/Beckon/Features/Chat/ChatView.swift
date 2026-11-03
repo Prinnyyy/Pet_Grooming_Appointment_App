@@ -624,18 +624,19 @@ struct ChatThreadView: View {
 struct ChatThreadLoadingView: View {
     let title: String
     let avatarPhotoData: Data?
+    var role: UserRole = .customer
     var counterpartID: UUID? = nil
     @Environment(\.dismiss) private var dismiss
     @FocusState private var isComposing: Bool
 
     var body: some View {
         VStack(spacing: 0) {
-            ChatThreadHeader(title: title, subtitle: "Updating…", role: .customer,
+            ChatThreadHeader(title: title, subtitle: "Updating…", role: role,
                 avatarPhotoData: avatarPhotoData, isComposing: false, dismiss: dismiss, counterpartID: counterpartID)
             Divider().overlay(DesignTokens.Colors.borderSoft)
             Spacer(minLength: 0)
             ChatComposerBar(draft: .constant(""), isFocused: $isComposing,
-                isReadOnly: false, readOnlyMessage: "", accent: .customer,
+                isReadOnly: false, readOnlyMessage: "", accent: role == .customer ? .customer : .groomer,
                 placeholder: "Message…", send: {})
                 .disabled(true)
                 .accessibilityHidden(true)

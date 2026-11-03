@@ -5,12 +5,15 @@ import test from 'node:test';
 const root = 'ios/Beckon/Beckon/';
 const source = path => readFileSync(root + path, 'utf8');
 
-test('home booking action forwards its booking to the bookings destination', () => {
+test('groomer booking/chat/availability details push locally without selecting another tab', () => {
   const tabs = source('Features/Groomer/GroomerTabView.swift');
-  assert.doesNotMatch(tabs, /bookingAction:\s*\{\s*_\s+in/);
-  assert.match(tabs, /focusedBooking\s*=\s*booking/);
-  assert.match(tabs, /focusedBooking:\s*Binding\(get:\s*\{ focusedBooking \}/);
-  assert.match(source('Features/Bookings/BookingsView.swift'), /beckonNavigationDestination\(item:\s*\$focusedBooking\)/);
+  assert.match(tabs, /bookingAction:\s*\{ navigation.open\(\.booking\(\$0.id\)\) \}/);
+  assert.match(tabs, /onOpenBooking:\s*\{ navigation.open\(\.booking\(\$0.id\)\) \}/);
+  assert.match(tabs, /private func openBookingChat[\s\S]*?navigation.open\(\.bookingConversation\(booking.id\)\)/);
+  assert.match(tabs, /private func openAvailability\(\) \{\s*navigation.open\(\.availability\)\s*\}/);
+  assert.match(tabs, /beckonNavigationDestination\(for: GroomerDestination.self\)/);
+  assert.doesNotMatch(tabs, /focusedBooking\s*=\s*booking|focusedConversationBookingID\s*=\s*booking.id/);
+  assert.match(source('Features/Groomer/GroomerNavigation.swift'), /paths\[selection, default: NavigationPath\(\)\].append\(destination\)/);
 });
 
 test('wizard view delegates profile reads to its flow state', () => {

@@ -3,6 +3,30 @@ import Testing
 @testable import Beckon
 
 @MainActor struct GroomerNavigationTests {
+    @Test func secondaryDestinationsStayInTheirOriginatingTabAndPopInOrder() {
+        for tab in GroomerTab.allCases {
+            let navigation = GroomerNavigation(selection: tab)
+            let untouched = NavigationPath([UUID()])
+            let other: GroomerTab = tab == .messages ? .account : .messages
+            navigation.paths[other] = untouched
+            let booking = GroomerDestination.booking(UUID())
+            let chat = GroomerDestination.bookingConversation(UUID())
+            navigation.open(booking)
+            navigation.open(chat)
+            #expect(navigation.selection == tab)
+            #expect(navigation.paths[tab] == NavigationPath([booking, chat]))
+            navigation.paths[tab]?.removeLast()
+            #expect(navigation.paths[tab] == NavigationPath([booking]))
+            #expect(navigation.paths[other] == untouched)
+            #expect(navigation.resetCounts.isEmpty)
+            navigation.paths[tab]?.removeLast()
+            navigation.open(.availability)
+            #expect(navigation.paths[tab] == NavigationPath([GroomerDestination.availability]))
+            navigation.select(other)
+            #expect(navigation.paths[tab]?.isEmpty == true)
+        }
+    }
+
     @Test func departureClearsOnlyOutgoingPathAndLinks() {
         let navigation = GroomerNavigation(selection: .messages)
         let id = UUID()
