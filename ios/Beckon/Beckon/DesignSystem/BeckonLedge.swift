@@ -11,6 +11,8 @@ enum BeckonLedgeSurface {
     case highlight
     /// Circular icon control such as the bell.
     case round
+    /// Active circular action; same geometry as round, with the role's action colors.
+    case roundAction
     /// White button on a role-colored hero; Deep ledge. One per screen.
     case primary
     /// Small mint action pill or icon tile.
@@ -21,7 +23,7 @@ enum BeckonLedgeSurface {
     var face: Color {
         switch self {
         case .card, .round, .primary, .dashed: DesignTokens.Colors.surface
-        case .pill: DesignTokens.Colors.customerFill
+        case .pill, .roundAction: DesignTokens.Colors.customerFill
         case .highlight: DesignTokens.Colors.customerTint
         }
     }
@@ -29,7 +31,7 @@ enum BeckonLedgeSurface {
     var lip: Color {
         switch self {
         case .card, .round: DesignTokens.Colors.border
-        case .primary, .pill: DesignTokens.Colors.customerDeep
+        case .primary, .pill, .roundAction: DesignTokens.Colors.customerDeep
         case .dashed: DesignTokens.Colors.borderSoft
         case .highlight: DesignTokens.Colors.customerFill
         }
@@ -38,7 +40,7 @@ enum BeckonLedgeSurface {
     var edge: Color? {
         switch self {
         case .card, .round, .dashed: DesignTokens.Colors.border
-        case .primary, .pill: nil
+        case .primary, .pill, .roundAction: nil
         case .highlight: DesignTokens.Colors.customerFill
         }
     }
@@ -46,7 +48,7 @@ enum BeckonLedgeSurface {
     var radius: CGFloat {
         switch self {
         case .card, .dashed, .highlight: DesignTokens.CornerRadius.card
-        case .round: DesignTokens.CornerRadius.round
+        case .round, .roundAction: DesignTokens.CornerRadius.round
         case .primary: DesignTokens.CornerRadius.ledgeButton
         case .pill: DesignTokens.CornerRadius.pill
         }
@@ -55,7 +57,7 @@ enum BeckonLedgeSurface {
     var depth: CGFloat {
         switch self {
         case .card, .dashed, .highlight: DesignTokens.Ledge.card
-        case .round: DesignTokens.Ledge.control
+        case .round, .roundAction: DesignTokens.Ledge.control
         case .primary: DesignTokens.Ledge.button
         case .pill: DesignTokens.Ledge.pill
         }
@@ -105,16 +107,20 @@ extension View {
 struct BeckonLedgePressStyle: ButtonStyle {
     let surface: BeckonLedgeSurface
     var onPressChange: ((Bool) -> Void)?
+    var animatesSurfaceChanges = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.isEnabled) private var isEnabled
 
-    init(_ surface: BeckonLedgeSurface = .card, onPressChange: ((Bool) -> Void)? = nil) {
+    init(_ surface: BeckonLedgeSurface = .card, onPressChange: ((Bool) -> Void)? = nil,
+        animatesSurfaceChanges: Bool = true) {
         self.surface = surface
         self.onPressChange = onPressChange
+        self.animatesSurfaceChanges = animatesSurfaceChanges
     }
 
     func makeBody(configuration: Configuration) -> some View {
         let surface = surface, onPressChange = onPressChange, reduceMotion = reduceMotion, isEnabled = isEnabled
+        let animatesSurfaceChanges = animatesSurfaceChanges
         return BeckonPressEngine(isPressed: configuration.isPressed && isEnabled, haptic: .impact(weight: .medium)) { amount in
             let shape = RoundedRectangle(cornerRadius: surface.radius, style: .continuous)
             // A surface without an edge draws its edge in the colour of its face: invisible, and a colour the real edge can fade to.
@@ -140,7 +146,7 @@ struct BeckonLedgePressStyle: ButtonStyle {
                 .padding(.bottom, DesignTokens.Ledge.room)
                 .contentShape(Rectangle())
                 // The look turning into another look; the press itself is animated by the engine.
-                .animation(reduceMotion ? DesignTokens.Motion.reduced : DesignTokens.Motion.morph, value: surface)
+                .animation(animatesSurfaceChanges ? (reduceMotion ? DesignTokens.Motion.reduced : DesignTokens.Motion.morph) : nil, value: surface)
                 .onChange(of: amount >= 0.99) { _, now in onPressChange?(now) }
                 .opacity(isEnabled ? 1 : 0.5)
         }
@@ -153,14 +159,17 @@ struct BeckonLedgePressStyle: ButtonStyle {
 struct BeckonLedgeButtonStyle: PrimitiveButtonStyle {
     let surface: BeckonLedgeSurface
     var onPressChange: ((Bool) -> Void)?
+    var animatesSurfaceChanges = true
 
-    init(_ surface: BeckonLedgeSurface = .card, onPressChange: ((Bool) -> Void)? = nil) {
+    init(_ surface: BeckonLedgeSurface = .card, onPressChange: ((Bool) -> Void)? = nil,
+        animatesSurfaceChanges: Bool = true) {
         self.surface = surface
         self.onPressChange = onPressChange
+        self.animatesSurfaceChanges = animatesSurfaceChanges
     }
 
     func makeBody(configuration: Configuration) -> some View {
         BeckonGuardedButtonBody(configuration: configuration,
-            style: BeckonLedgePressStyle(surface, onPressChange: onPressChange))
+            style: BeckonLedgePressStyle(surface, onPressChange: onPressChange, animatesSurfaceChanges: animatesSurfaceChanges))
     }
 }

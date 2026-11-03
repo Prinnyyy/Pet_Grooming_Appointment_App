@@ -18,6 +18,15 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-078
+Date: 2026-11-03
+Task: T-460
+Decision: Chat Send remains a fixed circular control in empty, ready and sending states. Ready changes role colors immediately; it does not morph into a pill. Align the visible face center with the input, excluding the reserved bottom ledge.
+Consequences: Add the shared roundAction surface with round geometry and pill action colors. Chat opts out of surface-state morphing only; guarded activation, press travel, haptics, busy protection and other controls keep their existing behavior.
+Linked files: docs/01_product/LIVELY_UI_SPEC.md; ios/Beckon/Beckon/DesignSystem/BeckonLedge.swift; ios/Beckon/Beckon/Features/Chat/ChatView.swift.
+```
+
+```text
 Decision ID: D-077
 Date: 2026-11-02
 Task: T-448

@@ -802,7 +802,7 @@ private struct ChatBookingDetailDestination: View {
     }
 }
 
-private struct ChatComposerBar: View {
+struct ChatComposerBar: View {
 
     @Binding var draft: String
     @FocusState.Binding var isFocused: Bool
@@ -874,10 +874,11 @@ private struct ChatComposerBar: View {
                         }
                         .frame(width: DesignTokens.Metrics.ledgeRoundControl, height: DesignTokens.Metrics.ledgeRoundControl)
                     }
-                    .buttonStyle(BeckonLedgeButtonStyle(hasDraft || isSending ? .pill : .round))
+                    .buttonStyle(BeckonLedgeButtonStyle(hasDraft || isSending ? .roundAction : .round,
+                        animatesSurfaceChanges: false))
                     // Align with the visible face; the reserved ledge below it is not part of its center.
-                    .alignmentGuide(VerticalAlignment.center) { size in
-                        size[VerticalAlignment.center] - DesignTokens.Ledge.room / 2
+                    .alignmentGuide(VerticalAlignment.center) { _ in
+                        DesignTokens.Metrics.ledgeRoundControl / 2
                     }
                     .disabled(isSending || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .accessibilityIdentifier("chat.message.send")

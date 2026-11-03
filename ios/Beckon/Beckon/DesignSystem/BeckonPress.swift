@@ -183,7 +183,7 @@ extension BeckonLedgeSurface {
     var pressedFace: Color {
         switch self {
         case .card, .round, .primary, .dashed: DesignTokens.Colors.customerTint
-        case .pill: DesignTokens.Colors.customerFillPressed
+        case .pill, .roundAction: DesignTokens.Colors.customerFillPressed
         case .highlight: DesignTokens.Colors.customerHeroBubble
         }
     }
