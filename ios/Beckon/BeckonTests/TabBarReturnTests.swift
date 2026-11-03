@@ -62,7 +62,7 @@ import XCTest
         window.rootViewController = UIHostingController(rootView: TabView(selection: Bindable(route).selectedTab) {
             BeckonTabBarOwner {
                 NavigationStack(path: Bindable(route).path) {
-                    Text("Root").navigationDestination(for: Int.self) { _ in
+                    Text("Root").beckonNavigationDestination(for: Int.self) { _ in
                         Text("Detail").beckonHidesTabBar()
                     }
                 }
@@ -80,6 +80,12 @@ import XCTest
         route.path = [1]
         try await Task.sleep(for: .milliseconds(400))
         XCTAssertTrue(tabs.isTabBarHidden)
+        route.path = [1, 2]
+        try await Task.sleep(for: .milliseconds(400))
+        XCTAssertTrue(tabs.isTabBarHidden)
+        route.path = [1]
+        try await Task.sleep(for: .milliseconds(400))
+        XCTAssertTrue(tabs.isTabBarHidden, "Returning to a secondary page keeps the bar hidden")
         route.selectedTab = 1
         try await Task.sleep(for: .milliseconds(200))
         XCTAssertFalse(tabs.isTabBarHidden, "A different root tab must not inherit the hidden state")

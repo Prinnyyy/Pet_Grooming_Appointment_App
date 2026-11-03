@@ -41,7 +41,7 @@ struct CustomerNotificationsView: View {
             selectedID = nil
         }
         .beckonResetsNavigation { destination = nil; selectedID = nil }
-        .navigationDestination(item: $destination) { target in
+        .beckonNavigationDestination(item: $destination) { target in
             CustomerRouteDestination(route: route(for: target), customerID: conversationCustomerID(target),
                 notificationStore: store, requestStore: requestStore, bookingsStore: bookingStore,
                 chatStore: chatStore, marketplace: nil, onOpenChat: { _ in })

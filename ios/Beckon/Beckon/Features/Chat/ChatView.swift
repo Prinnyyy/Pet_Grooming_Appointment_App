@@ -61,7 +61,7 @@ struct ChatConversationsView: View {
             ChatStatusView(store: store, role: role)
         }
         .beckonResetsNavigation { focusedConversation = nil }
-        .navigationDestination(item: $focusedConversation) { conversation in
+        .beckonNavigationDestination(item: $focusedConversation) { conversation in
             ChatThreadView(
                 participantID: participantID,
                 role: role,
@@ -404,6 +404,7 @@ struct ChatThreadView: View {
             .contentShape(Rectangle())
             .simultaneousGesture(TapGesture().onEnded { isComposing = false })
         }
+        .beckonHidesTabBar()
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -521,6 +522,7 @@ struct ChatThreadView: View {
                 .padding(.top, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.md)
             }
+            .defaultScrollAnchor(.bottom)
             .refreshable { await refreshThread() }
             .onChange(of: store.messages(for: conversation.id).last?.id) {
                 previousLatestMessageID,
@@ -572,6 +574,7 @@ struct ChatThreadLoadingView: View {
             Spacer(minLength: 0)
         }
         .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
+        .beckonHidesTabBar()
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .bottom, spacing: 0) {

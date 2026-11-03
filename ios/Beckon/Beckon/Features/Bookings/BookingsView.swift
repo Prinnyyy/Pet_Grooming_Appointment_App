@@ -100,7 +100,7 @@ struct BookingsView: View {
         }
         .navigationTitle(role == .groomer ? "Schedule" : "")
         .navigationBarTitleDisplayMode(role == .groomer ? .large : .inline)
-        .navigationDestination(item: $focusedBooking) { booking in
+        .beckonNavigationDestination(item: $focusedBooking) { booking in
             BookingDetailView(
                 bookingID: booking.id,
                 role: role,
@@ -186,6 +186,7 @@ struct BookingsView: View {
                                             startNewRequestFromCancelledBooking(booking)
                                         }
                                 )
+                                .beckonHidesTabBar()
                             } label: {
                                 BookingCard(
                                     booking: booking,

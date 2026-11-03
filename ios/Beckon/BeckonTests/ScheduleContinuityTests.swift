@@ -93,6 +93,23 @@ import XCTest
 }
 
 @MainActor final class SkeletonParityTests: XCTestCase {
+    func testClosingDeadlineDoesNotAddARequestRowFooter() {
+        func row(_ note: GroomerRequestRowContent.Note?) -> some View {
+            GroomerRequestRow(content: GroomerRequestRowContent(species: "Dog", photo: nil, name: "Milo",
+                when: BeckonWhen(start: "2026-11-03T10:00:00Z", end: "2026-11-03T11:00:00Z",
+                    zoneIdentifier: "America/Los_Angeles", now: Date()),
+                breed: "Corgi", weight: "22 lb", service: "Full groom", place: "Seattle", price: nil,
+                marks: [.invited(source: "Invited")], note: note), onOpen: {})
+        }
+        for width: CGFloat in [320, 380] {
+            let plain = height(row(nil), width: width, size: .large)
+            let closing = height(row(.init(text: "Closes in 1 day", systemImage: "hourglass", tone: .warm,
+                compactDeadline: "24h left")), width: width, size: .large)
+            XCTAssertEqual(plain, closing, accuracy: 0.5)
+            XCTAssertEqual(closing, height(GroomerRequestRowSkeleton(), width: width, size: .large), accuracy: 0.5)
+        }
+    }
+
     func testScheduleHeaderMaskKeepsNativeTextAndAccessibilitySizing() {
         let date = Date()
         let calendar = Calendar.current

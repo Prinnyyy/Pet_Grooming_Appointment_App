@@ -163,7 +163,7 @@ struct CustomerOfferDetailView: View {
                 .navigationTitle("Offer")
             }
         }
-        .navigationDestination(item: $acceptedBookingHandoff) { handoff in
+        .beckonNavigationDestination(item: $acceptedBookingHandoff) { handoff in
             GroomingDetailView(
                 target: .booking(handoff.booking.id),
                 requestStore: store,

@@ -43,7 +43,7 @@ struct GroomerScheduleView: View {
             .accessibilityIdentifier("groomer.schedule")
         }
         .toolbar(.hidden, for: .navigationBar)
-        .navigationDestination(item: $focusedBooking) { booking in
+        .beckonNavigationDestination(item: $focusedBooking) { booking in
             BookingDetailView(bookingID: booking.id, role: .groomer, store: store, onOpenChat: onOpenChat)
         }
         .background {

@@ -106,12 +106,17 @@ private struct BeckonTabBarHider: UIViewControllerRepresentable {
         }
 
         private func owns(_ page: UIViewController) -> Bool {
+            guard firstHider(in: page) === self else { return false }
             var ancestor: UIViewController? = self
             while let candidate = ancestor {
                 if candidate === page { return true }
                 ancestor = candidate.parent
             }
             return false
+        }
+
+        private func firstHider(in page: UIViewController) -> Controller? {
+            (page as? Controller) ?? page.children.lazy.compactMap { self.firstHider(in: $0) }.first
         }
 
         func markPage() {
@@ -172,7 +177,25 @@ struct BeckonNavigationLink<Destination: View, Label: View>: View {
 
     var body: some View {
         Button { isPresented = true } label: { label() }
-            .navigationDestination(isPresented: $isPresented) { destination() }
+            .beckonNavigationDestination(isPresented: $isPresented) { destination() }
             .beckonResetsNavigation { isPresented = false }
+    }
+}
+
+// Register secondary destinations through one shared presentation policy.
+extension View {
+    func beckonNavigationDestination<D: Hashable, Destination: View>(for type: D.Type,
+        @ViewBuilder destination: @escaping (D) -> Destination) -> some View {
+        navigationDestination(for: type) { destination($0).beckonHidesTabBar() }
+    }
+
+    func beckonNavigationDestination<D: Hashable, Destination: View>(item: Binding<D?>,
+        @ViewBuilder destination: @escaping (D) -> Destination) -> some View {
+        navigationDestination(item: item) { destination($0).beckonHidesTabBar() }
+    }
+
+    func beckonNavigationDestination<Destination: View>(isPresented: Binding<Bool>,
+        @ViewBuilder destination: @escaping () -> Destination) -> some View {
+        navigationDestination(isPresented: isPresented) { destination().beckonHidesTabBar() }
     }
 }

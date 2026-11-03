@@ -487,7 +487,7 @@ struct GroomingTimeline: View {
                         row(entry, isLast: index == entries.count - 1)
                     }
                     if let offersDestination {
-                        NavigationLink { offersDestination } label: {
+                        NavigationLink { offersDestination.beckonHidesTabBar() } label: {
                             DesignLinkCardLabel(title: offersTitle, summary: "Every offer, with its history",
                                 systemImage: "square.stack.3d.up.fill")
                         }

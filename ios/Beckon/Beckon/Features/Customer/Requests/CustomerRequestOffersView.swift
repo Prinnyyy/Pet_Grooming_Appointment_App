@@ -232,7 +232,7 @@ struct CustomerOfferCarousel<Destination: View>: View {
 
     private func card(_ review: CustomerOfferReview) -> some View {
         NavigationLink {
-            destination(review)
+            destination(review).beckonHidesTabBar()
         } label: {
             CustomerOfferCard(review: review, now: now, badge: highlights.badge(for: review.id), isCompact: true)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

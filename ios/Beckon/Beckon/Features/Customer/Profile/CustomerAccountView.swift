@@ -168,9 +168,9 @@ struct CustomerAccountView: View {
             showsProfileSettings = false
             showsDebugConsole = false
         }
-        .navigationDestination(isPresented: $showsProfileSettings) { CustomerProfileSettingsView(store: store) }
+        .beckonNavigationDestination(isPresented: $showsProfileSettings) { CustomerProfileSettingsView(store: store) }
         #if DEBUG
-        .navigationDestination(isPresented: $showsDebugConsole) {
+        .beckonNavigationDestination(isPresented: $showsDebugConsole) {
             DebugPanelView(diagnostics: DebugDiagnostics.current(session: session, profile: profile))
         }
         #endif

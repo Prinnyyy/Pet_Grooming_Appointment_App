@@ -137,7 +137,7 @@ struct CustomerHomeView: View {
             }
         }
         .beckonResetsNavigation { isShowingNotifications = false }
-        .navigationDestination(isPresented: $isShowingNotifications) {
+        .beckonNavigationDestination(isPresented: $isShowingNotifications) {
             CustomerNotificationsView(store: notificationStore, requestStore: requestStore,
                 bookingStore: bookingStore, chatStore: chatStore)
         }

@@ -178,7 +178,7 @@ struct CustomerTabView: View {
     private var tabs: some View {
         TabView(selection: Binding(get: { navigation.selection }, set: { navigation.selectManually($0) })) {
             ForEach(CustomerTab.allCases) { tab in
-                navigationRoot(for: tab)
+                BeckonTabBarOwner { navigationRoot(for: tab) }
                 .beckonEntranceActive(selection == tab)
                 .environment(\.beckonNavigationResetCount, navigation.resetCounts[tab, default: 0])
                 .foregroundRefreshable(
@@ -307,7 +307,7 @@ struct CustomerTabView: View {
         CustomerNavigationStack(navigation: navigation, tab: tab) {
             destination(for: tab)
                 .background(DesignTokens.Colors.appBackground)
-                .navigationDestination(for: CustomerDestination.self) { route in
+                .beckonNavigationDestination(for: CustomerDestination.self) { route in
                     CustomerRouteDestination(route: route, customerID: customerID, notificationStore: notificationStore,
                         requestStore: requestStore, bookingsStore: bookingsStore, chatStore: chatStore,
                         marketplace: marketplace, onOpenChat: openBookingChat)

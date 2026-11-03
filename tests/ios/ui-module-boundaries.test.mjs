@@ -10,7 +10,7 @@ test('home booking action forwards its booking to the bookings destination', () 
   assert.doesNotMatch(tabs, /bookingAction:\s*\{\s*_\s+in/);
   assert.match(tabs, /focusedBooking\s*=\s*booking/);
   assert.match(tabs, /focusedBooking:\s*Binding\(get:\s*\{ focusedBooking \}/);
-  assert.match(source('Features/Bookings/BookingsView.swift'), /navigationDestination\(item:\s*\$focusedBooking\)/);
+  assert.match(source('Features/Bookings/BookingsView.swift'), /beckonNavigationDestination\(item:\s*\$focusedBooking\)/);
 });
 
 test('wizard view delegates profile reads to its flow state', () => {

@@ -137,7 +137,7 @@ struct GroomerDayStripSkeleton: View {
 
 // MARK: The day's shape
 
-/// Loading and verified content share the date, badge, zone and summary geometry.
+/// Loading and verified content share the centered date/badge and summary geometry.
 /// The device calendar is used only to size masked placeholders, never as an account time zone.
 struct GroomerScheduleDayHeader: View {
     let date: Date
@@ -151,7 +151,7 @@ struct GroomerScheduleDayHeader: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             (typeSize.isAccessibilitySize
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.xs))
-                : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm))) {
+                : AnyLayout(HStackLayout(alignment: .center, spacing: DesignTokens.Spacing.sm))) {
                 GroomerScheduleHeaderText(text: GroomerScheduleDateFormatting.longDayTitle(from: date,
                     calendar: calendar ?? .current), isLoading: calendar == nil)
                     .font(DesignTokens.Typography.Expressive.section)
@@ -167,16 +167,6 @@ struct GroomerScheduleDayHeader: View {
                         .background(DesignTokens.Colors.customerTint, in: Capsule())
                 }
                 if !typeSize.isAccessibilitySize { Spacer(minLength: DesignTokens.Spacing.sm) }
-                HStack(spacing: DesignTokens.Spacing.xs) {
-                    Image(systemName: "globe")
-                    GroomerScheduleHeaderText(text: calendar.map { BeckonDateTimeFormatter.zoneLabel($0.timeZone, at: date) }
-                        ?? "PST", isLoading: calendar == nil)
-                }
-                .font(DesignTokens.Typography.Expressive.chip)
-                .foregroundStyle(DesignTokens.Colors.textTertiary)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(calendar?.timeZone.identifier ?? "Loading schedule time zone")
-                .accessibilityIdentifier("groomer.schedule.time-zone")
             }
             // Reserve the summary line even on an empty day; refresh never inserts a new row.
             GroomerScheduleHeaderText(text: summary ?? "Appointments · duration · total", isLoading: isLoading)

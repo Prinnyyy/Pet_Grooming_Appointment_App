@@ -7,7 +7,7 @@
 //   what is asked and where (service and city)
 // Every line is one line, cut at its end when it is too long; at accessibility sizes the row stacks and nothing is cut. A request
 // nobody has opened is a dot on the pet's face. What is out of the ordinary is never a tag that can wrap: it is one narrow note along
-// the foot of the card (closes within the day, still being checked, an offer to replace, how an offer ended), and a request that
+// the foot of the card (still being checked, an offer to replace, how an offer ended); a compact deadline sits beside the name, and a request that
 // names the groomer is a pink card (`.highlight`) with the Invited mark.
 // The row is built from the stage the request page shows (`GroomerRequestStage`), so a row and its page cannot disagree.
 import SwiftUI
@@ -29,11 +29,12 @@ struct GroomerRequestRowContent {
         }
     }
 
-    /// The one line along the foot of the card, for a state that is out of the ordinary.
+    /// An exceptional state: a footer, or a compact deadline beside the name.
     struct Note: Equatable {
         let text: String
         let systemImage: String
         let tone: BeckonFootNote.Tone
+        var compactDeadline: String? = nil
     }
 
     let species: String
@@ -86,7 +87,10 @@ struct GroomerRequestRowContent {
             note = Note(text: hold.title, systemImage: hold == .checking ? "clock.fill" : "exclamationmark.circle.fill",
                 tone: hold == .checking ? .calm : .warm)
         } else if stage.closesSoon, let closes = stage.closes {
-            note = Note(text: closes, systemImage: "hourglass", tone: .warm)
+            let remaining = GroomingRequestDateFormatting.parsedDate(from: request.expiresAt)?.timeIntervalSince(now) ?? 0
+            let minutes = max(1, Int(ceil(remaining / 60)))
+            let compact = minutes >= 60 ? "\(Int(ceil(remaining / 3600)))h left" : "\(minutes)m left"
+            note = Note(text: closes, systemImage: "hourglass", tone: .warm, compactDeadline: compact)
         } else {
             note = nil
         }
@@ -147,7 +151,7 @@ struct GroomerRequestRow: View {
                         .accessibilityHidden(true)
                 }
                 .padding(DesignTokens.Spacing.md)
-                if let note = content.note { BeckonFootNote(text: note.text, systemImage: note.systemImage, tone: note.tone) }
+                if let note = content.note, note.compactDeadline == nil { BeckonFootNote(text: note.text, systemImage: note.systemImage, tone: note.tone) }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             // The note runs edge to edge: the card's corners cut it.
@@ -243,17 +247,17 @@ struct GroomerRequestRow: View {
             }
         } else {
             ViewThatFits(in: .horizontal) {
-                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                HStack(alignment: .center, spacing: DesignTokens.Spacing.sm) {
                     nameText.fixedSize(horizontal: true, vertical: false)
                     Spacer(minLength: 0)
                     tail(compact: false)
                 }
-                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                HStack(alignment: .center, spacing: DesignTokens.Spacing.sm) {
                     nameText.fixedSize(horizontal: true, vertical: false)
                     Spacer(minLength: 0)
                     tail(compact: true)
                 }
-                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                HStack(alignment: .center, spacing: DesignTokens.Spacing.sm) {
                     nameText
                     Spacer(minLength: 0)
                     tail(compact: true)
@@ -272,13 +276,25 @@ struct GroomerRequestRow: View {
     /// The price of an offer, or the mark of a request that names the groomer; never both, never wrapped.
     @ViewBuilder
     private func tail(compact: Bool) -> some View {
-        if let price = content.price {
-            Text(price)
-                .font(DesignTokens.Typography.Expressive.section)
-                .foregroundStyle(DesignTokens.Colors.customerDeep)
-                .fixedSize()
-        } else if content.isInvited {
-            invitedMark(compact: compact)
+        HStack(alignment: .center, spacing: DesignTokens.Spacing.xs) {
+            if let price = content.price {
+                Text(price)
+                    .font(DesignTokens.Typography.Expressive.section)
+                    .foregroundStyle(DesignTokens.Colors.customerDeep)
+                    .fixedSize()
+            } else if content.isInvited {
+                invitedMark(compact: compact)
+            }
+            if let deadline = content.note?.compactDeadline {
+                Text(deadline)
+                    .font(DesignTokens.Typography.Expressive.micro)
+                    .foregroundStyle(DesignTokens.Colors.statusWarningText)
+                    .padding(.horizontal, DesignTokens.Spacing.xs)
+                    .padding(.vertical, DesignTokens.Spacing.xs)
+                    .background(DesignTokens.Colors.statusWarningFill, in: Capsule())
+                    .fixedSize()
+                    .accessibilityHidden(true) // Full deadline is already in the row's accessible summary.
+            }
         }
     }
 

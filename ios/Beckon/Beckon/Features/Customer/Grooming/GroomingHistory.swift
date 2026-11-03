@@ -57,7 +57,7 @@ private struct GroomingDestinations: ViewModifier {
             guard let target, let navigation else { return }
             navigation.open(shellRoute(target))
             destination = nil
-        }.navigationDestination(item: Binding(get: { navigation == nil ? destination : nil }, set: { destination = $0 })) { destination in
+        }.beckonNavigationDestination(item: Binding(get: { navigation == nil ? destination : nil }, set: { destination = $0 })) { destination in
             CustomerRouteDestination(route: shellRoute(destination), customerID: nil, notificationStore: nil,
                 requestStore: requestStore, bookingsStore: destinationBookings(destination), chatStore: nil, marketplace: nil,
                 onOpenChat: onOpenChat)
