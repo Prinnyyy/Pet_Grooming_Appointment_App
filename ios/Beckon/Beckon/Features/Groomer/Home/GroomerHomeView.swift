@@ -2,7 +2,7 @@
 // Features/Groomer/Home/GroomerHomeView.swift: the next appointment, what needs attention (new matches, pending offers, unread
 // messages), whether the groomer is available, and the bell. The store (`GroomerHomeStore`), its counts and issues, the bell's
 // destination and every id are the real ones. What is new is the surface: the greeting and the bell over the scene (sky, two
-// ranges, a lawn, in coral; no pup: it was not asked for here), a card on it that says what is next, and tiles that carry the
+// ranges, a lawn, in coral), a card with the shared pup that says what is next, and tiles that carry the
 // counts as numbers.
 //
 // design: the Availability card is gone. It said "Available" every day, and the same hours are one tap away in Account; Home shows
@@ -37,6 +37,7 @@ struct GroomerHomeView: View {
     /// Where the page is scrolled (design): the scene's layers and the header read it; the page itself does not.
     @State private var scrollDepth = BeckonScrollDepth()
     @State private var isPullArmed = false
+    @State private var isHeroActionPressed = false
 
     var body: some View {
         ZStack {
@@ -120,12 +121,10 @@ struct GroomerHomeView: View {
                 // The scene stands behind the card and reaches up behind the title, so the title is drawn above it.
                 .zIndex(1)
 
-            BeckonLedgeHero(showsPup: false) {
-                DesignReveal(isLoading: !isSettled) {
-                    nextAppointment
-                } placeholder: {
-                    heroBars
-                }
+            BeckonLoadingHero(isLoading: !isSettled, isExcited: isHeroActionPressed) {
+                nextAppointment
+            } placeholder: {
+                heroBars
             }
             .beckonEntrance(1)
             .beckonScrollEase()
@@ -258,7 +257,7 @@ struct GroomerHomeView: View {
         Button(action: action) {
             BeckonLedgePrimaryLabel(title: title, systemImage: systemImage)
         }
-        .buttonStyle(BeckonLedgeButtonStyle(.primary))
+        .buttonStyle(BeckonLedgeButtonStyle(.primary) { isHeroActionPressed = $0 })
         .padding(.top, DesignTokens.Spacing.sm)
         .accessibilityIdentifier(identifier)
     }

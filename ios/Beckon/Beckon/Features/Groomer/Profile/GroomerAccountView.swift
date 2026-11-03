@@ -12,6 +12,7 @@ struct GroomerAccountView: View {
     @Bindable var store: GroomerProfileStore
     @Binding var requestedRoute: GroomerProfileRoute?
     let onSignOut: () -> Void
+    var authenticationStore: AuthenticationStore?
     @State private var activeRoute: GroomerProfileRoute?
     /// The first load is over (answered, or a saved profile can be shown): until then everything under the title is bars.
     @State private var settled = false
@@ -23,6 +24,10 @@ struct GroomerAccountView: View {
             ScrollView {
                 BeckonCascade(spacing: DesignTokens.Layout.sectionSpacing) {
                     BeckonPageTitle("Account")
+                    if let errorMessage = authenticationStore?.errorMessage {
+                        BeckonErrorBanner(title: "Account action failed", message: errorMessage)
+                            .accessibilityIdentifier("auth.error")
+                    }
                     if store.profile == nil, store.cachedProfileSnapshot == nil, let error = store.loadErrorMessage, !store.isLoading {
                         unavailable(error)
                     } else {
@@ -147,24 +152,29 @@ struct GroomerAccountView: View {
 
         waits {
             BeckonSection("Account access") {
-                Button(action: onSignOut) {
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        Image(systemName: "rectangle.portrait.and.arrow.right").accessibilityHidden(true)
-                        Text("Sign out")
+                if let authenticationStore {
+                    AccountDangerActions(authenticationStore: authenticationStore,
+                        signOutIdentifier: "groomer.account.sign-out")
+                } else {
+                    Button(action: onSignOut) {
+                        HStack(spacing: DesignTokens.Spacing.sm) {
+                            Image(systemName: "rectangle.portrait.and.arrow.right").accessibilityHidden(true)
+                            Text("Sign out")
+                        }
+                        .font(DesignTokens.Typography.Expressive.emphasis)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.ledgePrimaryButtonHeight)
                     }
-                    .font(DesignTokens.Typography.Expressive.emphasis)
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.ledgePrimaryButtonHeight)
+                    .buttonStyle(BeckonLedgeButtonStyle(.card))
+                    .accessibilityIdentifier("groomer.account.sign-out")
                 }
-                .buttonStyle(BeckonLedgeButtonStyle(.card))
-                .accessibilityIdentifier("groomer.account.sign-out")
             }
         } placeholder: {
             VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
                 DesignSkeletonLine(width: 0.4, font: DesignTokens.Typography.Expressive.section)
                     .designSkeletonOnPage()
                     .designSkeleton(label: nil)
-                AccountDangerActionsSkeleton(showsDelete: false)
+                AccountDangerActionsSkeleton(showsDelete: authenticationStore != nil)
             }
         }
     }
@@ -206,10 +216,15 @@ struct GroomerAccountView: View {
                 }
                 .buttonStyle(BeckonGuardedPlainButtonStyle())
                 .disabled(store.isBusy)
-                Button(action: onSignOut) {
-                    DesignQuietAction(title: "Sign out", systemImage: "rectangle.portrait.and.arrow.right", isDestructive: true)
+                if let authenticationStore {
+                    AccountDangerActions(authenticationStore: authenticationStore,
+                        signOutIdentifier: "groomer.account.sign-out")
+                } else {
+                    Button(action: onSignOut) {
+                        DesignQuietAction(title: "Sign out", systemImage: "rectangle.portrait.and.arrow.right", isDestructive: true)
+                    }
+                    .buttonStyle(BeckonGuardedPlainButtonStyle())
                 }
-                .buttonStyle(BeckonGuardedPlainButtonStyle())
             }
         }
         .accessibilityIdentifier("groomer.account.error")

@@ -5,6 +5,32 @@ import SwiftUI
 // hidden from accessibility, never intercepts touches, and stands still under Reduce Motion or an inactive scene.
 // The pup is the only place Groomer coral appears inside Customer UI. Spec: docs/01_product/LIVELY_UI_SPEC.md.
 
+/// Both Home cards keep the pup hidden through their first reveal, then reuse the same emergence animation.
+struct BeckonLoadingHero<Content: View, Placeholder: View>: View {
+    let isLoading: Bool
+    let isExcited: Bool
+    private let content: Content
+    private let placeholder: Placeholder
+    @State private var isRevealed: Bool
+
+    init(isLoading: Bool, isExcited: Bool = false, @ViewBuilder content: () -> Content,
+         @ViewBuilder placeholder: () -> Placeholder) {
+        self.isLoading = isLoading
+        self.isExcited = isExcited
+        self.content = content()
+        self.placeholder = placeholder()
+        _isRevealed = State(initialValue: !isLoading)
+    }
+
+    var body: some View {
+        BeckonLedgeHero(isExcited: isExcited, isPupHidden: !isRevealed) {
+            DesignReveal(isLoading: isLoading, onReveal: { isRevealed = true }) {
+                content
+            } placeholder: { placeholder }
+        }
+    }
+}
+
 /// Customer hero: related-color gradient with drifting bubbles, a Deep-lipped base, and the pup peeking over the edge.
 /// `content` is the hero copy and its primary button; `isExcited` perks the pup while that button is pressed.
 /// `isPupHidden` (design): while the page is still loading the pup is not there; when it turns false it comes up from behind the

@@ -93,6 +93,7 @@ struct AuthenticatedEntryView: View {
                     bookingRepository: bookingRepository,
                     chatRepository: chatRepository,
                     accountContent: genericAccountContent(for: profile),
+                    authenticationStore: authenticationStore,
                     onSignOut: signOut,
                     sessionIsCurrent: {
                         guard !authenticationStore.isSubmitting,

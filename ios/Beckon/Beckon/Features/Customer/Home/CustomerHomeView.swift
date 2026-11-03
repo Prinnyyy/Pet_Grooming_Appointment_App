@@ -455,24 +455,15 @@ private struct CustomerHomeRequestHero: View {
     var isLoading = false
     let action: () -> Void
     @State private var isActionPressed = false
-    @State private var isRevealed: Bool
-
-    init(isLoading: Bool = false, action: @escaping () -> Void) {
-        self.isLoading = isLoading
-        self.action = action
-        _isRevealed = State(initialValue: !isLoading)
-    }
 
     var body: some View {
-        BeckonLedgeHero(isExcited: isActionPressed, isPupHidden: !isRevealed) {
-            DesignReveal(isLoading: isLoading, onReveal: { isRevealed = true }) {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                    words
-                    startButton
-                }
-            } placeholder: {
-                bars
+        BeckonLoadingHero(isLoading: isLoading, isExcited: isActionPressed) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                words
+                startButton
             }
+        } placeholder: {
+            bars
         }
     }
 

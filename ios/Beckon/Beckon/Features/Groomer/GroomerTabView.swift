@@ -10,6 +10,7 @@ struct GroomerTabView: View {
     let bookingRepository: (any BookingRepository)?
     let chatRepository: (any ChatRepository)?
     let accountContent: AnyView?
+    let authenticationStore: AuthenticationStore?
     let onSignOut: (() -> Void)?
     let sessionIsCurrent: @MainActor () -> Bool
     @State private var navigation = GroomerNavigation()
@@ -52,6 +53,7 @@ struct GroomerTabView: View {
         bookingRepository: (any BookingRepository)? = nil,
         chatRepository: (any ChatRepository)? = nil,
         accountContent: AnyView? = nil,
+        authenticationStore: AuthenticationStore? = nil,
         onSignOut: (() -> Void)? = nil,
         sessionIsCurrent: @escaping @MainActor () -> Bool = { true },
         requestCountCache: GroomerRequestCountCache? = nil
@@ -64,6 +66,7 @@ struct GroomerTabView: View {
         self.bookingRepository = bookingRepository
         self.chatRepository = chatRepository
         self.accountContent = accountContent
+        self.authenticationStore = authenticationStore
         self.onSignOut = onSignOut
         self.sessionIsCurrent = sessionIsCurrent
         if let groomerID, let profileRepository, let requestRepository, let bookingRepository {
@@ -190,7 +193,7 @@ struct GroomerTabView: View {
         } else if tab == .account, let profileStore {
             GroomerAccountView(store: profileStore,
                 requestedRoute: Binding(get: { requestedProfileRoute }, set: { requestedProfileRoute = $0 }),
-                onSignOut: { onSignOut?() })
+                onSignOut: { onSignOut?() }, authenticationStore: authenticationStore)
         } else if tab == .account, let accountContent {
             accountContent
         } else {
@@ -307,11 +310,13 @@ private extension GroomerTab {
 
 #if DEBUG
 extension GroomerTabView {
-    init(sandbox: GroomerSandboxSession, initialTab: GroomerTab = .home, initialRoute: GroomerRequestsRoute = .matches, onSignOut: (() -> Void)? = nil) {
+    init(sandbox: GroomerSandboxSession, initialTab: GroomerTab = .home, initialRoute: GroomerRequestsRoute = .matches,
+         authenticationStore: AuthenticationStore? = nil, onSignOut: (() -> Void)? = nil) {
         self.init(groomerID: sandbox.groomerID, groomerDisplayName: sandbox.groomerName,
             profileRepository: sandbox.profileRepository, requestRepository: sandbox.requestRepository,
             notificationRepository: sandbox.notificationRepository, bookingRepository: sandbox.bookingRepository,
-            chatRepository: sandbox.chatRepository, onSignOut: onSignOut)
+            chatRepository: sandbox.chatRepository, authenticationStore: authenticationStore ?? sandbox.authentication,
+            onSignOut: onSignOut)
         _homeStore = State(initialValue: sandbox.home); _requestsStore = State(initialValue: sandbox.requests)
         _offersStore = State(initialValue: sandbox.offers); _bookingsStore = State(initialValue: sandbox.bookings)
         _profileStore = State(initialValue: sandbox.account); _notificationStore = State(initialValue: sandbox.notifications)

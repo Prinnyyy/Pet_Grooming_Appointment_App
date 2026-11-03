@@ -133,6 +133,7 @@ struct AccountReleaseLinksSection: View {
 
 struct AccountDangerActions: View {
     @Bindable var authenticationStore: AuthenticationStore
+    var signOutIdentifier = "auth.sign-out"
     @State private var showsDeletionWarning = false
     @State private var showsFinalDeletionConfirmation = false
     @State private var activeAction: AccountDangerAction?
@@ -200,7 +201,7 @@ struct AccountDangerActions: View {
         }
         .buttonStyle(BeckonLedgeButtonStyle(.card))
         .disabled(authenticationStore.isSubmitting)
-        .accessibilityIdentifier("auth.sign-out")
+        .accessibilityIdentifier(signOutIdentifier)
     }
 
     private var deleteAccountButton: some View {

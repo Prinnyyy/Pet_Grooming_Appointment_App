@@ -18,14 +18,17 @@ struct GroomerProfileManagementView: View {
     @State private var store: GroomerProfileStore
     @Binding private var requestedRoute: GroomerProfileRoute?
     let onSignOut: (() -> Void)?
+    let authenticationStore: AuthenticationStore?
     init(groomerID: UUID, repository: any GroomerProfileRepository, debugRecorder: AppDebugEventRecorder? = nil,
          requestedRoute: Binding<GroomerProfileRoute?> = .constant(nil), accountContent: AnyView? = nil,
-         onSignOut: (() -> Void)? = nil) {
+         onSignOut: (() -> Void)? = nil, authenticationStore: AuthenticationStore? = nil) {
         _store = State(initialValue: GroomerProfileStore(groomerID: groomerID, repository: repository, debugRecorder: debugRecorder))
         _requestedRoute = requestedRoute
         self.onSignOut = onSignOut
+        self.authenticationStore = authenticationStore
     }
     var body: some View {
-        GroomerAccountView(store: store, requestedRoute: $requestedRoute, onSignOut: { onSignOut?() })
+        GroomerAccountView(store: store, requestedRoute: $requestedRoute, onSignOut: { onSignOut?() },
+            authenticationStore: authenticationStore)
     }
 }

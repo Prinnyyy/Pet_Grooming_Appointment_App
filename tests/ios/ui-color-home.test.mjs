@@ -28,7 +28,7 @@ test("Groomer Home follows the approved coral scene, count tiles and exceptional
   const home = read("Features/Groomer/Home/GroomerHomeView.swift");
   assert.match(home, /HomeHeader/);
   assert.match(home, /GroomerHomeTile/);
-  assert.match(home, /showsPup: false/);
+  assert.match(home, /BeckonLoadingHero\(isLoading: !isSettled/);
   assert.match(home, /case \.paused, \.needsSchedule/);
   assert.doesNotMatch(home, /let tint: Color|Colors\.groomerInk/);
 });
@@ -40,12 +40,12 @@ test("both roles use the adopted message surfaces with a role-derived accent", (
   assert.match(read("DesignSystem/BeckonRole.swift"), /UITraitBridgedEnvironmentKey/);
 });
 
-test("Groomer sign out uses the adopted Account access action", () => {
+test("Groomer Account reuses authenticated account actions with its existing sign-out identity", () => {
   const account = read("Features/Groomer/Profile/GroomerAccountView.swift");
-  assert.match(account, /Button\(action: onSignOut\)/);
-  assert.match(account, /groomer\.account\.sign-out/);
-  assert.match(account, /BeckonLedgeButtonStyle\(\.card\)/);
-  assert.doesNotMatch(account, /Delete account|Development/);
+  assert.match(account, /AccountDangerActions\(authenticationStore: authenticationStore/);
+  assert.match(account, /signOutIdentifier: "groomer\.account\.sign-out"/);
+  assert.match(read("Features/Auth/AuthenticatedEntryView.swift"), /authenticationStore: authenticationStore,\s*onSignOut: signOut/);
+  assert.match(read("Features/Groomer/GroomerTabView.swift"), /authenticationStore: authenticationStore\)/);
 });
 
 test("groomer destructive entries retain their style and shared confirmations use destructive dialog actions", () => {

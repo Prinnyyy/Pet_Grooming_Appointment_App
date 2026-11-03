@@ -18,6 +18,16 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-073
+Date: 2026-11-02
+Task: T-443
+Decision: Reuse customer account deletion and Home pup emergence on Groomer, preserving the groomer page arrangement and role palette.
+Context: The groomer Account used only a standalone sign-out action, and its Home deliberately disabled the shared pup.
+Consequences: Inject the same authenticated Store into shared AccountDangerActions, including existing confirmations, busy/error behavior and cleanup. Both Home cards use one BeckonLoadingHero reveal owner and the unchanged illustration animation; cached content starts at rest. Preview auth reuses the existing in-memory adapter. Sign-out button animation changes remain deferred by explicit user request; no backend change or real account deletion is part of acceptance.
+Linked files: docs/01_product/LIVELY_UI_SPEC.md; ios/Beckon/Beckon/Features/Groomer/Profile/GroomerAccountView.swift; ios/Beckon/Beckon/DesignSystem/BeckonExpressiveIllustration.swift.
+```
+
+```text
 Decision ID: D-072
 Date: 2026-11-02
 Task: T-442

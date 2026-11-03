@@ -523,6 +523,15 @@ final class GroomerSandboxSession {
     let notifications: GroomerNotificationsStore
     let home: GroomerHomeStore
     let account: GroomerProfileStore
+    /// Reuse the existing in-memory auth adapter; preview deletion never reaches a real account.
+    lazy var authentication: AuthenticationStore = {
+        let repository = CustomerSandboxAccount(state: .loaded, boundary: CustomerSandboxBoundary())
+        let session = AuthSessionSnapshot(userID: groomerID, email: "groomer@example.test")
+        repository.session = session
+        let store = AuthenticationStore(repository: repository, reminderScheduler: GroomerReminders())
+        store.rootState = .signedIn(session)
+        return store
+    }()
 
     /// `bookings`, `matches` and `offers` replace the fixtures' lists: a preview that needs a booking or a request in one particular
     /// moment (a service due, a review in, an offer with a problem).

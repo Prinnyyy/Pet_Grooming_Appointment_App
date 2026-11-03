@@ -93,7 +93,8 @@ struct AppFlowSandbox: View {
             case .customer:
                 CustomerTabView(sandbox: session)
             case .groomer:
-                GroomerTabView(sandbox: groomer, onSignOut: { Task { await session.authentication.signOut() } })
+                GroomerTabView(sandbox: groomer, authenticationStore: session.authentication,
+                    onSignOut: { Task { await session.authentication.signOut() } })
             default:
                 RoleOnboardingView(session: session.authSession, store: session.onboarding,
                     onSignOut: { Task { await session.authentication.signOut() } })
