@@ -231,6 +231,7 @@ struct ChatMessage: Equatable, Hashable, Identifiable, Sendable {
     let body: String?
     let booking: Booking?
     let createdAt: String
+    var bookingEvent: ChatBookingEvent? = nil
 
     nonisolated var bookingID: UUID? {
         booking?.id

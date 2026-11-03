@@ -147,7 +147,7 @@ final class ChatStore {
     }
 
     func displayMessages(for conversationID: UUID) -> [ChatMessage] {
-        let confirmed = messages(for: conversationID)
+        let confirmed = ChatLegacyBookingMessages.present(messages(for: conversationID))
         let ids = Set(confirmed.map(\.id))
         let pending = outgoingMessages.filter { $0.conversationID == conversationID && !ids.contains($0.id) }.map(\.message)
         return (confirmed + pending).enumerated().sorted { lhs, rhs in
@@ -224,6 +224,9 @@ final class ChatStore {
     }
 
     func previewText(for conversation: ChatConversation) -> String {
+        if let latest = messagesByConversationID[conversation.id]?.last, latest.kind == .bookingCard {
+            return latest.bookingEvent?.title ?? "Booking update"
+        }
         if let message = messagesByConversationID[conversation.id]?.last,
            Self.messageDate(message.createdAt) >= Self.messageDate(conversation.latestMessageCreatedAt ?? message.createdAt),
            let normalized = Self.normalizedPreview(message.body) {

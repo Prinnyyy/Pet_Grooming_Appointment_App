@@ -383,6 +383,7 @@ struct ChatThreadView: View {
     @State private var didActivate = false
     @State private var threadPosition = ScrollPosition(idType: UUID.self)
     @State private var isNearBottom = true
+    @State private var isUserScrolling = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var isComposing: Bool
 
@@ -478,6 +479,9 @@ struct ChatThreadView: View {
     @ViewBuilder
     private var threadContent: some View {
         let messages = store.displayMessages(for: conversation.id)
+        let completionCards = messages.filter { $0.kind == .bookingCard &&
+            ($0.bookingEvent?.isCompletion == true || ($0.bookingEvent == nil && $0.booking?.status == .completed)) }
+        let reviewAnchors = Set(Dictionary(grouping: completionCards, by: \.bookingID).values.compactMap { $0.last?.id })
         Group {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
@@ -514,7 +518,8 @@ struct ChatThreadView: View {
                                 systemImage: "chevron.up",
                                 loadingAccessibilityLabel: "Loading earlier messages"
                             ) {
-                                let anchorMessageID = store.messages(
+                                isNearBottom = false
+                                let anchorMessageID = store.displayMessages(
                                     for: conversation.id
                                 ).first?.id
                                 await store.loadNextMessagesPage(for: conversation)
@@ -530,6 +535,7 @@ struct ChatThreadView: View {
                                 message: message,
                                 isOutgoing: message.isSentBy(participantID),
                                 role: role,
+                                offersReview: reviewAnchors.contains(message.id),
                                 outgoing: store.outgoingMessage(id: message.id),
                                 retry: { store.retryMessage(id: message.id, in: conversation) },
                                 bookingStore: store.bookingDetailStore(
@@ -553,11 +559,19 @@ struct ChatThreadView: View {
             .defaultScrollAnchor(.bottom, for: .alignment)
             .defaultScrollAnchor(isNearBottom ? .bottom : nil, for: .sizeChanges)
             .onScrollGeometryChange(for: Bool.self) { geometry in
+                if geometry.contentSize.height + geometry.contentInsets.top + geometry.contentInsets.bottom <= geometry.containerSize.height {
+                    return true
+                }
                 let end = max(-geometry.contentInsets.top,
                     geometry.contentSize.height + geometry.contentInsets.bottom - geometry.containerSize.height)
                 return end - geometry.contentOffset.y <= DesignTokens.Spacing.lg
             } action: { _, nearBottom in
-                isNearBottom = nearBottom
+                // Lazy ticket heights may settle after the initial ID position. Only an actual
+                // user scroll should turn bottom-following off; layout changes are not reading intent.
+                if nearBottom || isUserScrolling { isNearBottom = nearBottom }
+            }
+            .onScrollPhaseChange { _, phase in
+                isUserScrolling = phase == .interacting || phase == .decelerating
             }
             .accessibilityIdentifier("chat.messages.list")
             .refreshable { await refreshThread() }
@@ -574,6 +588,7 @@ struct ChatThreadView: View {
                     isNearBottom: isNearBottom,
                     latestIsOutgoing: messages.last?.isSentBy(participantID) == true
                 ) else { return }
+                isNearBottom = true
                 withAnimation(reduceMotion ? nil : DesignTokens.Motion.reveal) {
                     if let latest = currentLatestMessageID { threadPosition.scrollTo(id: latest, anchor: .bottom) }
                 }
@@ -712,6 +727,7 @@ private struct ChatMessageRow: View {
     let message: ChatMessage
     let isOutgoing: Bool
     let role: UserRole
+    var offersReview = false
     var outgoing: ChatOutgoingMessage? = nil
     var retry: () -> Void = {}
     let bookingStore: BookingsStore?
@@ -798,30 +814,47 @@ private struct ChatMessageRow: View {
     }
 
     @ViewBuilder private var customerBookingCardRow: some View {
-        if let booking = message.booking,
-           let bookingStore {
-            CustomerNavigationLink(route: .grooming(.booking(booking.id))) {
-                ChatBookingDetailDestination(
-                    bookingID: booking.id,
-                    role: role,
-                    store: bookingStore
-                )
-            } label: {
-                ChatBookingMessageCard(
-                    booking: bookingStore.booking(withID: booking.id) ?? booking,
-                    role: role
-                )
-            }
-            .buttonStyle(BeckonLedgeButtonStyle(.card))
-            .accessibilityIdentifier(
-                "chat.message.booking.\(booking.id.uuidString.lowercased())"
-            )
-        } else if let booking = message.booking {
-            ChatBookingMessageCard(booking: booking, role: role)
-                .beckonLedge(.card)
-                .accessibilityHint("Updating booking details")
-        } else {
-            ChatBookingUnavailableCard()
+        HStack(spacing: 0) {
+            if isOutgoing { Spacer(minLength: DesignTokens.Spacing.xl) }
+            VStack(alignment: isOutgoing ? .trailing : .leading, spacing: DesignTokens.Spacing.xs) {
+                if let booking = message.booking {
+                    let current = bookingStore?.booking(withID: booking.id) ?? booking
+                    let event = message.bookingEvent
+                    VStack(spacing: 0) {
+                        ChatBookingMessageCard(booking: booking, role: role, event: event, includesFooter: false)
+                        DesignRowDivider()
+                        ChatBookingCardFooter(price: (event?.displayBooking(fallback: booking) ?? booking).priceSummary,
+                            cancelled: event?.isCancelled == true) {
+                            if let bookingStore {
+                                CustomerNavigationLink(route: .grooming(.booking(booking.id))) {
+                                    ChatBookingDetailDestination(bookingID: booking.id, role: role, store: bookingStore)
+                                } label: { ChatBookingDetailsLabel() }
+                                .buttonStyle(BeckonGuardedPlainButtonStyle())
+                            } else {
+                                ChatBookingDetailsLabel().opacity(0.5)
+                            }
+                        }
+                        if offersReview, current.status == .completed {
+                            DesignRowDivider()
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                                if role == .customer, let bookingStore {
+                                    BookingReviewEntry(booking: current, store: bookingStore)
+                                } else {
+                                    Label(current.review == nil ? "Awaiting customer review" : "Review submitted", systemImage: "star.bubble")
+                                        .font(DesignTokens.Typography.Expressive.chip)
+                                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                                }
+                            }.frame(maxWidth: .infinity, alignment: .leading).padding(DesignTokens.Spacing.md)
+                        }
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous))
+                    .beckonLedge(.card)
+                    .accessibilityIdentifier("chat.message.booking.\(booking.id.uuidString.lowercased())")
+                } else { ChatBookingUnavailableCard() }
+                Text(message.sentAtSummary).font(DesignTokens.Typography.Expressive.chip)
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
+            }.frame(maxWidth: 330, alignment: isOutgoing ? .trailing : .leading)
+            if !isOutgoing { Spacer(minLength: DesignTokens.Spacing.xl) }
         }
     }
 

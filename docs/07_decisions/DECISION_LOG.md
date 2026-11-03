@@ -18,6 +18,15 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-080
+Date: 2026-11-03
+Task: T-463
+Decision: Adopt compact actor-aligned event-time booking tickets and the approved simple Review sheet. Cancelled headers name the actor; other clear states use direction. Completion supplies a review entry, and no separate automatic text is generated.
+Consequences: Reuse message sender IDs, DesignSystem primitives and BookingsStore review authorization/submission/recovery. One nullable message booking_event stores immutable display facts; existing private booking writers populate it, retaining all admission/ownership/receipt logic. Reuse existing counterpart notification triggers for cards. Legacy display normalization requires an exact same-sender card/text pair one microsecond apart; no history deletion. Review uses stars, optional text and text starters, with account/booking-scoped in-memory drafts surviving dismissal/failure. No new repository, cache manager or public writer. Supersedes earlier full-width/centered live-status booking-card presentation and inline pet-fit review input; underlying review evidence data is preserved. Scoped remote deployment was explicitly authorized and completed with transactional rollback acceptance, unchanged message RLS, and no new client event writer.
+Linked files: docs/01_product/LIVELY_UI_SPEC.md; docs/03_backend/SUPABASE_CONTRACT.md; ios/Beckon/Beckon/Features/Bookings/BookingReviewSheet.swift; ios/Beckon/Beckon/Core/Models/ChatBookingEvent.swift.
+```
+
+```text
 Decision ID: D-079
 Date: 2026-11-03
 Task: T-461

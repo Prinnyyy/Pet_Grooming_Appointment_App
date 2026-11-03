@@ -8,7 +8,7 @@ final class SupabaseChatRepository: ChatRepository {
         """
     private static let groomerSummaryColumns = "user_id,business_name"
     private static let messageColumns =
-        "id,conversation_id,sender_id,kind,body,booking_id,created_at"
+        "id,conversation_id,sender_id,kind,body,booking_id,created_at,booking_event"
 
     private let client: SupabaseClient
     private let participantAvatarLoader: SupabaseParticipantAvatarLoader
@@ -432,7 +432,7 @@ private struct ChatConversationRow: Decodable {
             counterpartAvatarPhotoData: counterpartAvatarPhotoData,
             latestMessageSenderID: latestMessage?.senderID,
             latestMessageCreatedAt: latestMessage?.createdAt,
-            latestMessageBody: latestMessage?.body,
+            latestMessageBody: latestMessage?.kind == .bookingCard ? "Booking update" : latestMessage?.body,
             createdAt: createdAt,
             updatedAt: updatedAt,
             serviceTimeZoneIdentifier: bookingSummary?.serviceTimeZoneIdentifier
@@ -545,6 +545,7 @@ private struct ChatMessageRow: Decodable {
     let kind: ChatMessageKind
     let body: String?
     let bookingID: UUID?
+    let bookingEvent: ChatBookingEvent?
     let createdAt: String
 
     func message(booking: Booking?) -> ChatMessage {
@@ -555,7 +556,8 @@ private struct ChatMessageRow: Decodable {
             kind: kind,
             body: body,
             booking: booking,
-            createdAt: createdAt
+            createdAt: createdAt,
+            bookingEvent: bookingEvent?.verified(bookingID: bookingID, senderID: senderID)
         )
     }
 
@@ -565,6 +567,7 @@ private struct ChatMessageRow: Decodable {
         case senderID = "sender_id"
         case kind
         case body
+        case bookingEvent = "booking_event"
         case bookingID = "booking_id"
         case createdAt = "created_at"
     }

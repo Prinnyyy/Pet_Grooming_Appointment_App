@@ -85,6 +85,7 @@ export const LEDGE_TIER_PATHS = Object.freeze([
   "Features/Customer/Discovery/GroomerCandidateActionsView.swift",
   "Features/Customer/Discovery/GroomerCandidateSummaryView.swift",
   "Features/Bookings/BookingsView.swift",
+  "Features/Bookings/BookingReviewSheet.swift",
   "Features/Bookings/BookingActionDialogs.swift",
   "Features/Bookings/AppointmentReminderDestinationView.swift",
   "Features/Chat/ChatView.swift",

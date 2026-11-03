@@ -114,14 +114,17 @@ private nonisolated struct CachedChatMessage: Codable, Sendable {
     let body: String?
     let createdAt: String
     let booking: CachedChatBooking?
+    var bookingEvent: ChatBookingEvent? = nil
     init(_ message: ChatMessage) {
         id = message.id; conversationID = message.conversationID; senderID = message.senderID
         kind = message.kind; body = message.body; createdAt = message.createdAt
         booking = message.booking.map(CachedChatBooking.init)
+        bookingEvent = message.bookingEvent
     }
     var value: ChatMessage {
         ChatMessage(id: id, conversationID: conversationID, senderID: senderID,
-            kind: kind, body: body, booking: booking?.value, createdAt: createdAt)
+            kind: kind, body: body, booking: booking?.value, createdAt: createdAt,
+            bookingEvent: bookingEvent?.verified(bookingID: booking?.id, senderID: senderID))
     }
 }
 

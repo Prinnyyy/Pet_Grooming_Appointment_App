@@ -51,6 +51,7 @@ final class BookingsStore {
     private(set) var isCancelling = false
     private(set) var isCompleting = false
     private(set) var isSubmittingReview = false
+    private(set) var reviewComposeDrafts: [UUID: BookingReviewComposeDraft] = [:]
     private(set) var reviewContexts: [UUID: BookingReviewContext] = [:]
     private(set) var reviewContextErrors: [UUID: String] = [:]
     private(set) var loadingReviewContexts: Set<UUID> = []
@@ -818,6 +819,15 @@ final class BookingsStore {
         }
     }
 
+    func reviewComposeDraft(for bookingID: UUID) -> BookingReviewComposeDraft {
+        reviewComposeDrafts[bookingID] ?? .init()
+    }
+
+    func updateReviewComposeDraft(_ draft: BookingReviewComposeDraft, for booking: Booking) {
+        guard sessionIsCurrent(), role == .customer, owns(booking), booking.review == nil else { return }
+        reviewComposeDrafts[booking.id] = draft
+    }
+
     func loadReviewContext(for booking: Booking) async {
         guard sessionIsCurrent(), !Task.isCancelled, owns(booking), role == .customer,
               booking.canReview(for: role) else { return }
@@ -901,6 +911,7 @@ final class BookingsStore {
 
             try Task.checkCancellation()
             guard sessionIsCurrent() else { return }
+            reviewComposeDrafts[booking.id] = nil
             let wasLoaded = self.booking(withID: booking.id) != nil
             if wasLoaded {
                 synchronizeExternalBooking(updatedBooking)
@@ -962,6 +973,7 @@ final class BookingsStore {
               review.groomerID == current.groomerID else { return false }
         synchronizeExternalBooking(current)
         errorMessage = nil
+        reviewComposeDrafts[booking.id] = nil
         noticeMessage = "Your saved review has been restored."
         return true
     }
