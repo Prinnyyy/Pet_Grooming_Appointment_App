@@ -18,6 +18,16 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-075
+Date: 2026-11-02
+Task: T-446
+Decision: Supersede only the color portion of the T-444 clarification in D-073 with one fixed warm mascot palette across all roles.
+Consequences: Brown ears #92592F, honey marking #EDBD82, warm dark ink #3A2B25 and peach-rose blush/tongue #F6A29D; white fur and warm-divider paw detail remain. Shared shape, size and animation remain unchanged; BeckonPup code is untouched. Remove the unused old LaunchLockup asset; LaunchWash remains the storyboard asset. User owns visual inspection. Validation: Debug build succeeded; the two requested mascot rendering tests passed (/tmp/Beckon-T446-focused.xcresult); UI audit and all 14 ui-color tests passed. DESIGN_SYSTEM.md contains no old mascot palette names and needs no change.
+Linked files: ios/Beckon/Beckon/DesignSystem/DesignTokens.swift; docs/01_product/LIVELY_UI_SPEC.md.
+```
+
+
+```text
 Decision ID: D-074
 Date: 2026-11-02
 Task: T-445

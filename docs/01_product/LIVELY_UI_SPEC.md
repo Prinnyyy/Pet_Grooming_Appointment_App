@@ -45,7 +45,7 @@ Surfaces are a closed set, `BeckonLedgeSurface`: `card`, `round`, `primary`, `pi
 Role meaning is unchanged: mint is Customer action and selection, coral is Groomer, status uses status Text/Fill/Border with symbol and label.
 
 - **Ledge is opaque.** Card ledge `border`, round control ledge `border`, dashed slot `borderSoft`, primary button and pill ledge `customerDeep`, hero ledge `customerFillPressed`. No blur, no glow, no translucent lip. It is a lip, not a shadow.
-- **Allowed decorative exceptions, nothing else:** amber `ratingStar` for sparkles and the greeting hand (never state, text or a fine line); coral inside the pup illustration only; the hero's drifting bubbles. All decorative pieces are accessibility-hidden and cannot take touches.
+- **Allowed decorative exceptions, nothing else:** amber `ratingStar` for sparkles and the greeting hand (never state, text or a fine line); fixed warm mascot colors (brown ears #92592F, honey marking #EDBD82, warm dark ink #3A2B25, peach-rose blush/tongue #F6A29D, white fur and warm-divider paw detail); the hero's drifting bubbles. All decorative pieces are accessibility-hidden and cannot take touches.
 - **Never:** white text on a light role Fill; token `.opacity()` as a fill; Groomer coral for Customer content that is not groomer-owned; gradient buttons; a new hue.
 
 Pairs the kit uses (all asserted in `ExpressiveTokenTests`):
@@ -77,7 +77,7 @@ Pairs the kit uses (all asserted in `ExpressiveTokenTests`):
 | `BeckonLedgeNote`, `BeckonLedgeAddSlot` | Empty/info note, dashed add slot | L, M | |
 | `BeckonDateTile`, `BeckonCountdownStrip` | Booking date tile and countdown strip | L, M | `BeckonBookingCountdown` (Core) computes labels in the booking's time zone |
 | `BeckonPortrait` | Pet tile with halo and hop | L | A photo replaces the artwork |
-| `BeckonLedgeHero`, `BeckonPup`, `BeckonBubbles`, `BeckonShine`, `BeckonSparkle`, `BeckonWaveHand` | Illustration layer | L only | Pup is the only coral in Customer UI |
+| `BeckonLedgeHero`, `BeckonPup`, `BeckonBubbles`, `BeckonShine`, `BeckonSparkle`, `BeckonWaveHand` | Illustration layer | L only | Pup uses one fixed warm brand palette across roles |
 | `BeckonExpressiveNotificationBell` | Ledge bell with swing and badge pop | L, M | Groomer keeps `BeckonNotificationBellButton` |
 | `DesignPage`, `DesignSection`, `DesignIconDisc`, `DesignValueRow`, `DesignStepPath`, `DesignActionBar` | Shared page/chrome composition | L, M | Inputs and business actions stay feature/Store-owned |
 | `DesignDialog`, `DesignSnackbar`, `FeedbackTimingPolicy` | Decisions, choices, Undo and readable expiry | M | One shared presenter and timing policy; no duplicated screen timers |

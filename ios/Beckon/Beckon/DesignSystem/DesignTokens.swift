@@ -13,6 +13,10 @@ enum DesignTokens {
     }
 
     nonisolated enum Palette {
+        static let mascotEar: UInt = 0x92592F
+        static let mascotMarking: UInt = 0xEDBD82
+        static let mascotInk: UInt = 0x3A2B25
+        static let mascotBlush: UInt = 0xF6A29D
         static let mintFill: UInt = 0x81D0C2
         static let mintFillPressed: UInt = 0x73BEB1
         static let mintInk: UInt = 0x0F3D35
@@ -180,13 +184,13 @@ enum DesignTokens {
 
     }
 
-    /// Brand character colors are fixed across roles; preserve the original customer mascot.
+    /// Brand character colors are fixed across roles; warm browns, honey and peach-rose suit both role backgrounds.
     enum Mascot {
         static let fur = Color(hex: Palette.white)
-        static let marking = Color(hex: Palette.mintHeroBubble)
-        static let ear = Color(hex: Palette.mintDeep)
-        static let ink = Color(hex: Palette.mintInk)
-        static let blush = Color(hex: Palette.coralFill)
+        static let marking = Color(hex: Palette.mascotMarking)
+        static let ear = Color(hex: Palette.mascotEar)
+        static let ink = Color(hex: Palette.mascotInk)
+        static let blush = Color(hex: Palette.mascotBlush)
         static let pawDetail = Color(hex: Palette.warmDivider)
     }
 
