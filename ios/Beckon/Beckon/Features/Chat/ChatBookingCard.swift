@@ -20,17 +20,9 @@ struct ChatBookingMessageCard: View {
         if event.isWarning { return .warning }
         return .accent
     }
-    private var symbol: String {
-        if cancelled { return "calendar.badge.minus" }
-        if event?.isCompletion == true { return "checkmark.seal.fill" }
-        if event?.action == "start" { return "scissors" }
-        if event?.isWarning == true { return "exclamationmark.bubble" }
-        if event?.action.hasPrefix("reschedule_") == true { return "calendar.badge.clock" }
-        return "calendar.badge.checkmark"
-    }
     var body: some View {
         VStack(spacing: 0) {
-            BeckonStateStrip(title: event?.title ?? "Booking update", systemImage: symbol, tone: tone, mark: "#\(booking.referenceCode)")
+            BeckonStateStrip(title: event?.title ?? "Booking update", tone: tone, mark: "#\(booking.referenceCode)")
             HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
                 if !typeSize.isAccessibilitySize, let parts = BeckonBookingCountdown.dateParts(for: display) {
                     VStack(spacing: 0) {
@@ -103,7 +95,7 @@ struct ChatBookingCardFooter<Details: View>: View {
 
 struct ChatBookingUnavailableCard: View {
     var body: some View {
-        BeckonStateStrip(title: "This grooming is unavailable", systemImage: "calendar.badge.exclamationmark", tone: .neutral)
+        BeckonStateStrip(title: "This grooming is unavailable", tone: .neutral)
             .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous))
             .beckonLedge(.card)
     }
