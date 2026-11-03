@@ -5,6 +5,36 @@ import XCTest
 
 @MainActor
 final class RoleKitTests: XCTestCase {
+    func testMascotKeepsTheSameAppearanceAcrossRoles() async throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        window.overrideUserInterfaceStyle = .light
+        defer { window.isHidden = true; window.rootViewController = nil; previous?.makeKey() }
+
+        for excited in [false, true] {
+            let host = UIHostingController(rootView: BeckonPup(time: 0, excited: excited)
+                .frame(maxWidth: .infinity, maxHeight: .infinity).background(Color.white))
+            window.rootViewController = host
+            window.makeKeyAndVisible()
+            func pixels(role: BeckonRole) async throws -> Data {
+                host.traitOverrides.beckonRole = role
+                host.view.setNeedsLayout()
+                host.view.layoutIfNeeded()
+                try await Task.sleep(for: .milliseconds(100))
+                XCTAssertEqual(host.traitCollection.beckonRole, role)
+                let image = UIGraphicsImageRenderer(bounds: host.view.bounds).image { _ in
+                    host.view.drawHierarchy(in: host.view.bounds, afterScreenUpdates: true)
+                }
+                return try XCTUnwrap(image.cgImage?.dataProvider?.data) as Data
+            }
+            let customer = try await pixels(role: .customer)
+            XCTAssertGreaterThan(Set(customer).count, 10, "The comparison must contain the rendered mascot")
+            let groomer = try await pixels(role: .groomer)
+            XCTAssertTrue(customer == groomer, "The mascot must not inherit the page's role colors; excited=\(excited)")
+        }
+    }
+
     func testAccentResolvesFromRoleWithoutChangingCustomerPalette() {
         typealias C = DesignTokens.Colors
         typealias H = DesignTokens.ColorHex

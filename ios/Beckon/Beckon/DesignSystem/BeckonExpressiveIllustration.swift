@@ -305,24 +305,24 @@ struct BeckonPup: View {
             earShape.rotationEffect(.degrees(-(earRest - earSwing)), anchor: .top).position(x: 95, y: 39 + bob * 0.5)
 
             RoundedRectangle(cornerRadius: 36, style: .continuous)
-                .fill(DesignTokens.Colors.surface)
+                .fill(DesignTokens.Mascot.fur)
                 .frame(width: 88, height: 68)
                 .position(x: 60, y: 38 + bob)
 
-            Circle().fill(DesignTokens.Colors.customerHeroBubble).frame(width: 28, height: 28)
+            Circle().fill(DesignTokens.Mascot.marking).frame(width: 28, height: 28)
                 .position(x: 40, y: 36 + bob)
 
             eye.position(x: 41, y: 36 + bob).scaleEffect(y: blinking ? 0.1 : 1)
             eye.position(x: 79, y: 36 + bob).scaleEffect(y: blinking ? 0.1 : 1)
 
-            Circle().fill(DesignTokens.Colors.groomerFill).frame(width: 13, height: 13).position(x: 30, y: 50 + bob)
-            Circle().fill(DesignTokens.Colors.groomerFill).frame(width: 13, height: 13).position(x: 90, y: 50 + bob)
+            Circle().fill(DesignTokens.Mascot.blush).frame(width: 13, height: 13).position(x: 30, y: 50 + bob)
+            Circle().fill(DesignTokens.Mascot.blush).frame(width: 13, height: 13).position(x: 90, y: 50 + bob)
 
             if excited {
-                Capsule().fill(DesignTokens.Colors.groomerFill).frame(width: 11, height: 15).position(x: 60, y: 62 + bob)
+                Capsule().fill(DesignTokens.Mascot.blush).frame(width: 11, height: 15).position(x: 60, y: 62 + bob)
             }
             RoundedRectangle(cornerRadius: 5, style: .continuous)
-                .fill(DesignTokens.Colors.customerInk).frame(width: 16, height: 11).position(x: 60, y: 46 + bob)
+                .fill(DesignTokens.Mascot.ink).frame(width: 16, height: 11).position(x: 60, y: 46 + bob)
             Path { path in
                 path.move(to: CGPoint(x: 60, y: 51))
                 path.addLine(to: CGPoint(x: 60, y: 55))
@@ -331,7 +331,7 @@ struct BeckonPup: View {
                 path.addQuadCurve(to: CGPoint(x: 69, y: 56), control: CGPoint(x: 64, y: 61))
             }
             .offset(y: bob)
-            .stroke(DesignTokens.Colors.customerInk, style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round))
+            .stroke(DesignTokens.Mascot.ink, style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round))
 
             paw.scaleEffect(pawsLanded).offset(y: (1 - pawsLanded) * -16).position(x: 37, y: 80 + hop)
             paw.scaleEffect(pawsLanded).offset(y: (1 - pawsLanded) * -16).position(x: 83, y: 80 + hop)
@@ -343,14 +343,14 @@ struct BeckonPup: View {
 
     private var earShape: some View {
         RoundedRectangle(cornerRadius: 14, style: .continuous)
-            .fill(DesignTokens.Colors.customerDeep)
+            .fill(DesignTokens.Mascot.ear)
             .frame(width: 28, height: 46)
     }
 
     private var eye: some View {
         ZStack(alignment: .topTrailing) {
-            Ellipse().fill(DesignTokens.Colors.customerInk).frame(width: 11, height: 14)
-            Circle().fill(DesignTokens.Colors.surface).frame(width: 4, height: 4).offset(x: -1.5, y: 2)
+            Ellipse().fill(DesignTokens.Mascot.ink).frame(width: 11, height: 14)
+            Circle().fill(DesignTokens.Mascot.fur).frame(width: 4, height: 4).offset(x: -1.5, y: 2)
         }
         .frame(width: 11, height: 14)
         .scaleEffect(excited ? 1.15 : 1)
@@ -359,11 +359,11 @@ struct BeckonPup: View {
     private var paw: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(DesignTokens.Colors.surface)
+                .fill(DesignTokens.Mascot.fur)
                 .frame(width: 34, height: 21)
             HStack(spacing: 6) {
-                Capsule().fill(DesignTokens.Colors.borderSoft).frame(width: 2.5, height: 8)
-                Capsule().fill(DesignTokens.Colors.borderSoft).frame(width: 2.5, height: 8)
+                Capsule().fill(DesignTokens.Mascot.pawDetail).frame(width: 2.5, height: 8)
+                Capsule().fill(DesignTokens.Mascot.pawDetail).frame(width: 2.5, height: 8)
             }
             .offset(y: 3)
         }

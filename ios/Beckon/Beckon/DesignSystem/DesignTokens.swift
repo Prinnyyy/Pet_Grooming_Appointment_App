@@ -180,6 +180,16 @@ enum DesignTokens {
 
     }
 
+    /// Brand character colors are fixed across roles; preserve the original customer mascot.
+    enum Mascot {
+        static let fur = Color(hex: Palette.white)
+        static let marking = Color(hex: Palette.mintHeroBubble)
+        static let ear = Color(hex: Palette.mintDeep)
+        static let ink = Color(hex: Palette.mintInk)
+        static let blush = Color(hex: Palette.coralFill)
+        static let pawDetail = Color(hex: Palette.warmDivider)
+    }
+
     // Decorative material, not a control surface or an informational foreground.
     enum BrandIllustration {
         static let body = Colors.customerFill

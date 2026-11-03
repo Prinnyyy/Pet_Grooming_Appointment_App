@@ -12,7 +12,7 @@ Lively means the interface behaves like a physical object that answers back, and
 
 1. **Tactile.** Tappable surfaces have a solid ledge (lip). Pressing sinks the face into the lip, then springs back, with a medium haptic.
 2. **Springy.** Things arrive with a small overshoot and settle. Nothing slides linearly into place.
-3. **Characterful.** One recurring character (the pup) and a few bounded decorative loops give the screen a pulse. Character lives in illustration, never in controls or data.
+3. **Characterful.** One recurring character (the pup) and a few bounded decorative loops give the screen a pulse. The mascot has one shared shape and fixed brand colors in launch, Customer and Groomer; role themes never recolor its ears, markings, face or paws. Character lives in illustration, never in controls or data.
 4. **Guided.** Each module tells the user the next step in one line, and progress is a path with a current step, not a bar.
 5. **Earned restraint.** Lively is spent where the user decides or celebrates. Where the user types, pays, reads a thread or works a schedule, the existing calm contract applies.
 
