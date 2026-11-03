@@ -232,7 +232,7 @@ private struct BeckonJourneyNode: View {
 
 
 /// Open triangle: the fill covers the bubble's bottom edge, the stroke only draws the two outer sides.
-private struct BeckonBubbleTail: Shape {
+private nonisolated struct BeckonBubbleTail: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
         path.move(to: CGPoint(x: rect.minX, y: rect.minY))

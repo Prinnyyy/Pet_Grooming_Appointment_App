@@ -1,10 +1,10 @@
 import Foundation
 
-struct SupabaseFulfillmentResponse: Decodable {
+nonisolated struct SupabaseFulfillmentResponse: Decodable {
     let receipt: BookingFulfillmentReceipt
     let booking: SupabaseBookingRow
     let replayed: Bool
-    var result: BookingFulfillmentResult {
+    @MainActor var result: BookingFulfillmentResult {
         BookingFulfillmentResult(receipt: receipt, booking: booking.booking, replayed: replayed)
     }
 }

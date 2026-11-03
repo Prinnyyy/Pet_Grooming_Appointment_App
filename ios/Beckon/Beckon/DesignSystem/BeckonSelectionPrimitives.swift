@@ -101,7 +101,7 @@ struct BeckonTickCircle: View {
 
 
 /// The tick of `BeckonTickCircle`: one stroke, short leg then long leg, so `trim` draws it in the way a hand would.
-struct BeckonTickShape: Shape {
+nonisolated struct BeckonTickShape: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
         path.move(to: CGPoint(x: rect.minX, y: rect.minY + rect.height * 0.55))

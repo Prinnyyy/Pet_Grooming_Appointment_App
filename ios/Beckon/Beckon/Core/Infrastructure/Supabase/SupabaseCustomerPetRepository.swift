@@ -337,14 +337,14 @@ private struct PetRow: Decodable {
     }
 }
 
-private struct PetSaveRow: Decodable {
+private nonisolated struct PetSaveRow: Decodable {
     let petID: UUID
     let resultRevision: UUID
     let replayed: Bool
     let state: CustomerPetSaveResult.State
     let pet: PetRow?
 
-    func result() throws -> CustomerPetSaveResult {
+    @MainActor func result() throws -> CustomerPetSaveResult {
         switch state {
         case .active:
             guard let pet, pet.id == petID, pet.isActive, pet.revision != nil else {

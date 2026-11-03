@@ -1050,14 +1050,14 @@ struct GroomerAvailabilityWindowRow: Decodable {
     }
 }
 
-private struct GroomerAvailabilitySnapshotRow: Decodable {
+private nonisolated struct GroomerAvailabilitySnapshotRow: Decodable {
     let revision: String
     let windows: [GroomerAvailabilityWindowRow]
     let preferences: GroomerBookingPreferencesRow
     let time_off: [GroomerTimeOffWindowRow]
     let timing_version: Int?
 
-    func snapshot(groomerID: UUID) throws -> GroomerAvailabilitySnapshot {
+    @MainActor func snapshot(groomerID: UUID) throws -> GroomerAvailabilitySnapshot {
         let decodedWindows = windows.compactMap(\.window)
         guard decodedWindows.count == windows.count,
               decodedWindows.allSatisfy({ $0.groomerID == groomerID }),

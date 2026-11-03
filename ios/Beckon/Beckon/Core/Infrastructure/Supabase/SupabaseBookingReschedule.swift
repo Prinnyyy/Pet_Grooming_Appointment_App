@@ -1,10 +1,10 @@
 import Foundation
 
-struct SupabaseRescheduleResponse: Decodable {
+nonisolated struct SupabaseRescheduleResponse: Decodable {
     let booking: SupabaseBookingRow
     let proposal: BookingRescheduleProposal?
     let receipt: BookingRescheduleReceipt?
-    var result: BookingRescheduleResult {
+    @MainActor var result: BookingRescheduleResult {
         BookingRescheduleResult(booking: booking.booking, proposal: proposal, receipt: receipt)
     }
 }

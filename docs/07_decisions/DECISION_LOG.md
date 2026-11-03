@@ -18,6 +18,16 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-076
+Date: 2026-11-02
+Task: T-447
+Decision: Offer progress has one button-owned presentation; duration uses the native hours/minutes wheels; tab-bar restoration follows completed navigation rather than viewWillDisappear.
+Consequences: Preserve 15–720 minute precision, service defaults and submission validation. Reuse BeckonTabBarOwner for all existing hidden destinations, including cancelled returns, nested pages, inactive tabs and Reduce Motion. Use UIKit setTabBarHidden(_:animated:) after completion. Xcode 27.2 compatibility requires explicit nonisolated declarations for wire decoding and pure Shape values; conversion/validation methods retain MainActor isolation, with no backend contract or artwork change. User-owned local prototype files remain untouched and are excluded from production-only compilation. Acceptance: Xcode 27.2 build-for-testing passed; 64 Swift Testing cases and four native XCTest cases passed in /tmp/Beckon-T447-focused.xcresult, including timer bounds, retained drafts, real UIKit interactive cancellation/completion and the SwiftUI shell. No repeated screenshot review; final appearance is user-reviewed. Device build, profile membership/signature checks, installation and actual process launch on the connected iPhone passed; evidence /tmp/Beckon-T447-device-build.log, /tmp/Beckon-T447-installed.json and /tmp/Beckon-T447-launch.json. Preflight passed.
+Linked files: docs/01_product/LIVELY_UI_SPEC.md; ios/Beckon/Beckon/DesignSystem/BeckonTabBarOwner.swift; ios/Beckon/Beckon/Features/Groomer/Requests/GroomerOfferForm.swift.
+```
+
+
+```text
 Decision ID: D-075
 Date: 2026-11-02
 Task: T-446

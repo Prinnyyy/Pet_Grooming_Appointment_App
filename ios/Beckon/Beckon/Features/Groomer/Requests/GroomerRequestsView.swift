@@ -405,10 +405,6 @@ struct GroomerRequestsStatusView: View {
             return BeckonGlobalFeedbackProgress(scope: .operation("groomer.requests.dismiss"),
                 sourceKey: "groomer.requests.dismiss-progress", title: "Dismissing…", tone: .groomer)
         }
-        if store.isSubmittingOffer {
-            return BeckonGlobalFeedbackProgress(scope: .operation("groomer.requests.offer"),
-                sourceKey: "groomer.requests.offer-progress", title: "Submitting offer…", tone: .groomer)
-        }
         if store.isWithdrawingOffer {
             return BeckonGlobalFeedbackProgress(scope: .operation("groomer.requests.withdraw"),
                 sourceKey: "groomer.requests.withdraw-progress", title: "Withdrawing offer…", tone: .groomer)

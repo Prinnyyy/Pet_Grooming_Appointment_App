@@ -119,7 +119,7 @@ struct BeckonHomeScene: View {
 
 /// A mountain range: a rolling ridge, the peaks rounded, filled down past the bottom of the scene (the layers part a little when the
 /// page is scrolled up, and no gap may open between a range and the lawn in front of it).
-private struct BeckonRangeShape: Shape {
+private nonisolated struct BeckonRangeShape: Shape {
     let ridge: [(CGFloat, CGFloat)]
     let baseY: CGFloat
 
@@ -145,7 +145,7 @@ private struct BeckonRangeShape: Shape {
 
 
 /// The lawn: a low rolling crest across the width, filled below.
-private struct BeckonLawnShape: Shape {
+private nonisolated struct BeckonLawnShape: Shape {
     let baseY: CGFloat
 
     func path(in rect: CGRect) -> Path {

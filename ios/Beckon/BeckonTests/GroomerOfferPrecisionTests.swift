@@ -3,6 +3,25 @@ import Testing
 @testable import Beckon
 
 @MainActor struct GroomerOfferPrecisionTests {
+    @Test func timerWheelsPreserveTotalMinutesAndServiceBounds() {
+        let session = GroomerSandboxSession(state: .loaded)
+        let form = GroomerOfferFormState(store: session.requests)
+        form.durationMinutesText = "95"
+        #expect(form.durationHours == 1 && form.durationMinutePart == 35)
+        form.durationHours = 2
+        #expect(form.durationMinutesText == "155")
+        form.durationMinutePart = 47
+        #expect(form.durationMinutesText == "167")
+        form.durationHours = 0
+        #expect(form.durationMinutesText == "47")
+        #expect(form.availableDurationMinutes == 15...59)
+        form.durationMinutePart = 0
+        #expect(form.durationMinutesText == "15")
+        form.durationHours = 12
+        #expect(form.durationMinutesText == "720")
+        #expect(form.availableDurationMinutes == 0...0)
+    }
+
     @Test func untouchedStartPreservesWindowSecondsButAnEditedMinuteUsesThePicker() async throws {
         let session = GroomerSandboxSession(state: .loaded)
         await session.requests.load()

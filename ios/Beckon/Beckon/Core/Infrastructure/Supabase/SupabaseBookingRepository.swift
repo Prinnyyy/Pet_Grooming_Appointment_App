@@ -869,7 +869,7 @@ private struct CompleteBookingRow: Decodable {
     }
 }
 
-private struct CreateReviewRow: Decodable {
+private nonisolated struct CreateReviewRow: Decodable {
     let reviewID: UUID
     let bookingID: UUID
     let customerID: UUID

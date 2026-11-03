@@ -28,6 +28,17 @@ struct MatchEligibilityContractTests {
 
 @MainActor
 final class GroomerOfferTimingRenderingTests: XCTestCase {
+    private func minuteWheels(_ view: UIView) -> [UIPickerView] {
+        (view as? UIPickerView).map { [$0] } ?? view.subviews.flatMap { minuteWheels($0) }
+    }
+
+    private func selectMinutes(_ minutes: Int, in picker: UIPickerView) {
+        // This helper receives the hours wheel. Tests below use whole-hour values.
+        let row = minutes / 60
+        picker.selectRow(row, inComponent: 0, animated: false)
+        picker.delegate?.pickerView?(picker, didSelectRow: row, inComponent: 0)
+    }
+
     func testReturningWhileCancelledInitializationIsPendingStartsFreshRead() async throws {
         let owner = UUID()
         let start = Date().addingTimeInterval(86400)
@@ -88,10 +99,9 @@ final class GroomerOfferTimingRenderingTests: XCTestCase {
             try await Task.sleep(for: .milliseconds(150))
         }
         let fields = descendants(host.view, of: UITextField.self)
-        let duration = try XCTUnwrap(fields.first { $0.placeholder == "Duration (minutes)" })
+        let duration = try XCTUnwrap(descendants(host.view, of: UIPickerView.self).first)
         let price = try XCTUnwrap(fields.first { $0.placeholder == "Price estimate" })
-        duration.text = "45"
-        duration.sendActions(for: .editingChanged)
+        selectMinutes(120, in: duration)
         price.text = "127"
         price.sendActions(for: .editingChanged)
         let picker = try XCTUnwrap(descendants(host.view, of: UIDatePicker.self).first)
@@ -101,7 +111,7 @@ final class GroomerOfferTimingRenderingTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(300))
         XCTAssertTrue(firstReadWasCancelled)
         XCTAssertEqual(picker.date, startBeforeLateRead)
-        XCTAssertEqual(duration.text, "45")
+        XCTAssertEqual(duration.selectedRow(inComponent: 0), 2)
         XCTAssertEqual(price.text, "127")
         XCTAssertEqual(repository.createOfferCallCount, 0)
     }
@@ -215,11 +225,10 @@ final class GroomerOfferTimingRenderingTests: XCTestCase {
             XCTAssertEqual(repository.createOfferCallCount, 0)
             return
         }
-        let duration = try XCTUnwrap(textFields(host.view).first { $0.placeholder == "Duration (minutes)" })
-        duration.text = "60"
-        duration.sendActions(for: .editingChanged)
+        let duration = try XCTUnwrap(minuteWheels(host.view).first)
+        selectMinutes(60, in: duration)
         try await Task.sleep(for: .milliseconds(300))
-        XCTAssertEqual(duration.text, "60")
+        XCTAssertEqual(duration.selectedRow(inComponent: 0), 1)
         if destinationFailure {
             XCTAssertTrue(datePickers(host.view).isEmpty)
             if FileManager.default.fileExists(atPath: "/tmp/beckon-t374-destination-retry") {
@@ -241,7 +250,7 @@ final class GroomerOfferTimingRenderingTests: XCTestCase {
                 let recovered = try XCTUnwrap(datePickers(host.view).first)
                 XCTAssertEqual(recovered.date, try GroomingServiceTiming.wallInput(for: start,
                     timeZoneIdentifier: "America/Los_Angeles"))
-                XCTAssertEqual(duration.text, "60")
+                XCTAssertEqual(duration.selectedRow(inComponent: 0), 1)
                 XCTAssertEqual(price.text, "127")
                 let recoveredImage = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
                     window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
@@ -275,8 +284,8 @@ final class GroomerOfferTimingRenderingTests: XCTestCase {
             XCTAssertEqual(changedPicker.calendar.identifier, .gregorian)
             XCTAssertEqual(changedPicker.timeZone?.secondsFromGMT(), 0)
             XCTAssertEqual(changedPicker.date, repeatedWallTime)
-            XCTAssertEqual(duration.text, "60")
-            duration.becomeFirstResponder()
+            XCTAssertEqual(duration.selectedRow(inComponent: 0), 1)
+            try XCTUnwrap(textFields(host.view).first { $0.placeholder == "Price estimate" }).becomeFirstResponder()
             try await Task.sleep(for: .milliseconds(500))
             let keyboardImage = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
                 window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
@@ -285,7 +294,7 @@ final class GroomerOfferTimingRenderingTests: XCTestCase {
             keyboardAttachment.name = "T-374 compact large-text keyboard after device environment change"
             keyboardAttachment.lifetime = .keepAlways
             add(keyboardAttachment)
-            duration.resignFirstResponder()
+            host.view.endEditing(true)
         }
         let repeated = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)

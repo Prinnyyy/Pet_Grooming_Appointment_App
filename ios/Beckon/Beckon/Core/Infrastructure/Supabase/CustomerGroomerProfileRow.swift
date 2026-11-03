@@ -1,7 +1,7 @@
 import Foundation
 
 /// Reuses the groomer's existing row decoders; the RPC only returns the customer-safe columns.
-struct CustomerGroomerProfileRow: Decodable {
+nonisolated struct CustomerGroomerProfileRow: Decodable {
     let profile: MarketplaceGroomerSummaryRow
     let services: [GroomerServiceWireRow]
     let photos: [GroomerPortfolioPhotoRow]
@@ -13,7 +13,7 @@ struct CustomerGroomerProfileRow: Decodable {
     let noticeDays: Int?
     let timeOff: GroomerTimeOffWindowRow?
 
-    func profile(expectedID: UUID) throws -> CustomerGroomerProfile {
+    @MainActor func profile(expectedID: UUID) throws -> CustomerGroomerProfile {
         guard profile.id == expectedID,
               services.allSatisfy({ $0.groomerID == expectedID && $0.isActive }),
               photos.allSatisfy({ $0.groomerID == expectedID && $0.storageBucket == "groomer-portfolio"

@@ -45,7 +45,21 @@ struct GroomerOfferForm: View {
 
             startField
 
-            textField("Duration (minutes)", text: $form.durationMinutesText, target: .duration, keyboard: .numberPad)
+            field("Duration") {
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    Picker("Hours", selection: Binding(get: { form.durationHours }, set: { form.durationHours = $0 })) {
+                        ForEach(0...12, id: \.self) { Text("\($0) hr").tag($0) }
+                    }
+                    .accessibilityIdentifier("groomer.offers.duration.hours")
+                    Picker("Minutes", selection: Binding(get: { form.durationMinutePart }, set: { form.durationMinutePart = $0 })) {
+                        ForEach(form.availableDurationMinutes, id: \.self) { Text("\($0) min").tag($0) }
+                    }
+                    .accessibilityIdentifier("groomer.offers.duration.minutes")
+                }
+                .pickerStyle(.wheel)
+                .frame(height: 150)
+                .accessibilityIdentifier("groomer.offers.duration")
+            }
 
             if let proposedEnd = form.proposedEnd, let zone = form.serviceTimeZone {
                 DesignValueRow(title: "Proposed end", value: GroomingRequestDateFormatting.displayString(

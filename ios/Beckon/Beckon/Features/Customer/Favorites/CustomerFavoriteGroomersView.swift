@@ -560,7 +560,7 @@ struct CustomerFavoriteGroomersView: View {
 
 
 /// The card's rounded rectangle with its left edge moved in by `inset`: what animates when the list slides into selection mode.
-private struct LeadingInsetCard: Shape {
+private nonisolated struct LeadingInsetCard: Shape {
     var inset: CGFloat
     let radius: CGFloat
 

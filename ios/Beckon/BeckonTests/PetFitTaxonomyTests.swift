@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Beckon
 
-struct PetFitTaxonomyTests {
+@MainActor struct PetFitTaxonomyTests {
     @Test
     func serviceWeightLabelsIncludeFractionalBoundaryValues() {
         #expect(GroomerServicePetSize.giant.singleWeightLabel == ">100lb")

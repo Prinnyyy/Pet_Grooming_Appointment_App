@@ -991,7 +991,7 @@ struct BookingsStoreTests {
     }
 
     @Test
-    func reviewPetFitOutcomeSelectionsDefaultToEmptyOutcomes() {
+    @MainActor func reviewPetFitOutcomeSelectionsDefaultToEmptyOutcomes() {
         let signals: [PetFitSignal] = [
             .breedGroup(.poodle),
             .careFlag(.anxious),
@@ -1008,7 +1008,7 @@ struct BookingsStoreTests {
     }
 
     @Test
-    func reviewPetFitOutcomeSelectionsBuildSelectedOutcomesOnly() {
+    @MainActor func reviewPetFitOutcomeSelectionsBuildSelectedOutcomesOnly() {
         var selections = BookingReviewPetFitOutcomeSelection.defaults(
             for: [
                 .breedGroup(.poodle),

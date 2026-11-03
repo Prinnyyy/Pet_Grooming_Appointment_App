@@ -34,6 +34,24 @@ final class GroomerOfferFormState {
             priceEstimateText: priceEstimateText, message: message, confirmedAssessmentKeys: confirmedAssessmentKeys)
     }
 
+    // The UI edits components; transport and timing validation keep the existing total-minute representation.
+    private var pickerDuration: Int { Int(durationMinutesText) ?? 60 }
+    var durationHours: Int {
+        get { pickerDuration / 60 }
+        set { setPickerDuration(newValue * 60 + durationMinutePart) }
+    }
+    var durationMinutePart: Int {
+        get { pickerDuration % 60 }
+        set { setPickerDuration(durationHours * 60 + newValue) }
+    }
+    var availableDurationMinutes: ClosedRange<Int> {
+        durationHours == 0 ? 15...59 : (durationHours == 12 ? 0...0 : 0...59)
+    }
+    private func setPickerDuration(_ minutes: Int) {
+        durationMinutesText = String(min(max(minutes, GroomingServiceTiming.durationBounds.lowerBound),
+            GroomingServiceTiming.durationBounds.upperBound))
+    }
+
     var proposedEnd: Date? {
         guard let start = resolvedProposedStart else { return nil }
         return GroomerRequestsStore.proposedEnd(start: start, durationText: durationMinutesText)
@@ -117,8 +135,8 @@ final class GroomerOfferFormState {
         )
         await loadServiceTimeZone(for: matchedRequest)
         guard !Task.isCancelled, activeInitializationID == initializationID else { return }
-        if durationMinutesText.isEmpty, let service {
-            durationMinutesText = String(service.durationMinutes)
+        if durationMinutesText.isEmpty {
+            durationMinutesText = String(service?.durationMinutes ?? 60)
         }
         if priceEstimateText.isEmpty, let service {
             priceEstimateText = String(service.basePrice)

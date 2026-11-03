@@ -1,6 +1,6 @@
 import Foundation
 
-struct AppointmentReminderSnapshot: Codable, Sendable {
+nonisolated struct AppointmentReminderSnapshot: Codable, Sendable {
     let participantID: UUID
     let role: UserRole
     let asOf: String
@@ -13,7 +13,7 @@ struct AppointmentReminderSnapshot: Codable, Sendable {
         case horizonEnd = "horizon_end", complete, bookings
     }
 
-    func validatedInterval(participantID: UUID, role: UserRole, now: Date) throws -> DateInterval {
+    @MainActor func validatedInterval(participantID: UUID, role: UserRole, now: Date) throws -> DateInterval {
         guard complete, self.participantID == participantID, self.role == role,
               let start = GroomingRequestDateFormatting.parsedDate(from: asOf),
               let end = GroomingRequestDateFormatting.parsedDate(from: horizonEnd),

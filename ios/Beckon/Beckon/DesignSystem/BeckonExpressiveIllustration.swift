@@ -203,7 +203,7 @@ private enum BeckonHeroPup {
 
 
 /// Everything above `bottom` (in the frame's own coordinates, and without limit upward and sideways) is drawn.
-private struct BeckonPupClip: Shape {
+private nonisolated struct BeckonPupClip: Shape {
     var bottom: CGFloat
     var animatableData: CGFloat {
         get { bottom }

@@ -27,7 +27,7 @@ struct BeckonStatusPresentationTests {
         #expect(accepted.statusPresentation(now: cutoff) == GroomerOfferStatus.acceptedByCustomer.presentation)
     }
 
-    @Test func allGroomingRequestStatusCases() {
+    @Test @MainActor func allGroomingRequestStatusCases() {
         let expected: [GroomingRequestStatus: BeckonStatusPresentation] = [
             .open: .init(title: "Open", systemImage: "clock", tone: .info),
             .hasOffers: .init(title: "Has offers", systemImage: "tag", tone: .warning),
@@ -42,7 +42,7 @@ struct BeckonStatusPresentationTests {
         }
     }
 
-    @Test func allRequestMatchStatusCases() {
+    @Test @MainActor func allRequestMatchStatusCases() {
         let expected: [RequestMatchStatus: BeckonStatusPresentation] = [
             .visible: .init(title: "New", systemImage: "sparkles", tone: .info),
             .viewed: .init(title: "Viewed", systemImage: "sparkles", tone: .info),
@@ -58,7 +58,7 @@ struct BeckonStatusPresentationTests {
         }
     }
 
-    @Test func allGroomerOfferStatusCases() {
+    @Test @MainActor func allGroomerOfferStatusCases() {
         let expected: [GroomerOfferStatus: BeckonStatusPresentation] = [
             .pending: .init(title: "Pending", systemImage: "clock", tone: .warning),
             .acceptedByCustomer: .init(title: "Accepted", systemImage: "checkmark.circle", tone: .success),
@@ -73,7 +73,7 @@ struct BeckonStatusPresentationTests {
         }
     }
 
-    @Test func allBookingStatusCases() {
+    @Test @MainActor func allBookingStatusCases() {
         let expected: [BookingStatus: BeckonStatusPresentation] = [
             .confirmed: .init(title: "Confirmed", systemImage: "calendar.badge.checkmark", tone: .info),
             .completed: .init(title: "Completed", systemImage: "checkmark.circle", tone: .success),
