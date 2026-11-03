@@ -169,9 +169,6 @@ private struct BookingTimeFields: View {
             } else if let proposal {
                 BookingRescheduleTimes(booking: draft.booking, proposal: proposal)
             }
-            Text("Service time zone: \(draft.booking.serviceTimeZoneIdentifier ?? "Unverified")")
-                .font(DesignTokens.Typography.Expressive.chip)
-                .foregroundStyle(DesignTokens.Colors.textTertiary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

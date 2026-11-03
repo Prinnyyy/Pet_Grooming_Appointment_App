@@ -12,6 +12,7 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
     let bookingStatus: BookingStatus?
     let completedAt: String?
     let groomerBusinessName: String?
+    let counterpartDisplayName: String?
     let counterpartAvatarPhotoData: Data?
     let latestMessageSenderID: UUID?
     let latestMessageCreatedAt: String?
@@ -32,6 +33,7 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
         bookingStatus: BookingStatus? = nil,
         completedAt: String? = nil,
         groomerBusinessName: String? = nil,
+        counterpartDisplayName: String? = nil,
         counterpartAvatarPhotoData: Data? = nil,
         latestMessageSenderID: UUID? = nil,
         latestMessageCreatedAt: String? = nil,
@@ -51,6 +53,7 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
         self.bookingStatus = bookingStatus
         self.completedAt = completedAt
         self.groomerBusinessName = groomerBusinessName
+        self.counterpartDisplayName = counterpartDisplayName
         self.counterpartAvatarPhotoData = counterpartAvatarPhotoData
         self.latestMessageSenderID = latestMessageSenderID
         self.latestMessageCreatedAt = latestMessageCreatedAt
@@ -130,6 +133,7 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
     }
 
     nonisolated func participantSummary(for role: UserRole) -> String {
+        if let name = Self.normalized(counterpartDisplayName) { return name }
         switch role {
         case .customer:
             if let groomerBusinessName = Self.normalized(groomerBusinessName) {

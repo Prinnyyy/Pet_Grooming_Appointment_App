@@ -90,8 +90,6 @@ struct GroomerOfferForm: View {
                     .environment(\.calendar, Calendar(identifier: .gregorian))
                     .accessibilityIdentifier("groomer.offers.start-input")
             }
-            DesignValueRow(title: "Service time zone", value: zone.identifier, systemImage: "globe")
-                .accessibilityIdentifier("groomer.offers.service-time-zone")
             if case let .ambiguous(first, last) = form.proposedStartResolution {
                 Picker("Start occurrence", selection: $form.selectedOccurrence) {
                     Text("Choose occurrence").tag(Optional<Date>.none)

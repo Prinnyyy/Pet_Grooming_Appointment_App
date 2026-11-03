@@ -15,11 +15,8 @@ import XCTest
         window.rootViewController = tabs
         window.makeKeyAndVisible()
         defer { window.isHidden = true; previous?.makeKeyAndVisible() }
-        let slot = BeckonTabBarSlot()
-        slot.controller = tabs
-        slot.owner = navigation
         func page() -> UIViewController {
-            UIHostingController(rootView: Color.white.beckonHidesTabBar().environment(\.beckonTabBarSlot, slot))
+            UIHostingController(rootView: Color.white.beckonHidesTabBar())
         }
         navigation.pushViewController(page(), animated: false)
         await settle()
@@ -35,7 +32,12 @@ import XCTest
         driver.interaction = UIPercentDrivenInteractiveTransition()
         navigation.popViewController(animated: true)
         driver.interaction?.update(0.3)
-        XCTAssertTrue(tabs.isTabBarHidden, "Starting an edge-back interaction must not reveal the bar")
+        await settle()
+        XCTAssertFalse(tabs.isTabBarHidden, "The bar must start returning during the gesture")
+        XCTAssertEqual(tabs.tabBar.alpha, 1, "The reveal is a translation, not a fade")
+        XCTAssertTrue(navigation.transitionCoordinator?.isInteractive == true)
+        XCTAssertTrue(navigation.transitionCoordinator?.viewController(forKey: .from)?.hidesBottomBarWhenPushed == true,
+            "The outgoing page owns bar occlusion during the interactive return")
         driver.interaction?.cancel()
         await finish(navigation)
         await settle()
@@ -44,7 +46,8 @@ import XCTest
 
         driver.interaction = nil
         navigation.popViewController(animated: true)
-        XCTAssertTrue(tabs.isTabBarHidden, "The bar stays hidden throughout a completed return")
+        XCTAssertTrue(navigation.transitionCoordinator?.viewController(forKey: .from)?.hidesBottomBarWhenPushed == true,
+            "UIKit must animate the bar with the page, rather than start a separate fade afterwards")
         await finish(navigation)
         await settle()
         XCTAssertFalse(tabs.isTabBarHidden)
@@ -56,14 +59,16 @@ import XCTest
         let previous = scene.windows.first(where: \.isKeyWindow)
         let window = UIWindow(windowScene: scene)
         let route = Route()
-        window.rootViewController = UIHostingController(rootView: TabView {
+        window.rootViewController = UIHostingController(rootView: TabView(selection: Bindable(route).selectedTab) {
             BeckonTabBarOwner {
                 NavigationStack(path: Bindable(route).path) {
                     Text("Root").navigationDestination(for: Int.self) { _ in
                         Text("Detail").beckonHidesTabBar()
                     }
                 }
-            }.tabItem { Text("Requests") }
+            }.tabItem { Text("Requests") }.tag(0)
+            BeckonTabBarOwner { NavigationStack { Text("Other tab") } }
+                .tabItem { Text("Home") }.tag(1)
         })
         window.makeKeyAndVisible()
         defer { window.isHidden = true; previous?.makeKeyAndVisible() }
@@ -75,12 +80,18 @@ import XCTest
         route.path = [1]
         try await Task.sleep(for: .milliseconds(400))
         XCTAssertTrue(tabs.isTabBarHidden)
+        route.selectedTab = 1
+        try await Task.sleep(for: .milliseconds(200))
+        XCTAssertFalse(tabs.isTabBarHidden, "A different root tab must not inherit the hidden state")
+        route.selectedTab = 0
+        try await Task.sleep(for: .milliseconds(200))
+        XCTAssertTrue(tabs.isTabBarHidden)
         route.path = []
         try await Task.sleep(for: .milliseconds(700))
         XCTAssertFalse(tabs.isTabBarHidden)
     }
 
-    @Observable final class Route { var path: [Int] = [] }
+    @Observable final class Route { var path: [Int] = []; var selectedTab = 0 }
 
     private func finish(_ navigation: UINavigationController) async {
         guard let coordinator = navigation.transitionCoordinator else { return }

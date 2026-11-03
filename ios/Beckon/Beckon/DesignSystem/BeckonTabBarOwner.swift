@@ -1,196 +1,126 @@
-// A hidden tab bar stays hidden through interactive navigation, including cancellation.
-// Restore it only after the transition completes, using the native bottom-bar animation.
 import SwiftUI
-
 import UIKit
 
-
-/// Whether the pages of one tab, as it stands, want the bar away. The tab's `BeckonTabBarOwner` makes it and reads it;
-/// the pages reach it through the environment.
-@MainActor
-@Observable
-final class BeckonTabBarSlot {
-    var hidesBar = false
-    @ObservationIgnored weak var controller: UITabBarController?
-    @ObservationIgnored weak var owner: UIViewController?
-
-    func setHidden(_ hidden: Bool, animated: Bool = false) {
-        hidesBar = hidden
-        guard let controller, controller.isTabBarHidden != hidden,
-              let selected = controller.selectedViewController else { return }
-        var ancestor = owner
-        while let candidate = ancestor, candidate !== selected { ancestor = candidate.parent }
-        guard ancestor === selected else { return }
-        controller.setTabBarHidden(hidden, animated: animated && !UIAccessibility.isReduceMotionEnabled)
-    }
-}
-
-
-private struct BeckonTabBarSlotKey: EnvironmentKey {
-    static let defaultValue: BeckonTabBarSlot? = nil
-}
-
-
-extension EnvironmentValues {
-    var beckonTabBarSlot: BeckonTabBarSlot? {
-        get { self[BeckonTabBarSlotKey.self] }
-        set { self[BeckonTabBarSlotKey.self] = newValue }
-    }
-}
-
-
-/// Wraps a tab's navigation stack. The bar is hidden for as long as a page of this tab on the stack asks for it
-/// (`.beckonHidesTabBar()`), and returns after the last hidden destination finishes leaving.
+/// Keep the existing shell composition API; pushed pages coordinate the bar with UIKit navigation.
 struct BeckonTabBarOwner<Content: View>: View {
-    @State private var slot = BeckonTabBarSlot()
     private let content: Content
-
-    init(@ViewBuilder content: () -> Content) {
-        self.content = content()
-    }
-
-    var body: some View {
-        content
-            .environment(\.beckonTabBarSlot, slot)
-            .background(BeckonTabBarVisibility(slot: slot))
-    }
+    init(@ViewBuilder content: () -> Content) { self.content = content() }
+    var body: some View { content.background(BeckonTabRootVisibility()) }
 }
 
-
-private struct BeckonTabBarVisibility: UIViewControllerRepresentable {
-    let slot: BeckonTabBarSlot
-    func makeUIViewController(context: Context) -> Controller { Controller(slot: slot) }
-    func updateUIViewController(_ controller: Controller, context: Context) { controller.apply() }
-
+/// A programmatic tab switch must not inherit another tab's manually hidden bar.
+private struct BeckonTabRootVisibility: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> Controller { Controller() }
+    func updateUIViewController(_ controller: Controller, context: Context) {}
     final class Controller: UIViewController {
-        let slot: BeckonTabBarSlot
-        init(slot: BeckonTabBarSlot) { self.slot = slot; super.init(nibName: nil, bundle: nil) }
-        required init?(coder: NSCoder) { nil }
         override func viewDidLoad() { super.viewDidLoad(); view.isUserInteractionEnabled = false }
-        override func viewWillAppear(_ animated: Bool) { super.viewWillAppear(animated); apply() }
-        override func didMove(toParent parent: UIViewController?) { super.didMove(toParent: parent); apply() }
-        func apply() {
-            guard let bar = tabBarController else { return }
-            slot.controller = bar
-            slot.owner = self
-            slot.setHidden(slot.hidesBar)
+        override func viewDidAppear(_ animated: Bool) {
+            super.viewDidAppear(animated)
+            guard let tabs = tabBarController, let selected = tabs.selectedViewController,
+                  let navigation = findNavigation(selected) else { return }
+            if let transition = navigation.transitionCoordinator,
+               navigation.viewControllers.contains(where: {
+                   $0 === transition.viewController(forKey: .from) || $0 === transition.viewController(forKey: .to)
+               }) { return }
+            tabs.setTabBarHidden(navigation.topViewController?.hidesBottomBarWhenPushed ?? false, animated: false)
+        }
+        private func findNavigation(_ controller: UIViewController) -> UINavigationController? {
+            (controller as? UINavigationController) ?? controller.children.lazy.compactMap { self.findNavigation($0) }.first
         }
     }
 }
-
 
 extension View {
-    /// Keep tab-bar ownership in the shared shell, including interactive back cancellation.
-    /// Standalone previews without an owner fall back to the system toolbar preference.
-    func beckonHidesTabBar() -> some View { modifier(BeckonHidesTabBarModifier()) }
+    /// The native push flag plus its transition coordinator keep the bar underneath the outgoing page,
+    /// with a vertical reveal tied to the same interactive progress and cancellation.
+    func beckonHidesTabBar() -> some View { background(BeckonTabBarHider()) }
 }
 
-
-private struct BeckonHidesTabBarModifier: ViewModifier {
-    @Environment(\.beckonTabBarSlot) private var slot
-
-    func body(content: Content) -> some View {
-        if let slot {
-            content.background(BeckonTabBarHider(slot: slot))
-        } else {
-            content.toolbar(.hidden, for: .tabBar)
-        }
-    }
-}
-
-
-/// Sits behind a page and tells its tab what UIKit tells it: the page is arriving (hide the bar), or is on its way off the stack
-/// (look at what is left on it).
 private struct BeckonTabBarHider: UIViewControllerRepresentable {
-    let slot: BeckonTabBarSlot
-
-    func makeUIViewController(context: Context) -> Controller {
-        Controller(slot: slot)
-    }
-
-    func updateUIViewController(_ controller: Controller, context: Context) {
-        controller.slot = slot
-    }
+    func makeUIViewController(context: Context) -> Controller { Controller() }
+    func updateUIViewController(_ controller: Controller, context: Context) { controller.markPage() }
 
     final class Controller: UIViewController {
-        var slot: BeckonTabBarSlot
-        private weak var stack: UINavigationController?
-        private var awaitingTransition = false
-
-        init(slot: BeckonTabBarSlot) {
-            self.slot = slot
-            super.init(nibName: nil, bundle: nil)
-        }
-
-        required init?(coder: NSCoder) { nil }
-
         override func viewDidLoad() {
             super.viewDidLoad()
             view.backgroundColor = .clear
             view.isUserInteractionEnabled = false
         }
-
-        /// The page is arriving, or is back after a pop that was started and given up: the bar goes.
         override func didMove(toParent parent: UIViewController?) {
             super.didMove(toParent: parent)
-            if parent == nil { settle() } else { hide() }
+            markPage()
         }
-
         override func viewWillAppear(_ animated: Bool) {
+            markPage()
             super.viewWillAppear(animated)
-            hide()
+            // SwiftUI mounts this bridge after it starts the push. Establish the initial hidden state
+            // explicitly; the hosting page's native flag then owns pop progress and cancellation.
+            if transitionCoordinator?.isInteractive != true {
+                tabBarController?.setTabBarHidden(true, animated: false)
+            }
         }
-
-        /// Wait for completion, not interaction start: a cancelled edge swipe must never expose the bar.
         override func viewWillDisappear(_ animated: Bool) {
             super.viewWillDisappear(animated)
-            remember()
-            if let coordinator = transitionCoordinator {
-                awaitingTransition = true
-                let slot = slot, stack = stack
-                let registered = coordinator.animate(alongsideTransition: nil) { [weak self] _ in
-                    self?.awaitingTransition = false
-                    Self.refresh(slot: slot, stack: stack, animated: true)
-                }
-                if registered { return }
-                awaitingTransition = false
+            guard let navigation = navigationController, let tabs = tabBarController else { return }
+            guard let transition = transitionCoordinator else {
+                tabs.setTabBarHidden(navigation.topViewController?.hidesBottomBarWhenPushed ?? false, animated: false)
+                return
             }
-            settle()
-        }
-
-        override func viewDidDisappear(_ animated: Bool) {
-            super.viewDidDisappear(animated)
-            settle()
-        }
-
-        // UIKit calls these from inside the SwiftUI update that pushes or pops (the stack is reconciled there), where the tab's state
-        // must not be written, so the tab hears of it a turn later. The turn carries what it needs and not this controller, which a
-        // pop may already have let go of.
-        private func hide() {
-            remember()
-            let slot = slot
-            Task { slot.setHidden(true) }
-        }
-
-        private func settle() {
-            guard !awaitingTransition else { return }
-            remember()
-            Self.refresh(slot: slot, stack: stack, animated: true)
-        }
-
-        private static func refresh(slot: BeckonTabBarSlot, stack: UINavigationController?, animated: Bool) {
-            Task {
-                guard let stack else { return }
-                slot.setHidden(stack.viewControllers.contains(where: hostsHider), animated: animated)
+            guard let from = transition.viewController(forKey: .from), owns(from),
+                  let destination = transition.viewController(forKey: .to), !destination.hidesBottomBarWhenPushed,
+                  let destinationIndex = navigation.viewControllers.firstIndex(where: { $0 === destination }) else { return }
+            if let sourceIndex = navigation.viewControllers.firstIndex(where: { $0 === from }), sourceIndex < destinationIndex { return }
+            let bar = tabs.tabBar
+            // Cover only the bar-sized strip of the outgoing page. This keeps the returning bar below
+            // that page even on OS versions whose tab bar is composited above the navigation container.
+            let coverHeight = bar.bounds.height + tabs.view.safeAreaInsets.bottom
+            let coveredRect = CGRect(x: 0, y: from.view.bounds.maxY - coverHeight,
+                width: from.view.bounds.width, height: coverHeight)
+            let cover = UIAccessibility.isReduceMotionEnabled ? nil : from.view.resizableSnapshotView(
+                from: coveredRect, afterScreenUpdates: false, withCapInsets: .zero)
+            tabs.setTabBarHidden(false, animated: false)
+            if let parent = bar.superview, let cover {
+                cover.frame = from.view.convert(coveredRect, to: parent)
+                cover.isUserInteractionEnabled = false
+                cover.accessibilityElementsHidden = true
+                parent.addSubview(cover)
+            }
+            let travels = !UIAccessibility.isReduceMotionEnabled
+            bar.alpha = 1
+            bar.transform = travels ? CGAffineTransform(translationX: 0, y: bar.bounds.height + tabs.view.safeAreaInsets.bottom) : .identity
+            let registered = transition.animate(alongsideTransition: { _ in
+                bar.alpha = 1
+                bar.transform = .identity
+                cover?.transform = CGAffineTransform(translationX: from.view.bounds.width, y: 0)
+            }) { context in
+                cover?.removeFromSuperview()
+                bar.transform = .identity
+                bar.alpha = 1
+                tabs.setTabBarHidden(context.isCancelled, animated: false)
+            }
+            if !registered {
+                cover?.removeFromSuperview()
+                bar.transform = .identity
+                tabs.setTabBarHidden(false, animated: false)
             }
         }
 
-        private func remember() {
-            if let found = navigationController { stack = found }
+        private func owns(_ page: UIViewController) -> Bool {
+            var ancestor: UIViewController? = self
+            while let candidate = ancestor {
+                if candidate === page { return true }
+                ancestor = candidate.parent
+            }
+            return false
         }
 
-        private static func hostsHider(_ controller: UIViewController) -> Bool {
-            controller is Controller || controller.children.contains(where: hostsHider)
+        func markPage() {
+            guard let navigation = navigationController else { return }
+            var page: UIViewController? = self
+            while let controller = page, controller !== navigation {
+                controller.hidesBottomBarWhenPushed = true
+                page = controller.parent
+            }
         }
     }
 }

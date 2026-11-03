@@ -8,6 +8,9 @@ Full pre-trim contract text is archived at `../09_frozen/backend_contracts/SUPAB
 
 ## Current Status
 
+- T-448 (2026-11-02): `get_chat_counterpart_names(uuid[])` returns only conversation ID and the other participant's profile display name. Authenticated conversation membership is checked for every input; anonymous identities, inaccessible/mixed scopes, null elements and more than 100 IDs are rejected. Profiles RLS remains unchanged. Migrations `20261103042313_t448_chat_counterpart_names.sql` and `20261103045834_t448_chat_names_reuse_rls.sql` are deployed; the final SECURITY INVOKER function reuses conversation/profile RLS and current-role checks. 130 versions aligned and repeat dry run empty. Read-only positive/negative verification: `tests/sql/t448-chat-counterpart-names.sql`, `/tmp/Beckon-T448-invoker-permissions.log`. Advisor MCP access was denied; no advisor-clean claim is made.
+
+
 - T-435 / Handoff 4 D2 (2026-11-01): `20261102071341_groomer_service_only_timing.sql` applied, 128 versions aligned, repeat push empty. New reservations occupy service time only with explicit zero compatibility buffers; matching, offer/booking snapshots, admission, reschedule, fulfillment release and availability coverage agree. Locked overlap, timezone/DST, time off, quota, notice and existing authorization/receipts remain. Historical immutable facts are retained; padded pending quotes use the existing replacement path. [Current timing contract](SERVICE_TIMING_CONTRACT.md), [scope and evidence](../superpowers/plans/2026-11-01-groomer-ui-p7-service-time.md).
 
 - Latest recorded migration verification: T-406 confirms 125 aligned versions through `20261017105527_pet_profile_reliability.sql`, with an empty repeat dry run; see [T-406 acceptance](../superpowers/plans/2026-10-17-pet-profile-reliability-plan.md#7-执行记录). Earlier counts below describe only their named historical baselines.

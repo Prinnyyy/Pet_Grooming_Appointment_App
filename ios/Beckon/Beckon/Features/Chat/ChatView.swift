@@ -334,9 +334,29 @@ nonisolated enum ChatThreadScrollPolicy {
     }
 }
 
+enum ChatThreadStatusTone: Equatable {
+    case active, updating, failed, readOnly
+    init(subtitle: String) {
+        switch subtitle {
+        case "Active chat": self = .active
+        case "Read-only": self = .readOnly
+        case "Couldn't update": self = .failed
+        default: self = .updating
+        }
+    }
+    var color: Color {
+        switch self {
+        case .active: DesignTokens.Colors.statusSuccessText
+        case .updating: DesignTokens.Colors.statusWarningText
+        case .failed: DesignTokens.Colors.statusErrorText
+        case .readOnly: DesignTokens.Colors.textTertiary
+        }
+    }
+}
+
 nonisolated enum ChatComposerKeyboardPresentation {
     static let actionPlacement: BeckonKeyboardActionPlacement = .inputAccessory
-    static let includesExplicitDoneAccessory = true
+    static let includesExplicitDoneAccessory = false
 }
 
 struct ChatThreadView: View {
@@ -381,10 +401,12 @@ struct ChatThreadView: View {
 
                 threadContent
             }
+            .contentShape(Rectangle())
+            .simultaneousGesture(TapGesture().onEnded { isComposing = false })
         }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
-        .safeAreaInset(edge: .bottom) {
+        .safeAreaInset(edge: .bottom, spacing: 0) {
             ChatComposerBar(
                 draft: $draft,
                 isFocused: $isComposing,
@@ -426,7 +448,7 @@ struct ChatThreadView: View {
             ChatStatusView(store: store, role: role)
         }
         .scrollDismissesKeyboard(.interactively)
-        .beckonKeyboardDoneAccessory()
+
     }
 
     @ViewBuilder
@@ -497,7 +519,7 @@ struct ChatThreadView: View {
                 }
                 .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                 .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.xl * 2)
+                .padding(.bottom, DesignTokens.Spacing.md)
             }
             .refreshable { await refreshThread() }
             .onChange(of: store.messages(for: conversation.id).last?.id) {
@@ -552,7 +574,7 @@ struct ChatThreadLoadingView: View {
         .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
-        .safeAreaInset(edge: .bottom) {
+        .safeAreaInset(edge: .bottom, spacing: 0) {
             ChatComposerBar(draft: .constant(""), isFocused: $isComposing,
                 isSending: false, isReadOnly: false, readOnlyMessage: "", accent: .customer,
                 placeholder: "Message…", send: {})
@@ -612,7 +634,7 @@ private struct ChatThreadHeader: View {
                 if !isComposing || !dynamicTypeSize.isAccessibilitySize {
                     HStack(spacing: DesignTokens.Spacing.xs) {
                         Circle()
-                            .fill(subtitle == "Read-only" ? DesignTokens.Colors.textTertiary : DesignTokens.Colors.customerDeep)
+                            .fill(ChatThreadStatusTone(subtitle: subtitle).color)
                             .frame(width: 9, height: 9)
                             .accessibilityHidden(true)
 
@@ -813,7 +835,8 @@ private struct ChatComposerBar: View {
             }
         }
         .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-        .padding(.vertical, DesignTokens.Spacing.md)
+        .padding(.top, DesignTokens.Spacing.sm)
+        .padding(.bottom, DesignTokens.Spacing.sm)
         .background {
             DesignTokens.Colors.appBackground
                 .ignoresSafeArea(edges: .bottom)
@@ -879,13 +902,7 @@ private struct ChatStatusView: View {
 
 extension ChatConversation {
     func listTitle(for role: UserRole) -> String {
-        switch role {
-        case .customer:
-            let title = participantSummary(for: role)
-            return title == "Groomer" ? "Groomer · \(participantReferenceCode(for: role))" : title
-        case .groomer:
-            return "Customer · \(participantReferenceCode(for: role))"
-        }
+        participantSummary(for: role)
     }
 
     func shortRecipientName(for role: UserRole) -> String {

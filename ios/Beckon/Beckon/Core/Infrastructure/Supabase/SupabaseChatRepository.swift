@@ -111,6 +111,12 @@ final class SupabaseChatRepository: ChatRepository {
               Set(summaries.map(\.conversationID)) == Set(rows.map(\.id)) else {
             throw ChatRepositoryError.unavailable
         }
+        let names: [ChatCounterpartNameRow] = try await client.rpc("get_chat_counterpart_names",
+            params: ["p_conversation_ids": rows.map { $0.id.uuidString.lowercased() }]).execute().value
+        guard names.count == rows.count, Set(names.map(\.conversationID)) == Set(rows.map(\.id)) else {
+            throw ChatRepositoryError.unavailable
+        }
+        let namesByID = Dictionary(uniqueKeysWithValues: names.map { ($0.conversationID, $0.displayName) })
         let summariesByID = Dictionary(uniqueKeysWithValues: summaries.map { ($0.conversationID, $0) })
         let groomerBusinessNames = switch role {
         case .customer:
@@ -133,6 +139,7 @@ final class SupabaseChatRepository: ChatRepository {
             row.conversation(
                 bookingSummary: summariesByID[row.id]?.bookingSummary?.summary,
                 groomerBusinessName: groomerBusinessNames[row.groomerID],
+                counterpartDisplayName: namesByID[row.id] ?? nil,
                 counterpartAvatarPhotoData: counterpartAvatars[
                     avatarTarget.participantID(
                         customerID: row.customerID,
@@ -380,6 +387,7 @@ private struct ChatConversationRow: Decodable {
     func conversation(
         bookingSummary: ChatBookingSummary?,
         groomerBusinessName: String?,
+        counterpartDisplayName: String?,
         counterpartAvatarPhotoData: Data?,
         latestMessage: ChatLatestMessageRow?
     ) -> ChatConversation {
@@ -395,6 +403,7 @@ private struct ChatConversationRow: Decodable {
             bookingStatus: bookingSummary?.status,
             completedAt: bookingSummary?.completedAt,
             groomerBusinessName: groomerBusinessName,
+            counterpartDisplayName: counterpartDisplayName,
             counterpartAvatarPhotoData: counterpartAvatarPhotoData,
             latestMessageSenderID: latestMessage?.senderID,
             latestMessageCreatedAt: latestMessage?.createdAt,
@@ -560,5 +569,13 @@ private struct ChatMessageInsertRow: Encodable {
         case conversationID = "conversation_id"
         case senderID = "sender_id"
         case body
+    }
+}
+
+private nonisolated struct ChatCounterpartNameRow: Decodable {
+    let conversationID: UUID
+    let displayName: String?
+    enum CodingKeys: String, CodingKey {
+        case conversationID = "conversation_id", displayName = "display_name"
     }
 }

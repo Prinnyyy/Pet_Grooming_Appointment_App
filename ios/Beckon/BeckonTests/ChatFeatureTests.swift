@@ -3,10 +3,27 @@ import Testing
 @testable import Beckon
 
 struct ChatStoreTests {
+    @Test @MainActor func counterpartNamesDriveBothListAndThreadTitles() {
+        for role in [UserRole.customer, .groomer] {
+            let conversation = ChatConversation(id: UUID(), customerID: UUID(), groomerID: UUID(),
+                groomerBusinessName: "Old studio", counterpartDisplayName: "  Alex Chen  ", createdAt: "", updatedAt: "")
+            #expect(conversation.listTitle(for: role) == "Alex Chen")
+            #expect(conversation.shortRecipientName(for: role) == "Alex")
+        }
+    }
+
+    @Test @MainActor func chatStatusUsesSemanticColorsRatherThanRoleAccents() {
+        #expect(ChatThreadStatusTone(subtitle: "Active chat").color == DesignTokens.Colors.statusSuccessText)
+        #expect(ChatThreadStatusTone(subtitle: "Updating…").color == DesignTokens.Colors.statusWarningText)
+        #expect(ChatThreadStatusTone(subtitle: "Live updates paused").color == DesignTokens.Colors.statusWarningText)
+        #expect(ChatThreadStatusTone(subtitle: "Couldn't update").color == DesignTokens.Colors.statusErrorText)
+        #expect(ChatThreadStatusTone(subtitle: "Read-only").color == DesignTokens.Colors.textTertiary)
+    }
+
     @Test
     func chatComposerRemainsATrueKeyboardAccessory() {
         #expect(ChatComposerKeyboardPresentation.actionPlacement == .inputAccessory)
-        #expect(ChatComposerKeyboardPresentation.includesExplicitDoneAccessory)
+        #expect(!ChatComposerKeyboardPresentation.includesExplicitDoneAccessory)
     }
 
     @Test

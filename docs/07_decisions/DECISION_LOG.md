@@ -18,6 +18,16 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-077
+Date: 2026-11-02
+Task: T-448
+Decision: Chat uses participant profile names, semantic status colors and tap/scroll keyboard dismissal. Service timezone remains authoritative for computation but its technical form rows are hidden. Supersede D-076's after-completion bar reveal: native push ownership plus the transition coordinator translate it vertically under the departing page during the same interactive return.
+Consequences: No online-presence inference; keep read-only/error states and message actions. No composer checkmark accessory or duplicate loading surface. User explicitly authorized the bounded counterpart-name RPC deployment and read-only authorization verification. The final RPC uses SECURITY INVOKER to reuse existing conversation/profile RLS, including current-role checks; no test data writes. Preserve local prototypes/signing and let user judge appearance. Validation: 53 chat/offer cases passed (/tmp/Beckon-T448-focused.xcresult); final two native return tests passed on iOS 27.2 (/tmp/Beckon-T448-tabs-final.xcresult), including cancellation, opaque in-flight reveal, nested hidden pages and tab switches. Four migration static checks and live read-only participant/negative-authorization SQL checks passed, 130 migrations aligned and repeat dry-run empty. The user superseded the prior after-completion policy; the first flag-only approach failed return assertions; a transition-coordinated vertical reveal with a transient bottom strip fixes layering. Older iOS 26.5 test-host startup stalled after the toolchain upgrade; interrupted runs are not passing evidence. Final device build/profile/signature validation, install and actual launch passed (/tmp/Beckon-T448-device-build.log, /tmp/Beckon-T448-installed.json, /tmp/Beckon-T448-launch.json). Preflight and context hygiene passed.
+Linked files: docs/01_product/LIVELY_UI_SPEC.md; docs/03_backend/SUPABASE_CONTRACT.md; ios/Beckon/Beckon/DesignSystem/BeckonTabBarOwner.swift.
+```
+
+
+```text
 Decision ID: D-076
 Date: 2026-11-02
 Task: T-447

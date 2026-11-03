@@ -2,7 +2,7 @@
   "version": 1,
   "scope": "ios/Beckon/Beckon/Features",
   "lastChange": {
-    "reason": "T-436 retires the old appearance branches after both roles adopt the shared kit"
+    "reason": "T-448 removes resolved role-bound chat status-color debt"
   },
   "findings": [
     {
@@ -94,13 +94,6 @@
       "path": "ios/Beckon/Beckon/Features/Chat/ChatView.swift",
       "fingerprint": "edfd1cd70a69ca7a07d47af1468475687cdb29382e68c4430950259ba89f395d",
       "expressionHash": "ae5791828456ba4d945df78684c7f13c0ebd4d1a9af86b30539944acc13b7e1e",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI004",
-      "path": "ios/Beckon/Beckon/Features/Chat/ChatView.swift",
-      "fingerprint": "1e6055f6f9250e2304b6ec952d6cb84e118bcfae7d6d28f8f1a320b0619883f5",
-      "expressionHash": "646fb5c656260df1739c0c8358d738d3e249471de28d04a78de62a0c95e745bb",
       "occurrence": 1
     },
     {

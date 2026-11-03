@@ -67,11 +67,10 @@ struct ChatReliabilityTests {
     }
 
     @Test
-    func groomerCanDistinguishDifferentCustomersWithoutOpeningEachChat() {
-        let first = Fixture().conversation
-        let second = Fixture().conversation
-        #expect(first.listTitle(for: .groomer) != second.listTitle(for: .groomer))
-        #expect(first.shortRecipientName(for: .groomer) == "Customer")
+    func missingNamesDoNotExposeInternalReferenceCodes() {
+        let conversation = Fixture().conversation
+        #expect(conversation.listTitle(for: .groomer) == "Customer")
+        #expect(!conversation.listTitle(for: .groomer).contains(conversation.participantReferenceCode(for: .groomer)))
     }
 
     @Test(arguments: [false, true])
