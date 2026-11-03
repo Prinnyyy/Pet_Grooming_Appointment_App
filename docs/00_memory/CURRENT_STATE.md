@@ -5,13 +5,7 @@ Only dynamic task and recovery facts. Git owns branch, worktree and completion h
 ```json
 {
   "next_task_id": "T-459",
-  "task": {
-    "id": "T-458",
-    "status": "active",
-    "goal": "Commit and push completed T-454 through T-457 production/doc changes and install the updated app on the connected iPhone",
-    "plan": null,
-    "next_action": "Build signed device app using existing local configuration; review and commit scoped files, push main, then install and verify device app. Preserve local signing, user governance edits and independent prototypes."
-  },
+  "task": null,
   "pending_tasks": [
     {
       "id": "T-428",
@@ -32,7 +26,7 @@ Only dynamic task and recovery facts. Git owns branch, worktree and completion h
     }
   ],
   "last_completed": {
-    "id": "T-457"
+    "id": "T-458"
   }
 }
 ```
