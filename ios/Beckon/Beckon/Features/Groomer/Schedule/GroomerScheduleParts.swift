@@ -171,6 +171,7 @@ struct GroomerScheduleDayHeader: View {
             // Reserve the summary line even on an empty day; refresh never inserts a new row.
             GroomerScheduleHeaderText(text: summary ?? "Appointments · duration · total", isLoading: isLoading)
                 .designSupportingText()
+                .lineLimit(1)
                 .opacity(summary != nil || isLoading ? 1 : 0)
                 .accessibilityHidden(summary == nil)
                 .accessibilityIdentifier("groomer.schedule.summary")
@@ -196,60 +197,66 @@ private struct GroomerScheduleHeaderText: View {
 
 struct GroomerDayShapeBarSkeleton: View {
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.xs) {
-            DesignSkeletonBlock(cornerRadius: DesignTokens.Metrics.dayShapeHeight / 2)
-                .frame(height: DesignTokens.Metrics.dayShapeHeight)
-            HStack {
-                GroomerScheduleHeaderText(text: "8 am", isLoading: true)
-                Spacer(minLength: 0)
-                GroomerScheduleHeaderText(text: "6 pm", isLoading: true)
-            }
-            .font(DesignTokens.Typography.Expressive.micro)
-        }
-        .designSkeletonOnPage()
-        .designSkeleton(label: nil)
-        .accessibilityHidden(true)
+        GroomerDayShapeBar(shape: nil)
+            .designSkeleton(label: nil)
+            .accessibilityHidden(true)
     }
 }
 
-/// The day as a strip of hours: the hours the groomer is open as a light band, each booking where it stands (done, under way, still
-/// to come), and a line where now is. It says in a glance how full the day is; the rows say the rest.
+/// One track/tick layout for verified and loading days. Data owns the range; state never changes its geometry.
 struct GroomerDayShapeBar: View {
-    let shape: GroomerDayShape
+    let shape: GroomerDayShape?
+    private var visible: ClosedRange<Int> { shape?.visible ?? (8 * 60)...(18 * 60) }
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.xs) {
             GeometryReader { proxy in
-                let span = CGFloat(max(1, shape.visible.upperBound - shape.visible.lowerBound))
-                let x: (Int) -> CGFloat = { CGFloat($0 - shape.visible.lowerBound) / span * proxy.size.width }
+                let span = CGFloat(max(1, visible.upperBound - visible.lowerBound))
+                let x: (Int) -> CGFloat = { CGFloat($0 - visible.lowerBound) / span * proxy.size.width }
                 ZStack(alignment: .leading) {
-                    Capsule().fill(DesignTokens.Colors.border)
-                    if let open = shape.open {
-                        Capsule().fill(DesignTokens.Colors.surface)
-                            .frame(width: max(0, x(open.upperBound) - x(open.lowerBound)))
-                            .offset(x: x(open.lowerBound))
-                    }
-                    ForEach(shape.segments) { segment in
-                        Capsule().fill(color(of: segment.kind))
-                            .frame(width: max(6, x(segment.to) - x(segment.from)), height: proxy.size.height - 4)
-                            .offset(x: x(segment.from))
-                    }
-                    if let now = shape.now, shape.visible.contains(now) {
-                        Capsule().fill(DesignTokens.Colors.textPrimary)
-                            .frame(width: DesignTokens.Metrics.dayShapeNowLine, height: proxy.size.height + DesignTokens.Spacing.sm)
-                            .offset(x: x(now) - 1)
+                    if let shape {
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(DesignTokens.Colors.border)
+                            if let open = shape.open {
+                                Capsule().fill(DesignTokens.Colors.surface)
+                                    .frame(width: max(0, x(open.upperBound) - x(open.lowerBound)))
+                                    .offset(x: x(open.lowerBound))
+                            }
+                            ForEach(shape.segments) { segment in
+                                Capsule().fill(color(of: segment.kind))
+                                    .frame(width: max(6, x(segment.to) - x(segment.from)), height: proxy.size.height - 4)
+                                    .offset(x: x(segment.from))
+                            }
+                        }
+                        .frame(width: proxy.size.width, height: proxy.size.height)
+                        .clipShape(Capsule())
+                        // The taller clock marker decorates the track; it must not size it.
+                        .overlay(alignment: .leading) {
+                            if let now = shape.now, visible.contains(now) {
+                                Capsule().fill(DesignTokens.Colors.textPrimary)
+                                    .frame(width: DesignTokens.Metrics.dayShapeNowLine,
+                                        height: proxy.size.height + DesignTokens.Spacing.sm)
+                                    .offset(x: min(max(0, x(now) - DesignTokens.Metrics.dayShapeNowLine / 2),
+                                        max(0, proxy.size.width - DesignTokens.Metrics.dayShapeNowLine)))
+                            }
+                        }
+                    } else {
+                        DesignSkeletonBlock(cornerRadius: DesignTokens.CornerRadius.round)
                     }
                 }
             }
             .frame(height: DesignTokens.Metrics.dayShapeHeight)
+            // Reserve the now-marker's overhang in every state, even when there is no marker.
+            .frame(height: DesignTokens.Metrics.dayShapeHeight + DesignTokens.Spacing.sm)
             HStack {
-                Text(GroomerScheduleText.hour(shape.visible.lowerBound))
+                GroomerScheduleHeaderText(text: GroomerScheduleText.hour(visible.lowerBound), isLoading: shape == nil)
                 Spacer(minLength: 0)
-                Text(GroomerScheduleText.hour(shape.visible.upperBound))
+                GroomerScheduleHeaderText(text: GroomerScheduleText.hour(visible.upperBound), isLoading: shape == nil)
             }
             .font(DesignTokens.Typography.Expressive.micro)
             .foregroundStyle(DesignTokens.Colors.textTertiary)
         }
+        .designSkeletonOnPage()
         .accessibilityHidden(true)
     }
 
@@ -362,14 +369,12 @@ struct GroomerScheduleFocusCard<Header: View, Identity: View, Detail: View, Acti
 struct GroomerScheduleEmptyCard: View {
     let note: String
     var isClosed = false
+    var hours: String? = nil
     var onSeeRequests: (() -> Void)?
 
     var body: some View {
         GroomerScheduleFocusCard {
-            Text(isClosed ? "Day off" : "Your day")
-                .font(DesignTokens.Typography.Expressive.chip)
-                .foregroundStyle(DesignTokens.Colors.customerInk)
-                .lineLimit(1)
+            GroomerFocusHeader(title: isClosed ? "Day off" : "Your day")
         } identity: {
             HStack(spacing: DesignTokens.Spacing.md) {
                 Image(systemName: isClosed ? "moon.zzz.fill" : "calendar")
@@ -379,17 +384,21 @@ struct GroomerScheduleEmptyCard: View {
                     .background(DesignTokens.Colors.customerHeroBubble, in: Circle())
                     .accessibilityHidden(true)
                 Text("Nothing booked")
-                    .font(DesignTokens.Typography.Expressive.title)
+                    .font(DesignTokens.Typography.Expressive.hero)
                     .foregroundStyle(DesignTokens.Colors.customerInk)
                     .lineLimit(2)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         } detail: {
-            Text(note)
-                .font(DesignTokens.Typography.Expressive.label)
-                .foregroundStyle(DesignTokens.Colors.customerInk)
-                .lineLimit(2)
-                .accessibilityLabel(note)
+            if let hours, !isClosed {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    Label("Open hours", systemImage: "clock").font(DesignTokens.Typography.Expressive.label)
+                    Text(hours).font(DesignTokens.Typography.Expressive.emphasis).lineLimit(1)
+                }.foregroundStyle(DesignTokens.Colors.customerInk)
+            } else {
+                Text(note).font(DesignTokens.Typography.Expressive.label)
+                    .foregroundStyle(DesignTokens.Colors.customerInk).lineLimit(2)
+            }
         } actions: {
             if let onSeeRequests, !isClosed {
                 Button(action: onSeeRequests) {
@@ -413,7 +422,6 @@ struct GroomerNowCard: View {
     let onMessage: () -> Void
     var onStart: (() -> Void)?
     var onComplete: (() -> Void)?
-    @Environment(\.dynamicTypeSize) private var typeSize
 
     private var booking: Booking { item.slot.booking }
     private var appointment: GroomerScheduleAppointmentPresentation { GroomerScheduleAppointmentPresentation(booking: booking) }
@@ -428,8 +436,10 @@ struct GroomerNowCard: View {
                 .accessibilityIdentifier(AppTestOpsAccessibility.requestIdentifier(prefix: "groomer.booking.row.request",
                     requestID: booking.requestID))
         } detail: {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            VStack(alignment: .leading, spacing: isLive ? DesignTokens.Spacing.xs : DesignTokens.Spacing.sm) {
                 if isLive { progress }
+                else { GroomerFocusTiming(isLive: false, timing: timing,
+                    duration: GroomerScheduleText.duration(minutes: item.slot.minutes)) }
                 place
             }
         } actions: {
@@ -461,45 +471,11 @@ struct GroomerNowCard: View {
 
     // MARK: Parts
 
-    private var header: some View {
-        (typeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.sm))
-            : AnyLayout(HStackLayout(alignment: .center, spacing: DesignTokens.Spacing.sm))) {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                Circle().fill(DesignTokens.Colors.customerDeep)
-                    .frame(width: DesignTokens.Metrics.liveDot, height: DesignTokens.Metrics.liveDot)
-                Text(title)
-                    .font(DesignTokens.Typography.Expressive.chip)
-                    .foregroundStyle(DesignTokens.Colors.customerInk)
-            }
-            .padding(.horizontal, DesignTokens.Spacing.md)
-            .padding(.vertical, DesignTokens.Spacing.xs)
-            .background(DesignTokens.Colors.customerTint, in: Capsule())
-            if !typeSize.isAccessibilitySize { Spacer(minLength: DesignTokens.Spacing.sm) }
-            Text(timing)
-                .font(DesignTokens.Typography.Expressive.label)
-                .foregroundStyle(DesignTokens.Colors.customerInk)
-                .lineLimit(1)
-        }
-        .accessibilityElement(children: .combine)
-    }
+    private var header: some View { GroomerFocusHeader(title: title, price: booking.priceSummary) }
 
     private var who: some View {
-        HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-            GroomerPetAvatar(species: booking.requestPetSnapshot?.species ?? "Dog", size: DesignTokens.Metrics.petAvatar)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(appointment.petName)
-                    .font(DesignTokens.Typography.Expressive.hero)
-                    .foregroundStyle(DesignTokens.Colors.customerInk)
-                    .lineLimit(1)
-                Text(appointment.petDetail)
-                    .font(DesignTokens.Typography.Expressive.body)
-                    .foregroundStyle(DesignTokens.Colors.customerInk)
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        GroomerFocusIdentity(species: booking.requestPetSnapshot?.species ?? "Dog", name: appointment.petName,
+            detail: appointment.petDetail)
     }
 
     /// How far the service has got: minutes since it started against its length.
@@ -509,36 +485,15 @@ struct GroomerNowCard: View {
         let elapsed = max(0, Int(now.timeIntervalSince(started) / 60))
         let total = max(1, item.slot.minutes)
         let fraction = min(1, Double(elapsed) / Double(total))
-        return VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            Capsule()
-                .fill(DesignTokens.Colors.customerHeroBubble)
-                .frame(height: DesignTokens.Metrics.dayShapeHeight - 4)
-                .overlay(alignment: .leading) {
-                    GeometryReader { proxy in
-                        Capsule().fill(DesignTokens.Colors.customerInk).frame(width: proxy.size.width * fraction)
-                    }
-                }
-            HStack {
-                Text("\(elapsed) of \(total) min")
-                Spacer(minLength: DesignTokens.Spacing.sm)
-                Text("Started \(clock(startedText))")
-            }
-            .font(DesignTokens.Typography.Expressive.chip)
-            .foregroundStyle(DesignTokens.Colors.customerInk)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(elapsed) of \(total) minutes, started \(clock(startedText))")
+        return GroomerFocusTiming(isLive: true, timing: timing,
+            duration: GroomerScheduleText.duration(minutes: total), started: "Started \(clock(startedText))", fraction: fraction)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(elapsed) of \(total) minutes, started \(clock(startedText)), \(timing)")
     }
 
     private var place: some View {
-        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: booking.locationMode == .groomerComesToCustomer ? "car.fill" : "house.fill")
-                .font(DesignTokens.Typography.Expressive.label)
-            Text(GroomerScheduleText.place(of: booking))
-                .font(DesignTokens.Typography.Expressive.label)
-                .lineLimit(1)
-        }
-        .foregroundStyle(DesignTokens.Colors.customerInk)
+        GroomerFocusPlace(symbol: booking.locationMode == .groomerComesToCustomer ? "car.fill" : "house.fill",
+            text: GroomerScheduleText.place(of: booking))
     }
 
     /// One primary on the card: Complete under way, Start service when its time has come, otherwise Message.
@@ -546,15 +501,9 @@ struct GroomerNowCard: View {
     private var actions: some View {
         let messageID = AppTestOpsAccessibility.requestIdentifier(prefix: "groomer.booking.message.request", requestID: booking.requestID)
         if let primary {
-            (typeSize.isAccessibilitySize
-                ? AnyLayout(VStackLayout(spacing: DesignTokens.Spacing.md))
-                : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.md))) {
+            GroomerFocusActionLayout {
                 Button(action: onMessage) {
-                    Image(systemName: "bubble.left.fill")
-                        .font(DesignTokens.Typography.Expressive.glyph)
-                        .foregroundStyle(DesignTokens.Colors.customerDeep)
-                        .frame(width: DesignTokens.Metrics.ledgeRoundControl, height: DesignTokens.Metrics.ledgeRoundControl)
-                        .beckonLedge(.round)
+                    GroomerFocusMessageGlyph().beckonLedge(.round)
                 }
                 .buttonStyle(BeckonGuardedPlainButtonStyle())
                 .accessibilityLabel("Message")
@@ -585,30 +534,24 @@ struct GroomerNowCard: View {
 
 
 struct GroomerNowCardSkeleton: View {
-    @Environment(\.dynamicTypeSize) private var typeSize
-
     var body: some View {
         GroomerScheduleFocusCard {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                DesignSkeletonLine(width: 0.3, font: DesignTokens.Typography.Expressive.chip)
-                DesignSkeletonLine(width: 0.5, font: DesignTokens.Typography.Expressive.label)
-            }
+            GroomerFocusHeader(title: "In service", price: "$00.00", isSkeleton: true)
         } identity: {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                DesignSkeletonDisc()
-                    .frame(width: DesignTokens.Metrics.petAvatar, height: DesignTokens.Metrics.petAvatar)
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    DesignSkeletonLine(width: 0.5, font: DesignTokens.Typography.Expressive.hero)
-                    DesignSkeletonLine(width: 0.8, font: DesignTokens.Typography.Expressive.body)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
+            GroomerFocusIdentity(species: "Dog", name: "Name", detail: "Breed · Service", isSkeleton: true)
         } detail: {
-            DesignSkeletonLine(width: 0.6, font: DesignTokens.Typography.Expressive.label)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                GroomerFocusTiming(isLive: true, timing: "Ends 12:00 PM", duration: "30 min",
+                    started: "Started 11:30 AM", isSkeleton: true)
+                GroomerFocusPlace(symbol: "car.fill", text: "Service location and city", isSkeleton: true)
+            }
         } actions: {
-            DesignActionLabel(title: "Message", systemImage: "bubble.left.fill")
-                .hidden().overlay { DesignSkeletonBlock(cornerRadius: DesignTokens.CornerRadius.ledgeButton) }
-                .beckonLedge(.primary)
+            GroomerFocusActionLayout {
+                GroomerFocusMessageGlyph(isSkeleton: true).beckonLedge(.round)
+                DesignActionLabel(title: "Complete", systemImage: "checkmark.circle.fill")
+                    .scheduleFocusPlaceholder(true, cornerRadius: DesignTokens.CornerRadius.ledgeButton)
+                    .beckonLedge(.primary)
+            }
         }
         .withLoadingLabel()
     }

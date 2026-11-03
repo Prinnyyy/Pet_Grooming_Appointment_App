@@ -44,6 +44,9 @@ struct GroomerBookingDetailView: View {
             guard !Task.isCancelled else { return }
             withAnimation(DesignTokens.Motion.reveal) { isResolving = false }
         }
+        .task(id: booking?.id) {
+            if let booking { await store.loadPresentation(for: booking) }
+        }
         .background {
             BookingsStatusView(store: store, role: .groomer,
                 presentation: BookingsFeedbackPresentation(role: .groomer, bookings: store.bookings,
@@ -58,7 +61,7 @@ struct GroomerBookingDetailView: View {
             hero(booking, stage: stage)
             if !stage.isClosed { needsYou(booking) }
             if stage.isFinished { GroomerBookingReview(booking: booking) }
-            GroomerBookingAppointment(booking: booking, onOpenChat: openChat, isOver: stage.isFinished || stage.isClosed)
+            GroomerBookingAppointment(booking: booking, customerName: store.customerNamesByBookingID[booking.id], onOpenChat: openChat, isOver: stage.isFinished || stage.isClosed)
             if !stage.isClosed, let pet = booking.agreementSnapshot?.petSnapshot ?? booking.requestPetSnapshot {
                 GroomerPetCard(pet: pet, visitNotes: booking.agreementSnapshot?.serviceNotes)
             }
@@ -68,7 +71,10 @@ struct GroomerBookingDetailView: View {
             }
             activity(booking)
         }
-        .refreshable { await load() }
+        .refreshable {
+            await load()
+            await store.loadPresentation(for: booking)
+        }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("bookings.detail")
         .disabled(store.isMutatingFulfillment || store.isMutatingReschedule)
@@ -85,7 +91,7 @@ struct GroomerBookingDetailView: View {
     private func hero(_ booking: Booking, stage: GroomerBookingStage) -> some View {
         GroomingDetailHero(
             species: booking.agreementSnapshot?.petSnapshot.species ?? booking.requestPetSnapshot?.species ?? "",
-            avatarData: nil, title: GroomingCardContent.groomingTitle(booking), time: booking.scheduledTimeSummary,
+            avatarData: store.petPhoto(for: booking), title: GroomingCardContent.groomingTitle(booking), time: booking.scheduledTimeSummary,
             when: BeckonWhen(start: booking.scheduledStart, end: booking.scheduledEnd,
                 zoneIdentifier: booking.agreementSnapshot?.serviceTimeZoneIdentifier ?? booking.serviceTimeZoneIdentifier, now: now),
             card: nil, closed: stage.closed, path: stage.path, identifier: "groomer.booking.hero")

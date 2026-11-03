@@ -21,7 +21,7 @@ The shared implementation boundary is `BeckonKeyboardFormLayout` and its modifie
 - Page actions retain their keyboard-hidden page coordinate. `.beckonStationaryPageAction` moves a stationary overlay action below the screen for a bottom-docked software keyboard and restores it after dismissal.
 - Actions already in scroll content stay in that flow. The Chat composer Send control is the intentional input accessory; other current business actions do not track the keyboard.
 - Floating, split, hidden, and hardware keyboards produce zero stationary-action offset. Use semantic content clearance when scroll content must remain reachable behind an overlay.
-- Every text-entry surface provides `.beckonKeyboardDoneAccessory()`. `.beckonKeyboardAvoidance` supplies it for scrolling forms; non-form input owners attach it directly. No Feature creates another keyboard toolbar.
+- Form text-entry surfaces provide `.beckonKeyboardDoneAccessory()`. `.beckonKeyboardAvoidance` supplies it for scrolling forms; non-form input owners attach it directly. No Feature creates another keyboard toolbar. The adopted chat composer is the explicit exception: no Done/checkmark accessory; taps outside the composer dismiss focus without stealing message actions, and interactive scroll dismissal remains. Reuse shared keyboard geometry rather than creating an empty accessory gap.
 - Keyboard-aware scrolling forms also use interactive drag dismissal. Shared movement uses the system frame and timing and suppresses custom animation under Reduce Motion; never guess keyboard height or duration.
 
 ## Sheet Gesture Arbitration

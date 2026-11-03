@@ -19,6 +19,10 @@ final class SupabaseBookingRepository: BookingRepository {
     private static let groomerSummaryColumns =
         "user_id,business_name,base_street_address,base_city,base_state,base_zip_code"
 
+    private let imageLoader: any PrivateImageLoading
+    // A bounded path index only; bytes and session invalidation belong to the existing private cache.
+    private var petPhotoKeys: [UUID: PrivateImageCacheKey] = [:]
+    private var petPhotoCacheVersion = FilePrivateImageCache.shared.invalidationVersion
     private let client: SupabaseClient
     private let participantAvatarLoader: SupabaseParticipantAvatarLoader
 
@@ -27,10 +31,70 @@ final class SupabaseBookingRepository: BookingRepository {
         privateImageLoader: (any PrivateImageLoading)? = nil
     ) {
         self.client = client
+        imageLoader = privateImageLoader ?? PrivateImageLoader(dataSource: SupabasePrivateImageDataSource(client: client))
         participantAvatarLoader = SupabaseParticipantAvatarLoader(
             client: client,
             privateImageLoader: privateImageLoader
         )
+    }
+
+    func cachedPetPhoto(for booking: Booking) -> Data? {
+        invalidatePetPhotoIndexIfNeeded()
+        guard let key = petPhotoKeys[booking.requestID] else { return nil }
+        return FilePrivateImageCache.shared.data(for: key)
+    }
+
+    func petPhoto(for booking: Booking) async throws -> Data? {
+        invalidatePetPhotoIndexIfNeeded()
+        let version = petPhotoCacheVersion
+        do {
+            // This existing participant-authorized endpoint includes the request's frozen PET photos,
+            // not its optional request attachments. Never query the customer's whole pet library.
+            let source: BookingPetPhotoSource = try await client.rpc("get_groomer_request_detail_v1",
+                params: ["p_request_id": booking.requestID.uuidString.lowercased()]).execute().value
+            guard source.id == booking.requestID, source.customer_id == booking.customerID else {
+                throw BookingRepositoryError.notAllowed
+            }
+            if let pet = booking.agreementSnapshot?.petSnapshot ?? booking.requestPetSnapshot,
+               source.pet_snapshot.id != pet.id { throw BookingRepositoryError.notAllowed }
+            let photos = source.photo_snapshot.sorted {
+                if $0.isPrimary != $1.isPrimary { return $0.isPrimary }
+                if $0.sortOrder != $1.sortOrder { return $0.sortOrder < $1.sortOrder }
+                return $0.id.uuidString < $1.id.uuidString
+            }
+            guard let photo = photos.first else {
+                petPhotoKeys.removeValue(forKey: booking.requestID)
+                return nil
+            }
+            guard photo.storageBucket == PhotoStorageBucketID.customerPet.rawValue,
+                  let key = PrivateImageCacheKey(bucketID: photo.storageBucket, storagePath: photo.storagePath) else {
+                throw BookingRepositoryError.notAllowed
+            }
+            let data = try await imageLoader.loadData(bucketID: key.bucketID, storagePath: key.storagePath)
+            try Task.checkCancellation()
+            guard version == FilePrivateImageCache.shared.invalidationVersion else { throw BookingRepositoryError.cancelled }
+            if petPhotoKeys.count >= 64, petPhotoKeys[booking.requestID] == nil, let oldest = petPhotoKeys.keys.first {
+                petPhotoKeys.removeValue(forKey: oldest)
+            }
+            petPhotoKeys[booking.requestID] = key
+            return data
+        } catch {
+            let mapped = Self.map(error)
+            if mapped == .notAllowed || mapped == .bookingNotFound { petPhotoKeys.removeValue(forKey: booking.requestID) }
+            throw mapped
+        }
+    }
+
+    func customerDisplayName(for booking: Booking) async throws -> String? {
+        // Reuse the existing participant-only name RPC through its conversation repository.
+        let conversation = try await SupabaseChatRepository(client: client).conversation(
+            customerID: booking.customerID, groomerID: booking.groomerID, role: .groomer)
+        return conversation.counterpartDisplayName
+    }
+
+    private func invalidatePetPhotoIndexIfNeeded() {
+        let version = FilePrivateImageCache.shared.invalidationVersion
+        if version != petPhotoCacheVersion { petPhotoKeys.removeAll(); petPhotoCacheVersion = version }
     }
 
     func nearestBooking(participantID: UUID, role: UserRole, now: Date) async throws -> Booking? {
@@ -983,4 +1047,12 @@ nonisolated struct CreateReviewParameters: Encodable {
         case content = "p_content"
         case petFitOutcomes = "p_pet_fit_outcomes"
     }
+}
+
+
+private nonisolated struct BookingPetPhotoSource: Decodable {
+    let id: UUID
+    let customer_id: UUID
+    let pet_snapshot: GroomingRequestPetSnapshot
+    let photo_snapshot: [GroomingRequestPhotoSnapshot]
 }

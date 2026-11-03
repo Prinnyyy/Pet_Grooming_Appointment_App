@@ -407,6 +407,7 @@ struct ChatThreadView: View {
             .simultaneousGesture(TapGesture().onEnded { isComposing = false })
         }
         .beckonHidesTabBar()
+        .beckonAllowsInteractiveBack()
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -578,6 +579,7 @@ struct ChatThreadLoadingView: View {
         }
         .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .beckonHidesTabBar()
+        .beckonAllowsInteractiveBack()
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .bottom, spacing: 0) {

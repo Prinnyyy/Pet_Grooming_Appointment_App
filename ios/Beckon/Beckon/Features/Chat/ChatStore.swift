@@ -105,11 +105,18 @@ final class ChatStore {
         markConversationRead(conversationID)
     }
 
-    /// Subscribe before the snapshot so opening a thread cannot miss messages in between.
+    /// Do not hold history behind a slow realtime handshake. Catch up once connected so
+    /// messages sent between the first snapshot and subscription cannot fall into a gap.
     func prepareMessages(for conversation: ChatConversation) async {
-        await startMessageSubscription(for: conversation)
-        guard !Task.isCancelled else { return }
+        async let subscription: Void = startMessageSubscription(for: conversation)
+        await Task.yield()
+        let snapshotHasSubscription = hasActiveMessageSubscription(for: conversation.id)
         await loadMessages(for: conversation)
+        await subscription
+        guard !Task.isCancelled else { return }
+        if !snapshotHasSubscription, hasActiveMessageSubscription(for: conversation.id) {
+            await loadMessages(for: conversation)
+        }
     }
 
     func isSendingMessage(for conversationID: UUID) -> Bool {

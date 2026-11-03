@@ -5,6 +5,27 @@ import Testing
 @MainActor
 struct ChatReliabilityTests {
     @Test
+    func historyAppearsWhileRealtimeConnectionIsStillPending() async throws {
+        let fixture = Fixture()
+        let message = fixture.message("Visible before realtime", at: "2026-10-04T12:01:00Z")
+        fixture.repository.messagesResult = .success([message])
+        let gate = Gate()
+        fixture.repository.beforeMessageEvents = { await gate.suspend() }
+        let opening = Task { await fixture.store.prepareMessages(for: fixture.conversation) }
+        try await gate.waitUntilEntered()
+        for _ in 0..<100 where !fixture.store.hasLoadedMessages(for: fixture.conversation.id) {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(fixture.store.messages(for: fixture.conversation.id).map(\.id) == [message.id])
+        let duringConnection = fixture.message("Sent during handshake", at: "2026-10-04T12:02:00Z")
+        fixture.repository.messagesResult = .success([message, duringConnection])
+        gate.release()
+        await opening.value
+        #expect(fixture.store.messages(for: fixture.conversation.id).map(\.id) == [message.id, duringConnection.id])
+        fixture.store.stopAllMessageSubscriptions()
+    }
+
+    @Test
     func preparedHistoryStaysUnreadUntilTheThreadIsVisible() async {
         let fixture = Fixture(latest: "2026-10-04T12:01:00Z")
         await fixture.store.loadConversations()
@@ -21,32 +42,31 @@ struct ChatReliabilityTests {
     @Test
     func preparingAnEmptyThreadSettlesItsFirstLoadAndKeepsOneSubscription() async {
         let fixture = Fixture()
-        fixture.repository.beforeMessageRead = {
-            #expect(fixture.store.hasActiveMessageSubscription(for: fixture.conversation.id))
-        }
         #expect(!fixture.store.hasLoadedMessages(for: fixture.conversation.id))
         await fixture.store.prepareMessages(for: fixture.conversation)
         #expect(fixture.store.hasLoadedMessages(for: fixture.conversation.id))
         #expect(fixture.store.messages(for: fixture.conversation.id).isEmpty)
-        #expect(fixture.repository.messagesCallCount == 1)
+        #expect((1...2).contains(fixture.repository.messagesCallCount))
+        #expect(fixture.store.hasActiveMessageSubscription(for: fixture.conversation.id))
         await fixture.store.startMessageSubscription(for: fixture.conversation)
         #expect(fixture.repository.messageEventsCallCount == 1)
         fixture.store.stopAllMessageSubscriptions()
     }
 
     @Test
-    func cancelledPreparationDoesNotFetchOrSettleMessages() async throws {
+    func cancellingRealtimePreparationKeepsAlreadyLoadedHistory() async throws {
         let fixture = Fixture()
         let gate = Gate()
         fixture.repository.beforeMessageEvents = { await gate.suspend() }
         let opening = Task { await fixture.store.prepareMessages(for: fixture.conversation) }
         try await gate.waitUntilEntered()
+        for _ in 0..<100 where !fixture.store.hasLoadedMessages(for: fixture.conversation.id) { await Task.yield() }
         opening.cancel()
         fixture.store.stopAllMessageSubscriptions()
         gate.release()
         await opening.value
-        #expect(fixture.repository.messagesCallCount == 0)
-        #expect(!fixture.store.hasLoadedMessages(for: fixture.conversation.id))
+        #expect(fixture.repository.messagesCallCount == 1)
+        #expect(fixture.store.hasLoadedMessages(for: fixture.conversation.id))
         #expect(!fixture.store.hasActiveMessageSubscription(for: fixture.conversation.id))
     }
 

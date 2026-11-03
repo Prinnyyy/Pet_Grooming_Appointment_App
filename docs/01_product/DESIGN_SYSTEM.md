@@ -9,7 +9,7 @@ Pre-routing source snapshot: `../09_frozen/design_notes/T-347_2026-07-13/DESIGN_
 - Always start here for visual style, shared SwiftUI primitives, tokens, or screenshot-driven UI.
 - Add `ACCESSIBILITY_RULES.md` when changing user-visible UI, controls, images, text, status, or async feedback.
 - Add `FORM_INTERACTION_RULES.md` only for text entry, focus, keyboard avoidance, scrolling editors, or sheet gestures.
-- Add `LIVELY_UI_SPEC.md` for any Tier L/M (expressive) Customer UI: ledge surfaces, rounded type, entrance and idle motion, the pup illustration. Screens not declared there are Tier C and keep this file's contract unchanged (D-063, extended by D-064).
+- Add `LIVELY_UI_SPEC.md` for any Tier L/M (expressive) UI in either role: ledge surfaces, rounded type, entrance and idle motion, the pup illustration. Screens not declared there are Tier C and keep this file's contract unchanged (D-063, extended by D-064).
 - Use `../08_design/UI_IMPLEMENTATION_NOTES.md` to locate current screenshots and design evidence.
 - Use `../08_design/GROOMER_UI_REDESIGN.md` for the Groomer workspace contract or a focused R-039 regression.
 - Use `../ui-redesign/README.md` only when an explicit Figma/inventory task requires the heavy redesign evidence package.
@@ -22,10 +22,10 @@ Executable Feature-code rules and audit commands live in `../04_ios/UI_CODE_GOVE
 - Customer uses mint/teal action roles; Groomer uses coral action roles.
 - Role Fill is a light action surface, Ink is its foreground, Deep is for links, controls, progress and selection outlines, and opaque Tint is for selected/icon surfaces. Exact values and allowed contrast pairs live in `DesignTokens.swift` and `DesignTokenAccessibilityTests.swift`; D-060 supersedes earlier palette proposals.
 - Role color communicates action, selection or role, never domain status or failure. Status uses semantic Text/Fill/Border with a symbol and label; shared screens keep the same status presentation for both roles.
-- No accent-opacity control surfaces, gradient buttons or colored action shadows. The Customer Hero retains a related-color gradient. Tier C cards share one quiet warm shadow; depth primarily comes from borders. Tier L/M tappable surfaces use the opaque ledge from `LIVELY_UI_SPEC.md`, never a blur or glow. Customer profile placeholders use the role Tint/Deep pair; other placeholders and list icon tiles retain their role-scoped treatment. Species is conveyed by symbols rather than color. The authentication brand illustration has the separate, bounded material contract below.
+- No accent-opacity control surfaces, gradient buttons or colored action shadows. The adopted role Home heroes retain their related-color illustration treatment. Tier C cards share one quiet warm shadow; depth primarily comes from borders. Tier L/M tappable surfaces use the opaque ledge from `LIVELY_UI_SPEC.md`, never a blur or glow. Customer profile placeholders use the role Tint/Deep pair; other placeholders and list icon tiles retain their role-scoped treatment. Species is conveyed by symbols rather than color. The authentication brand illustration has the separate, bounded material contract below.
 - Destructive actions use a white surface with semantic error text/border for either role. Errors include an alert symbol and error container; success includes a checkmark. Never use white text on a light role Fill.
 - Clear hierarchy, quiet borders/shadows, content-led imagery, and explicit loading, empty, error, selected, disabled, and success states.
-- Customer remains pet/decision oriented. Groomer remains schedule/action oriented and uses grouped surfaces with row separators rather than card stacks.
+- Customer remains pet/decision oriented. Groomer remains schedule/action oriented: ordinary operational lists use grouped surfaces and row separators; adopted Home summaries and the Schedule focus banner retain their expressive cards.
 - Native SwiftUI/SF typography and semantic Dynamic Type styles are required. Tier L/M may use the SF Rounded `DesignTokens.Typography.Expressive` roles, which are still semantic text styles.
 
 Avoid dense dashboards, map-first layouts, oversized calendars, decorative animation outside the approved brand illustration and the Tier L expressive illustration layer, nested cards, and raw feature-local color, spacing, radius, shadow, or font values.
@@ -74,7 +74,7 @@ T-420 (D-064) uses one request-scoped selectable groomer list in wizard step six
 
 The request wizard's fixed header and bottom action bar surround the scrolling form. Pet choices keep a selection-indicator slot and separate name, breed and weight rows. Step six uses the same motion/chrome. Clean Send closes immediately and preserves the originating tab; pending or partial results retain recovery. Grooming combines active requests and bookings; History holds closed requests and inactive bookings. Never infer invitation capacity from every offered invitation: pending selectable offers count, unusable offers do not; partial evidence shows capacity as checked on send. Offer minima badges require a complete, current quote set.
 
-Customer booking detail composes ticket, path, next step, review, Manage booking and collapsible record. Shared note/time confirmations retain real validation and recovery inside custom dialogs. Removing a pet requires confirmation; removing a favorite offers a page-owned Undo through the existing reversible mutation. Shared account actions order routine sign-out above quiet destructive deletion. Customer appearance is scoped through `beckonCustomerDesign`; groomer layout remains unchanged except the explicitly shared account actions and booking dialogs.
+Customer booking detail composes ticket, path, next step, review, Manage booking and collapsible record. Shared note/time confirmations retain real validation and recovery inside custom dialogs. Removing a pet requires confirmation; removing a favorite offers a page-owned Undo through the existing reversible mutation. Shared account actions order routine sign-out above quiet destructive deletion. This paragraph records the historical Customer adoption scope. Handoff 4 subsequently adopted the role-aware shared kit for Groomer too; its current tiers are in `SCREEN_INVENTORY.md`.
 
 Start with `../06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`. Map visible modules to current screens, Stores, repositories, and models before editing. Classify each as visual-only, existing-feature rewire, reusable primitive, or new feature. Stop for approval before persistence, schema, backend, navigation, role capability, or deferred product changes.
 
@@ -85,11 +85,54 @@ Start with `../06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`. Map visible modu
 - Images have useful accessibility labels unless decorative.
 - Reuse shared primitives before adding feature-local variants.
 - Preserve the Request -> Offer -> Acceptance -> Booking/Chat -> Completion -> Review lifecycle.
-- Keep primary tab bars to five destinations; feature editors hide the tab bar and expose one back action.
-- Dark mode, new brand assets, public Groomer discovery, direct booking, payments, attachments, maps/calendar expansion, admin tools, and new push behavior remain out of scope unless explicitly approved.
+- Keep primary tab bars to five destinations; all pushed secondary/deeper pages hide the tab bar through the shared navigation owner and expose one back action.
+- The app currently forces light appearance; the app icon also retains its light artwork under system Dark (the tinted slot is separate). Broader dark-mode adaptation, unapproved new brand assets, public Groomer discovery, direct booking, payments, attachments, maps/calendar expansion, admin tools, and new push behavior remain out of scope unless explicitly approved.
 
 ### Customer journey update (D-065)
 
 Handoff 2 preserves the refined customer interaction: four tabs (Home, Grooming, Messages, Account); one card and detail for Posted → Offers → Booked → Finished; Home Next up reuses the same feed. The one Confirm booking action replaces the offer-selection navigation segment with the booked detail. Six wizard steps have a fixed progress band, When above Where, and editable Review rows returning directly to Review. First address confirmation reinterprets the chosen wall-clock day/time in the service zone; nonexistent/repeated times retain validation.
 
 Saved groomers starts with no request chosen. The request strip activates Select mode, the photo opens the shared profile, and one pinned bar sends the batch. Public profile content comes from real data; missing photos/content remain missing. Portfolio navigation is horizontal with accessible Previous/Next actions. Requests and bookings remain internal records, not separate customer destinations. Fourteen days limits an unreviewed card's stay in the active feed, not review availability in History.
+
+## Shared Layout, Loading And Refresh Contract (T-455 consolidation)
+
+This section consolidates already adopted behavior through T-454; it introduces no new screen or backend behavior. Page-specific exceptions remain in [Lively UI Spec](LIVELY_UI_SPEC.md).
+
+- **Stable module geometry:** reserve slots for optional counts, badges, timing and actions when their arrival would move adjacent content. Refresh must not insert a new “Checking…” row, blank a known count or remove its badge background. Known content and confirmed empty results remain visible during background reads. Unknown is not zero; only a confirmed empty read may show `0 appointments`.
+- **Skeleton parity:** use the real component's composition or shared slot primitives for surface, padding, media, header/footer, controls and ledge room. Preserve known static text in the sizing layout and mask unknown values. Corresponding states share positions and Dynamic Type behavior; do not size a skeleton by an unrelated sample screenshot.
+- **Placeholder shapes:** use `DesignSkeletonLine`, `DesignSkeletonBlock` and `DesignSkeletonDisc` from `DesignSystem/DesignSkeleton.swift`. Text bars are thin capsules, vertically centered at 60% of the matching semantic font line box; the full line box remains reserved. Avatars remain round; media and controls match their real outlines. Page-specific helpers must retain the same treatment rather than square full-height text bars.
+- **Fixed slots are scoped:** the approved Schedule focus banner and Home summary patterns reserve their own state-independent room, scaled for Dynamic Type. This is not a fixed-height rule for every card, editor or detail. Essential text must remain available in accessibility/detail; long content elsewhere reflows naturally.
+- **One async owner:** initial/new-scope reads may show a skeleton; cached content refreshes in place. Mutations use one progress owner (for example, the offer submit button), retaining failure/retry and duplicate-submit protection. Display caches never establish authorization, eligibility or editable truth. Cross-restart cache work T-428 remains separate and is not completed by this contract.
+- **Bounded reveal:** the page owns one skeleton-to-content reveal; cached reads skip unnecessary placeholders. Ordinary refresh/tab return does not replay entrance. Chat has no message skeleton: cached messages remain, with update state under the counterpart's name. Launch retains its completed artwork while resolving the role, then enters the correct destination without an intermediate loading page or repeated pup entrance.
+
+## Typography And Control Composition
+
+Use existing semantic type roles, not screenshot-derived point sizes. Tier L/M uses the SF Rounded `Typography.Expressive` family; actual text entry and thread content retain their calm contract. Current mapping in `DesignTokens.swift`:
+
+| Roles | Semantic style / weight |
+|---|---|
+| `display`, `hero`, `section`, `title` | largeTitle, title, title2, title3 / black |
+| `headline` | headline / black |
+| `body` | callout / semibold |
+| `supporting`, `emphasis` | subheadline / semibold, black respectively |
+| `label`, `labelMuted` | footnote / black, bold respectively |
+| `caption`, `chip`, `micro` | caption / black, caption / bold, caption2 / black |
+
+- Align related inline facts to the same semantic type/baseline; use monospaced digits for changing counts, times and prices where appropriate. Do not shrink primary timing into `micro` just to fit. The Schedule date and Today badge use vertical-center alignment and stack at accessibility sizes.
+- Keep controls at least 44×44pt. Shared action styles and the guarded press engine own touch-down, accepted tap, cancellation and haptics; features must not add a second gesture or artificial action delay. Reserve ledge room so press travel cannot shift neighbors.
+- Ledge controls and base Primary have one medium accepted-press haptic; Secondary, Tertiary, Destructive and plain controls stay quiet. Plain cards may take role tint; photos and the fixed-brand mascot retain their original colors. Full timing/strength rules remain in Lively's Shared press feedback section.
+- Shared primitives belong in DesignSystem, reusable business compositions in SharedFeatures, and one-feature compositions with their feature. Reuse layout slots across loaded/empty/skeleton states; do not generalize a Schedule-specific banner into a new global card framework.
+
+## Conflicts And Scope Notes
+
+These notes preserve discrepancies without adopting a new design or expanding verification gates.
+
+| Topic | Current adopted direction / remaining conflict |
+|---|---|
+| Groomer mascot and cards | Old “never Groomer Home” and “grouped surfaces only” wording predates the explicitly adopted shared pup hero and focus banners. Those historical prohibitions are superseded; ordinary lists remain grouped. |
+| Keyboard Done | Forms retain the shared accessory; chat explicitly omits it and uses outside-tap/interactive-scroll dismissal (T-448). This is a scoped exception, not removal from all forms. |
+| Fixed geometry vs. content sizing | Schedule focus slots are an adopted bounded exception. Other content-sized modules retain reflow; whether further modules need stable slots must be decided per module, not inferred from this consolidation. |
+| Time-zone copy | Adopted Schedule/offer/reschedule UI hides technical time-zone labels while calculations remain service-location based. The older blanket demand for a visible full zone in every detail is not a current universal rule; a future cross-zone disclosure policy is not decided here. |
+| Validation wording | Older Lively/accessibility sections list full per-slice runtime matrices, while the current Development Guide selects evidence by affected risk and the user owns visual review. This remains a documentation-policy discrepancy; use the current workflow for the actual task and never claim unperformed checks. This docs-only consolidation adds no runtime gate. |
+
+Historical handoff/task paragraphs explain provenance; do not turn them into additional universal layout rules. For current page composition use Lively's page-specific contracts and `SCREEN_INVENTORY.md`; numeric tokens and executable behavior remain owned by their named implementation sources.

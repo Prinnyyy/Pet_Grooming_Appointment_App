@@ -41,6 +41,9 @@ final class BookingsStore {
     private(set) var rescheduleErrors: [UUID: String] = [:]
     private(set) var isMutatingReschedule = false
 
+    private(set) var petPhotosByBookingID: [UUID: Data] = [:]
+    private(set) var customerNamesByBookingID: [UUID: String] = [:]
+    private var presentationReads: Set<UUID> = []
     private(set) var bookings: [Booking] = []
     private(set) var isLoading = false
     private(set) var hasLoadedOnce = false
@@ -96,6 +99,41 @@ final class BookingsStore {
            let operations = try? JSONDecoder().decode([BookingRescheduleOperation].self, from: data) {
             pendingReschedules = operations.reduce(into: [:]) { $0[$1.bookingID] = $1 }
         }
+    }
+
+    func petPhoto(for booking: Booking) -> Data? {
+        petPhotosByBookingID[booking.id] ?? repository.cachedPetPhoto(for: booking)
+    }
+
+    func loadPresentation(for booking: Booking) async {
+        guard role == .groomer, booking.groomerID == participantID, sessionIsCurrent(),
+              presentationReads.insert(booking.id).inserted else { return }
+        defer { presentationReads.remove(booking.id) }
+        async let photo: Void = loadPetPhoto(for: booking)
+        async let name: Void = loadCustomerName(for: booking)
+        _ = await (photo, name)
+    }
+
+    private func loadPetPhoto(for booking: Booking) async {
+        do {
+            let data = try await repository.petPhoto(for: booking)
+            try Task.checkCancellation()
+            guard sessionIsCurrent() else { return }
+            petPhotosByBookingID[booking.id] = data
+        } catch let error as BookingRepositoryError where error == .notAllowed || error == .bookingNotFound {
+            petPhotosByBookingID[booking.id] = nil
+        } catch { /* Keep display bytes on transient failure; mutations still verify independently. */ }
+    }
+
+    private func loadCustomerName(for booking: Booking) async {
+        do {
+            let name = try await repository.customerDisplayName(for: booking)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            try Task.checkCancellation()
+            guard sessionIsCurrent() else { return }
+            customerNamesByBookingID[booking.id] = name.flatMap { $0.isEmpty ? nil : $0 }
+        } catch ChatRepositoryError.notAllowed {
+            customerNamesByBookingID[booking.id] = nil
+        } catch { /* Preserve a verified display name during a temporary connection failure. */ }
     }
 
     func booking(withID id: UUID) -> Booking? {

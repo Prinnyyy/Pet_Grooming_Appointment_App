@@ -4,6 +4,28 @@ import Testing
 
 struct GroomerHomeFeatureTests {
     @Test @MainActor
+    func bookingPetPhotoSurvivesTransientRefreshAndClearsOnConfirmedRemoval() async {
+        let owner = UUID()
+        let now = Date(timeIntervalSince1970: 1783663200)
+        let booking = makeBooking(groomerID: owner, scheduledStart: "2026-07-10T17:00:00Z",
+            scheduledEnd: "2026-07-10T19:00:00Z", status: .confirmed)
+        let repository = GroomerHomeBookingRepositoryFake(bookingsResult: .success([booking]))
+        let bytes = Data("booked-pet-not-request-attachment".utf8)
+        repository.petPhotoResult = .success(bytes)
+        let store = GroomerHomeStore(groomerID: owner, displayName: "Taylor",
+            profileRepository: GroomerProfileRepositoryFake(), requestRepository: GroomerHomeRequestRepositoryFake(),
+            bookingRepository: repository, profileSnapshotCache: GroomerHomeProfileSnapshotCache(), now: { now })
+        await store.load()
+        #expect(store.nextBookingPhotoData == bytes)
+        repository.petPhotoResult = .failure(.networkUnavailable)
+        await store.load()
+        #expect(store.nextBookingPhotoData == bytes)
+        repository.petPhotoResult = .success(nil)
+        await store.load()
+        #expect(store.nextBookingPhotoData == nil)
+    }
+
+    @Test @MainActor
     func refreshKeepsKnownCountersAndAvailabilityWhileWaitingAndAfterTransientFailure() async throws {
         let owner = UUID()
         let profiles = GroomerProfileRepositoryFake(profileResult: .success(makeProfile(groomerID: owner)),
@@ -179,6 +201,7 @@ struct GroomerHomeFeatureTests {
             now: { ISO8601DateFormatter().date(from: "2026-07-10T16:00:00Z")! }
         )
 
+        bookingRepository.petPhotoResult = .success(petPhotoData)
         await store.load()
 
         #expect(store.greetingName == "Taylor")
@@ -190,7 +213,7 @@ struct GroomerHomeFeatureTests {
         #expect(store.nextBookingPhotoData == petPhotoData)
         #expect(store.availabilityState == .available)
         #expect(store.issues.isEmpty)
-        #expect(requestRepository.requestPhotoRequestIDs == [requestID])
+        #expect(requestRepository.requestPhotoRequestIDs.isEmpty) // Pet identity must not come from request attachments.
     }
 
     @Test @MainActor
@@ -342,6 +365,8 @@ private final class GroomerHomeRequestRepositoryFake: GroomerRequestRepository {
 
 @MainActor
 private final class GroomerHomeBookingRepositoryFake: BookingRepository {
+    var petPhotoResult: Result<Data?, BookingRepositoryError> = .success(nil)
+    func petPhoto(for booking: Booking) async throws -> Data? { try petPhotoResult.get() }
     let bookingsResult: Result<[Booking], BookingRepositoryError>
     var firstPageOnly = false
     private(set) var nearestCalls = 0

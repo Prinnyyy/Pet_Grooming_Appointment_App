@@ -27,6 +27,10 @@ enum BookingRepositoryError: Error, Equatable, Sendable {
 
 @MainActor
 protocol BookingRepository: AnyObject {
+    func cachedPetPhoto(for booking: Booking) -> Data?
+    func petPhoto(for booking: Booking) async throws -> Data?
+    func customerDisplayName(for booking: Booking) async throws -> String?
+
     func reviewContext(bookingID: UUID) async throws -> BookingReviewContext
     func reminderSnapshot(participantID: UUID, role: UserRole) async throws -> AppointmentReminderSnapshot
     func upcomingBookings(participantID: UUID, role: UserRole, now: Date, limit: Int) async throws -> [Booking]
@@ -77,6 +81,10 @@ protocol BookingRepository: AnyObject {
 }
 
 extension BookingRepository {
+    func cachedPetPhoto(for booking: Booking) -> Data? { nil }
+    func petPhoto(for booking: Booking) async throws -> Data? { nil }
+    func customerDisplayName(for booking: Booking) async throws -> String? { nil }
+
     func upcomingBookings(participantID: UUID, role: UserRole, now: Date, limit: Int) async throws -> [Booking] {
         guard (1...4).contains(limit) else { throw BookingRepositoryError.invalidInput }
         // Compatibility for repositories that implement the original nearest-booking contract.

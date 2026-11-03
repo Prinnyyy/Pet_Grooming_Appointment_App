@@ -199,3 +199,65 @@ extension View {
         navigationDestination(isPresented: isPresented) { destination().beckonHidesTabBar() }
     }
 }
+
+
+/// Restore the native edge-pop for pages with their own header/back button (such as chat).
+/// No replacement pan gesture or navigation animator: UIKit still owns progress/cancellation.
+extension View {
+    func beckonAllowsInteractiveBack() -> some View { background(BeckonInteractiveBackBridge()) }
+}
+
+struct BeckonInteractiveBackBridge: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> Controller { Controller() }
+    func updateUIViewController(_ controller: Controller, context: Context) { controller.installIfVisible() }
+
+    final class Controller: UIViewController, UIGestureRecognizerDelegate {
+        private weak var previousDelegate: (any UIGestureRecognizerDelegate)?
+        private weak var gesture: UIGestureRecognizer?
+        private var isVisible = false
+
+        override func viewDidLoad() { super.viewDidLoad(); view.isUserInteractionEnabled = false }
+        override func viewDidAppear(_ animated: Bool) {
+            super.viewDidAppear(animated)
+            isVisible = true
+            installIfVisible()
+        }
+        override func viewWillDisappear(_ animated: Bool) {
+            super.viewWillDisappear(animated)
+            isVisible = false
+            restore()
+        }
+        override func viewDidDisappear(_ animated: Bool) {
+            super.viewDidDisappear(animated)
+            isVisible = false
+            restore()
+        }
+        func installIfVisible() {
+            guard isVisible, let navigation = navigationController,
+                  let gesture = navigation.interactivePopGestureRecognizer, owns(navigation.topViewController) else { return }
+            if gesture.delegate !== self {
+                previousDelegate = gesture.delegate
+                self.gesture = gesture
+                gesture.delegate = self
+            }
+        }
+        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            guard let navigation = navigationController else { return false }
+            return navigation.viewControllers.count > 1 && navigation.transitionCoordinator == nil
+                && owns(navigation.topViewController)
+        }
+        private func owns(_ page: UIViewController?) -> Bool {
+            var owner: UIViewController? = self
+            while let current = owner {
+                if current === page { return true }
+                owner = current.parent
+            }
+            return false
+        }
+        private func restore() {
+            if gesture?.delegate === self { gesture?.delegate = previousDelegate }
+            gesture = nil
+            previousDelegate = nil
+        }
+    }
+}

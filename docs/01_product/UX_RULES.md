@@ -2,8 +2,8 @@
 
 ## Interaction Basics
 
-- Every async read has appropriate loading, content, empty, and visible error states.
-- Every mutation shows progress, prevents duplicate submission, and never fabricates success.
+- Every async read has appropriate loading, content, empty, and visible error states. First/new-scope loading differs from background refresh: retain known content, confirmed empty results and count badges; do not add refresh-only rows or alter module height. Unknown values must not masquerade as zero.
+- Every mutation has one progress owner, prevents duplicate submission, and never fabricates success. Do not duplicate button progress in a global sending overlay.
 - Preserve recoverable form input after network, permission, conflict, or validation errors.
 - Keep primary actions shallow and use user-facing language instead of backend terms.
 - Respect Dynamic Type, VoiceOver labels, contrast, and minimum target sizes.
@@ -29,7 +29,7 @@
 
 ## Copy
 
-Use sentence case for headings, field labels, status labels and explanatory copy. Preserve proper names and acronyms; command buttons may retain title case. Format appointment intervals through `BeckonDateTimeFormatter`, keep full time-zone identifiers in details/accessibility labels, and show unknown zones explicitly without raw timestamps. Counts must use correct singular/plural forms.
+Use sentence case for headings, field labels, status labels and explanatory copy. Preserve proper names and acronyms; command buttons may retain title case. Format appointment intervals through `BeckonDateTimeFormatter`, retain service-location time-zone calculations and validation. Technical Service time zone rows in offer/reschedule and the Schedule zone badge are intentionally hidden (T-448/T-450); do not restore them as refresh copy. Unknown service-zone data must retain validation/recovery rather than inventing a zone or raw timestamp. The remaining cross-zone disclosure question is recorded in `DESIGN_SYSTEM.md`. Counts must use correct singular/plural forms.
 
 Preferred terms: Beckon, Find a groomer, Start a grooming request, Publish request, Open requests, Make offer, Review offers, Accept offer, Booking confirmed, Not a fit, Waiting for offers, No offers yet.
 

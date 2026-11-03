@@ -89,6 +89,7 @@ struct GroomerBookingStage {
 /// with the way to message them. The booking holds its appointment and nothing around it (design): the groomer judges what fits.
 struct GroomerBookingAppointment: View {
     let booking: Booking
+    var customerName: String? = nil
     var onOpenChat: ((Booking) -> Void)?
     /// The service is over or the booking is closed: the way there is no longer needed.
     var isOver = false
@@ -103,10 +104,10 @@ struct GroomerBookingAppointment: View {
                 DesignFactRow(systemImage: "location.fill", title: locationTitle, value: booking.appointmentAddressSummary)
                 if isMobile, !isOver { directions }
                 DesignRowDivider()
-                GroomingPartnerFoot(caption: "Your customer", name: "Customer · #\(booking.participantReferenceCode(for: .groomer))",
+                GroomingPartnerFoot(caption: "Your customer", name: customerName ?? "Customer",
                     messageLabel: "Message your customer", onMessage: onOpenChat.map { open in { open(booking) } }) {
                     BeckonProfileAvatar(data: nil, tone: .customer, size: DesignTokens.Metrics.minimumTouchTarget,
-                        cornerRadius: DesignTokens.CornerRadius.pill)
+                        cornerRadius: DesignTokens.CornerRadius.pill, participantID: booking.customerID)
                 }
             }
             .designCardBody()

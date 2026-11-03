@@ -56,6 +56,7 @@ final class GroomerHomeStore {
     private(set) var bookings: [Booking] = []
     private(set) var bookingsVerifiedAt: Date?
     private(set) var nextBookingPhotoData: Data?
+    private var nextBookingPhotoRequestID: UUID?
     private(set) var availabilityWindows: [GroomerAvailabilityWindow] = []
     private(set) var issues: [GroomerHomeLoadIssue] = []
     private(set) var isLoading = false
@@ -304,6 +305,10 @@ final class GroomerHomeStore {
             guard upcoming.allSatisfy({ $0.groomerID == groomerID }) else { throw BookingRepositoryError.notAllowed }
             issues.removeAll { $0.section == .bookings }
             bookings = upcoming
+            if nextBookingPhotoRequestID != nextBooking?.requestID {
+                nextBookingPhotoRequestID = nextBooking?.requestID
+                nextBookingPhotoData = nextBooking.flatMap { bookingRepository.cachedPetPhoto(for: $0) }
+            }
             bookingsVerifiedAt = now()
         } catch BookingRepositoryError.cancelled {
             return
@@ -327,30 +332,26 @@ final class GroomerHomeStore {
     }
 
     private func loadNextBookingPhoto() async {
-        guard let nextBooking else {
+        guard let booking = nextBooking else {
             nextBookingPhotoData = nil
+            nextBookingPhotoRequestID = nil
             return
         }
-
+        if nextBookingPhotoRequestID != booking.requestID {
+            nextBookingPhotoRequestID = booking.requestID
+            nextBookingPhotoData = bookingRepository.cachedPetPhoto(for: booking)
+        }
         do {
-            let photos = try await requestRepository.requestPhotos(
-                groomerID: groomerID,
-                requestIDs: [nextBooking.requestID]
-            )
-            guard let photo = photos
-                .filter({ $0.requestID == nextBooking.requestID })
-                .sorted(by: Self.photoDisplayOrder)
-                .first else {
+            let data = try await bookingRepository.petPhoto(for: booking)
+            try Task.checkCancellation()
+            guard nextBooking?.requestID == booking.requestID else { return }
+            nextBookingPhotoData = data
+        } catch where AppDebugErrorClassifier.isCancellation(error) { return }
+        catch {
+            // A transient refresh must not replace the same pet's known photo with a glyph.
+            if let error = error as? BookingRepositoryError, error == .notAllowed || error == .bookingNotFound {
                 nextBookingPhotoData = nil
-                return
             }
-            nextBookingPhotoData = try await requestRepository.requestPhotoData(photo)
-        } catch GroomerRequestRepositoryError.cancelled {
-            return
-        } catch where AppDebugErrorClassifier.isCancellation(error) {
-            return
-        } catch {
-            nextBookingPhotoData = nil
             recordImageFallback(error: error, source: "booking-pet-photo")
         }
     }
@@ -471,16 +472,6 @@ final class GroomerHomeStore {
             return "\(city), \(state)"
         }
         return nil
-    }
-
-    private static func photoDisplayOrder(
-        lhs: GroomingRequestPhoto,
-        rhs: GroomingRequestPhoto
-    ) -> Bool {
-        if lhs.sortOrder == rhs.sortOrder {
-            return lhs.id.uuidString < rhs.id.uuidString
-        }
-        return lhs.sortOrder < rhs.sortOrder
     }
 
     private static func issueOrder(_ section: GroomerHomeSection) -> Int {

@@ -235,7 +235,7 @@ struct GroomerScheduleView: View {
         return VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionSpacing) {
             VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionContentSpacing) {
                 GroomerScheduleDayHeader(date: presentation.selectedDate, calendar: calendar, isToday: isToday,
-                    summary: read.hasSnapshot ? summary : nil, isLoading: read.showsPlaceholder)
+                    summary: read.hasSnapshot ? (presentation.selectedBookings.isEmpty ? "0 appointments" : summary) : nil, isLoading: read.showsPlaceholder)
                 if read.showsPlaceholder {
                     GroomerDayShapeBarSkeleton()
                 } else if scopeMatches {
@@ -328,7 +328,9 @@ struct GroomerScheduleView: View {
     /// The empty day occupies the same coral focus-card slots as a confirmed appointment.
     private func emptyDay(dayTitle: String, window: GroomerAvailabilityWindow?) -> some View {
         GroomerScheduleEmptyCard(note: emptyDayNote(dayTitle: dayTitle, window: window),
-            isClosed: window?.isEnabled == false, onSeeRequests: onSeeRequests)
+            isClosed: window?.isEnabled == false,
+            hours: window.flatMap { $0.isEnabled ? $0.timeRangeSummary.replacingOccurrences(of: " - ", with: " – ") : nil },
+            onSeeRequests: onSeeRequests)
     }
 
     private func emptyDayNote(dayTitle: String, window: GroomerAvailabilityWindow?) -> String {

@@ -42,7 +42,7 @@ Future UI work is screenshot-driven. Map every visible module to this table plus
 
 ## Customer composition and expressive tiers
 
-D-064 extends [Lively UI Spec](LIVELY_UI_SPEC.md). Customer Home and authentication landing use Tier L illustration; customer lists/details, form chrome, account/settings, notifications and dialogs use Tier M. Inputs and chat-thread content stay calm; chat receives no page entrance. D-069 adopts Groomer Home as Tier L without a pup, and Requests, Schedule, Account, notifications, detail pages and shared booking tickets as Tier M. `LEDGE_TIER_PATHS` enumerates the adopted files. Both roles use the same kit with role-driven accents; no runtime adoption flag remains.
+D-064 extends [Lively UI Spec](LIVELY_UI_SPEC.md). Customer Home and authentication landing use Tier L illustration; customer lists/details, form chrome, account/settings, notifications and dialogs use Tier M. Inputs and chat-thread content stay calm; chat receives no page entrance. D-069 adopts Groomer Home as Tier L with the shared pup hero (including the later adopted emergence behavior), and Requests, Schedule, Account, notifications, detail pages and shared booking tickets as Tier M. `LEDGE_TIER_PATHS` enumerates the adopted files. Both roles use the same kit with role-driven accents; no runtime adoption flag remains.
 
 - `CustomerTabView` owns Home / Grooming / Messages / Account, entrance activation, programmatic routes and one shared request-modal presenter for all four tabs.
 - `CustomerRequestWizardView` and `CustomerRequestWizardChrome` own six steps; `CustomerGroomerDiscoveryView` supplies step six and Invite more. `GroomerChoice` owns selection, capacity hints and pool controls; the server retains final authority.
@@ -88,3 +88,8 @@ D-069 / P3 adopts groomer Requests and its shared row/detail/form/pet blocks as 
 Handoff 4 P5 (D-069): `Features/Chat/ChatBookingCard.swift` owns the shared Tier M booking ticket for both roles. Chat thread text/composer remain calm, cached content and header Updating remain; ticket has no entrance.
 
 Handoff 4 P6 (D-069): Groomer Account and its six profile/editor/evidence pages in `Features/Groomer/Profile/` adopt Tier M with the shared `GroomerAccountParts` pinned save/switch/field kit. Existing Store/repository ownership remains; ProfileManagement is a compatibility entry, Account root uses the shell-owned Store. Role onboarding adopts Tier M and previews the selected role accent. Auto-ready is removed, its backend compatibility field retained.
+
+
+### Current Schedule module ownership (T-454 / T-455)
+
+`Features/Groomer/Schedule/GroomerScheduleView.swift` owns page composition; `GroomerScheduleParts.swift` owns the focus states, day shape strip and skeleton composition; `GroomerScheduleFocusParts.swift` shares header, identity, timing, location and action slots across those states. They retain the existing Bookings Store, authorization and service actions. Empty/upcoming/in-service/initial-loading occupy the same banner slots; see [Lively UI Spec](LIVELY_UI_SPEC.md#schedule-composition-reference-t-454-clarified-by-t-455). Chat-thread content is deliberately skeleton-free; the historical `ChatSkeletons.swift` entry above concerns Messages list rows, not the conversation body.

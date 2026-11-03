@@ -77,7 +77,7 @@ struct GroomerTabView: View {
             _offersStore = State(initialValue: GroomerOffersStore(groomerID: groomerID, repository: requestRepository,
                 countCache: requestCountCache, sessionIsCurrent: sessionIsCurrent))
             _bookingsStore = State(initialValue: BookingsStore(participantID: groomerID, role: .groomer,
-                repository: bookingRepository, groomerProfileRepository: profileRepository))
+                repository: bookingRepository, groomerProfileRepository: profileRepository, sessionIsCurrent: sessionIsCurrent))
             _profileStore = State(initialValue: GroomerProfileStore(groomerID: groomerID, repository: profileRepository))
         }
         _notificationStore = State(

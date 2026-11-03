@@ -101,6 +101,10 @@ private enum AppDebugRepositoryCancellation {
 
 @MainActor
 final class DebugBookingRepository: BookingRepository {
+    func cachedPetPhoto(for booking: Booking) -> Data? { base.cachedPetPhoto(for: booking) }
+    func petPhoto(for booking: Booking) async throws -> Data? { try await base.petPhoto(for: booking) }
+    func customerDisplayName(for booking: Booking) async throws -> String? { try await base.customerDisplayName(for: booking) }
+
     func reviewContext(bookingID: UUID) async throws -> BookingReviewContext {
         try await base.reviewContext(bookingID: bookingID)
     }

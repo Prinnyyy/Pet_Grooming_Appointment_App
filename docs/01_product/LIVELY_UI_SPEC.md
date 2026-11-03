@@ -6,14 +6,16 @@ Source of truth in code: `ios/Beckon/Beckon/DesignSystem/DesignTokens.swift` (`L
 
 Initial adopter: Customer Home (`Features/Customer/Home/CustomerHomeView.swift`) and its request summary card (`Features/Customer/Grooming/GroomingCard.swift`). Preview: `CustomerHomeFlowSandbox.swift`, three Canvas previews (posted, offers waiting, booked).
 
+Current common loading/layout/type rules are consolidated in [Design System](DESIGN_SYSTEM.md#shared-layout-loading-and-refresh-contract-t-455-consolidation). The dated sections below retain adoption provenance and scoped exceptions; do not treat their historical package boundaries as current restrictions. Known conflicts are recorded in Design System.
+
 ## 1. Feeling
 
 Lively means the interface behaves like a physical object that answers back, and always says what to do next. It is a feeling to reproduce, not a layout to copy from any other app.
 
-1. **Tactile.** Tappable surfaces have a solid ledge (lip). Pressing sinks the face into the lip, then springs back, with a medium haptic.
+1. **Tactile.** Adopted ledge controls sink into their solid lip and spring back. Plain controls use the shared restrained feedback; haptics follow the Shared press feedback contract below, not every tappable surface.
 2. **Springy.** Things arrive with a small overshoot and settle. Nothing slides linearly into place.
 3. **Characterful.** One recurring character (the pup) and a few bounded decorative loops give the screen a pulse. The mascot has one shared shape and fixed brand colors in launch, Customer and Groomer; role themes never recolor its ears, markings, face or paws. Character lives in illustration, never in controls or data.
-4. **Guided.** Each module tells the user the next step in one line, and progress is a path with a current step, not a bar.
+4. **Guided.** Each module tells the user the next step in one line, and journey progress uses a path with a current step. Service-time progress and day occupancy retain their approved bars.
 5. **Earned restraint.** Lively is spent where the user decides or celebrates. Where the user types, pays, reads a thread or works a schedule, the existing calm contract applies.
 
 Test for any new element: does it feel like a thing you can push, and does it help the user know what happens next? If it only decorates, it needs a place in section 6's budget or it does not ship.
@@ -22,7 +24,7 @@ Test for any new element: does it feel like a thing you can push, and does it he
 
 | Tier | Screens | Allowed |
 |---|---|---|
-| **L Lively** | Customer and Groomer Home; empty states; success and celebration moments | Ledge surfaces, entrance pop, bounded idle loops, callouts, stage path; character only at its explicitly adopted locations, never Groomer Home |
+| **L Lively** | Customer and Groomer Home; empty states; success and celebration moments | Ledge surfaces, entrance pop, bounded idle loops, callouts, stage path; character only at its explicitly adopted locations, including both Home heroes |
 | **M Moderate** | Both roles' lists/details, form chrome, account/settings, notifications and dialogs | Ledge surfaces, rounded type, entrance by screen family, explicit action feedback. Input controls remain stable |
 | **C Calm** | Text entry and chat-thread content | Stable inputs and thread scrolling; no page entrance for chat |
 
@@ -240,9 +242,9 @@ T-448 supersedes the return timing above: pushed pages mark UIKit's `hidesBottom
 
 ## Chat identity and keyboard (T-448)
 
-Conversation rows and thread headers show the counterpart's profile display name, loaded through the participant-scoped name RPC; internal account reference codes are not fallback names. Active chat means messaging is available, not online presence. Its dot uses semantic success green in both roles; updating/paused uses warning, failure uses error, read-only uses neutral gray. Status also has text.
+Conversation rows and thread headers show the counterpart's profile display name, loaded through the participant-scoped name RPC; internal account reference codes are not fallback names. Groomer booking Appointment uses the same participant-scoped identity source; a missing name uses neutral Customer copy, never an internal reference code. History reads do not wait for the realtime handshake; a catch-up read after connection closes the snapshot/subscription gap (T-456). Active chat means messaging is available, not online presence. Its dot uses semantic success green in both roles; updating/paused uses warning, failure uses error, read-only uses neutral gray. Status also has text.
 
-Both the loaded chat thread and its loading destination hide the tab bar with the shared detail-page transition owner; back navigation restores it. The chat composer has no explicit keyboard Done/checkmark accessory. Tapping the header or message area dismisses focus without taking taps from message actions; the composer itself keeps focus. Interactive scroll dismissal remains. Keep a compact shared composer inset and message tail clearance rather than an empty accessory row. Hide technical Service time zone rows in offer/reschedule forms while continuing to resolve and validate every time in the service location's confirmed time zone.
+Both the loaded chat thread and its loading destination hide the tab bar with the shared detail-page transition owner; back navigation restores it. Custom chat headers retain the native edge-pop through the shared interactive-back bridge, which restores the navigation gesture owner on departure; it adds no separate drag animator (T-456). The chat composer has no explicit keyboard Done/checkmark accessory. Tapping the header or message area dismisses focus without taking taps from message actions; the composer itself keeps focus. Interactive scroll dismissal remains. Keep a compact shared composer inset and message tail clearance rather than an empty accessory row. Hide technical Service time zone rows in offer/reschedule forms while continuing to resolve and validate every time in the service location's confirmed time zone.
 
 T-450: All production push destinations, including nested pages in both roles, hide the tab bar through `beckonNavigationDestination` or the shared hider on direct links. Root tabs retain it. Use the existing coordinated return above, including interactive cancellation; do not introduce page-specific restoration delays. Chat initially anchors at the newest message, retaining explicit earlier-history positioning. Requests closing deadlines use a compact upper-right chip beside the name (full wording remains in VoiceOver), without adding a footer or changing the normal row/skeleton height; other actionable status notes retain their footer.
 
@@ -251,3 +253,24 @@ T-451: The Groomer Request detail hero (separate from list rows) places its clos
 Participant avatars (T-452): show known account-scoped avatar paths and existing private image bytes immediately; profile-path lookup and missing-image downloads refresh in the background without blocking chat, offers or bookings. Shared avatar views observe image-only changes, including a confirmed removal. Retain known images on transient errors, coalesce matching refreshes, and reuse verified paths for 60 seconds. The path index holds at most 256 entries with a 30-day display lifetime; image bytes reuse the existing bounded memory front and private disk cache. Clear account paths/images on local account cleanup and reject late writes from a prior cache generation. These display snapshots never grant access or hydrate editable profile fields; discovery’s fresh-authorization image policy remains unchanged.
 
 Schedule focus card (T-453): empty days, the next/due/in-service appointment and its skeleton share one coral banner and four fixed slots (header, identity, detail, actions). Width follows the existing page insets; slot heights depend only on Dynamic Type, with extra room for accessible stacked controls. Bound names, service/place and empty descriptions to their text slots, keeping full strings available to accessibility/detail. Missing actions and service progress retain their slots. Keep the verified empty day’s hour strip in place so the focus card starts at the same position as booked/loading days. A closed day never offers requests.
+
+Schedule V6 adoption (T-454): keep the existing coral focus-card surface and four fixed slots. Confirmed appointment price uses the shared upper-right header position; upcoming timing precedes the adjacent duration. In-service timing shows Started/Ends beneath the progress bar, retaining elapsed information for VoiceOver. Empty days use the same header treatment and show real confirmed working hours when available; confirmed empty days display `0 appointments`, while unread days remain masked. Summary is one line to keep the hour strip anchored. Loaded/skeleton cards share header, identity, timing, place and action primitives; text placeholders use the original thin capsule treatment. Hour strips share one track/tick layout, reserve marker overhang in every state and retain data-driven ranges. The now marker is an overlay, not a sizing child: today, other days and the skeleton all keep the same `dayShapeHeight` track thickness (T-457).
+
+App icon (T-454): import approved PNGs without image processing. Default and dark slots deliberately use identical light-icon bytes, so system Dark mode retains the light icon; the approved tinted image remains separate. `CLAUDE_sandbox/CLAUDE_APPICON/` is read-only source material and must not be staged. Regenerate future artwork with its provided script, then preserve this light/dark mapping. LaunchWash and LaunchScreen are independent and unchanged.
+
+
+### Schedule composition reference (T-454, clarified by T-455)
+
+The focus banner is page-specific: one coral surface, header/identity/detail/actions slots, page-inset width and Dynamic-Type-scaled height owned by its shared slot metrics. Do not apply that numeric height to other cards. `GroomerScheduleFocusParts.swift` owns shared slot primitives; `GroomerScheduleParts.swift` composes real models and matching placeholders.
+
+| State | Header | Detail slot | Actions / continuity |
+|---|---|---|---|
+| Confirmed empty | Same status treatment; no invented price | Calendar / Nothing booked; confirmed open hours only when known | Same reserved room; closed day has no requests action; day summary remains `0 appointments` |
+| Upcoming | Status left, actual formatted price right | `Starts` then adjacent duration with matching typography/baseline; location below | Existing Start/Message eligibility retained |
+| In service | Status left, actual formatted price right | Existing progress track; `Started` left and `Ends`/`Was due` right below it | Existing Complete/Message protection; elapsed information remains accessible, without the visual “19 of 30 min” row |
+| Initial/new-scope loading | Matching header and price placeholders | Rounded identity, progress/timing and location placeholders match the in-service slots | Matching action footprints; no interactive fake controls |
+
+The shared `GroomerDayShapeBar` renders both known and unknown hour strips: same track, tick line boxes and marker-overhang envelope. Its time range remains data-driven (baseline 8AM–6PM, expanded by confirmed hours/bookings); parity does not mean hardcoding mock times or identical tick labels for every day. Summary, strip and banner positions stay aligned across states. These rules do not suppress truthful missing-hours, access-loss or failed-read states.
+
+
+Booking pet portraits (T-456): Groomer Home and booking detail use the booked request's pet-photo snapshot, prioritizing its primary photo, not optional request attachments or the customer's avatar. The Booking repository resolves the existing authorized request detail and reuses private-image bytes; a bounded in-memory request/path index reuses those bytes between surfaces and follows private-cache invalidation. The owning Stores keep known photos during transient refresh failures, clear confirmed absence/access loss, and switch photo identity with the booking. This does not add cross-restart booking/path snapshots or complete T-428.

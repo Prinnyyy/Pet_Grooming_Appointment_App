@@ -1484,6 +1484,17 @@ final class AppointmentReminderSchedulerFake:
 
 @MainActor
 final class BookingRepositoryFake: BookingRepository {
+    var petPhotoResult: Result<Data?, BookingRepositoryError> = .success(nil)
+    var cachedPetPhotoData: Data?
+    var customerDisplayNameResult: Result<String?, ChatRepositoryError> = .success(nil)
+    var beforePetPhoto: (() async -> Void)?
+    func cachedPetPhoto(for booking: Booking) -> Data? { cachedPetPhotoData }
+    func petPhoto(for booking: Booking) async throws -> Data? {
+        await beforePetPhoto?()
+        return try petPhotoResult.get()
+    }
+    func customerDisplayName(for booking: Booking) async throws -> String? { try customerDisplayNameResult.get() }
+
     var reviewContextResult: Result<BookingReviewContext, BookingRepositoryError> = .failure(.unavailable)
     var onReviewContext: (() async -> Void)?
     func reviewContext(bookingID: UUID) async throws -> BookingReviewContext {
