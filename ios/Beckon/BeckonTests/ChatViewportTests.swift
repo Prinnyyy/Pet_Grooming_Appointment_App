@@ -51,6 +51,70 @@ final class ChatViewportTests: XCTestCase {
         try await assertLatestFromFirstContentFrame(reopened, phase: "cached reopen")
     }
 
+    func testUpdatingKeepsTheSameViewportAsActiveChat() async throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        defer { window.isHidden = true; window.rootViewController = nil; previous?.makeKey() }
+        for (role, cached) in [(UserRole.customer, false), (.customer, true), (.groomer, false), (.groomer, true)] {
+            let conversation = ChatConversation(id: UUID(), customerID: UUID(), groomerID: UUID(),
+                createdAt: "2026-11-03T12:00:00Z", updatedAt: "2026-11-03T12:00:00Z")
+            var messages = (0..<40).map { index in
+                ChatMessage(id: UUID(), conversationID: conversation.id,
+                    senderID: index % 3 == 0 ? conversation.customerID : conversation.groomerID, kind: .text,
+                    body: index == 39 ? "OK" : String(repeating: "Message \(index): please use the side entrance. ", count: index % 4 + 1),
+                    booking: nil, createdAt: String(format: "2026-11-03T12:00:%02dZ", index))
+            }
+            let booking = BookingsStoreTests.booking(customerID: conversation.customerID, groomerID: conversation.groomerID)
+            messages.insert(ChatMessage(id: UUID(), conversationID: conversation.id, senderID: conversation.customerID,
+                kind: .bookingCard, body: nil, booking: booking, createdAt: "2026-11-03T12:00:20.500Z"), at: 21)
+            let participant = role == .customer ? conversation.customerID : conversation.groomerID
+            let repository = ChatRepositoryFake(messagesResult: .success(messages))
+            let store = ChatStore(participantID: participant, role: role, repository: repository,
+                readStateCache: ChatReadStateCacheFake())
+            if cached { await store.loadMessages(for: conversation) }
+            var release: CheckedContinuation<Void, Never>?
+            repository.beforeMessageEvents = { await withCheckedContinuation { release = $0 } }
+            let host = UIHostingController(rootView: ChatThreadView(participantID: participant, role: role,
+                conversation: conversation, store: store).environment(\.scenePhase, .active))
+            let navigation = UINavigationController(rootViewController: host)
+            navigation.setNavigationBarHidden(true, animated: false)
+            window.rootViewController = navigation
+            window.makeKeyAndVisible()
+            for _ in 0..<100 where release == nil || !store.hasLoadedMessages(for: conversation.id) {
+                try await Task.sleep(for: .milliseconds(5))
+            }
+            XCTAssertNotNil(release)
+            try await Task.sleep(for: .milliseconds(100))
+            window.layoutIfNeeded(); host.view.layoutIfNeeded()
+            let scroll = try XCTUnwrap(messageScroll(in: host.view))
+            let during = scroll.convert(scroll.bounds, to: window)
+            print("UPDATING role=\(role) cached=\(cached) viewport=\(during) content=\(scroll.contentSize) offset=\(scroll.contentOffset) insets=\(scroll.adjustedContentInset)")
+            let end = max(-scroll.adjustedContentInset.top,
+                scroll.contentSize.height + scroll.adjustedContentInset.bottom - scroll.bounds.height)
+            XCTAssertEqual(scroll.contentOffset.y, end, accuracy: 2, "Mixed-height history must already show its newest message")
+            XCTAssertTrue(store.isLoadingMessages(for: conversation.id))
+            XCTAssertEqual(scroll.contentOffset.x + scroll.adjustedContentInset.left, 0, accuracy: 1, "Updating must not shift a vertical conversation sideways")
+            repository.beforeMessageEvents = nil
+            release?.resume(); release = nil
+            for _ in 0..<100 where store.isLoadingMessages(for: conversation.id) {
+                try await Task.sleep(for: .milliseconds(5))
+            }
+            try await Task.sleep(for: .milliseconds(100))
+            window.layoutIfNeeded(); host.view.layoutIfNeeded()
+            let after = scroll.convert(scroll.bounds, to: window)
+            print("ACTIVE role=\(role) cached=\(cached) viewport=\(after) content=\(scroll.contentSize) offset=\(scroll.contentOffset) insets=\(scroll.adjustedContentInset)")
+            XCTAssertEqual(scroll.contentOffset.x + scroll.adjustedContentInset.left, 0, accuracy: 1, "Active chat must keep the same horizontal origin")
+            XCTAssertEqual(during.minY, after.minY, accuracy: 1)
+            XCTAssertEqual(during.height, after.height, accuracy: 1)
+            XCTAssertGreaterThan(during.height, window.bounds.height * 0.5)
+            XCTAssertGreaterThanOrEqual(during.minY, window.safeAreaInsets.top)
+            XCTAssertLessThanOrEqual(during.maxY, window.bounds.height - window.safeAreaInsets.bottom)
+            store.stopAllMessageSubscriptions()
+            window.rootViewController = nil
+        }
+    }
+
     private func assertLatestFromFirstContentFrame(_ host: UIViewController, phase: String) async throws {
         var foundContent = false
         for _ in 0..<120 {

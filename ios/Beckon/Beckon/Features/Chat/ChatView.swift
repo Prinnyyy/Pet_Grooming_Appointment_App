@@ -381,7 +381,7 @@ struct ChatThreadView: View {
     @State private var draft = ""
     @State private var isVisible = false
     @State private var didActivate = false
-    @State private var threadPosition = ScrollPosition(idType: UUID.self, edge: .bottom)
+    @State private var threadPosition = ScrollPosition(idType: UUID.self)
     @State private var isNearBottom = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var isComposing: Bool
@@ -445,14 +445,10 @@ struct ChatThreadView: View {
         .onAppear {
             isVisible = true
             isNearBottom = true
-            var transaction = Transaction(animation: nil)
-            transaction.disablesAnimations = true
-            withTransaction(transaction) {
-                if let latest = store.displayMessages(for: conversation.id).last?.id {
-                    threadPosition.scrollTo(id: latest, anchor: .bottom)
-                } else {
-                    threadPosition.scrollTo(edge: .bottom)
-                }
+            // Never queue an edge request while the lazy layout is empty. Once real targets
+            // exist, use their IDs to handle variable-height cached history accurately.
+            if let latest = store.displayMessages(for: conversation.id).last?.id {
+                positionInitialMessage(latest)
             }
             store.acknowledgeVisibleMessages(for: conversation.id)
         }
@@ -568,6 +564,10 @@ struct ChatThreadView: View {
             .onChange(of: messages.last?.id) {
                 previousLatestMessageID,
                 currentLatestMessageID in
+                if previousLatestMessageID == nil, let currentLatestMessageID {
+                    positionInitialMessage(currentLatestMessageID)
+                    return
+                }
                 guard ChatThreadScrollPolicy.shouldScrollToBottom(
                     previousLatestMessageID: previousLatestMessageID,
                     currentLatestMessageID: currentLatestMessageID,
@@ -579,6 +579,12 @@ struct ChatThreadView: View {
                 }
             }
         }
+    }
+
+    private func positionInitialMessage(_ id: UUID) {
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction) { threadPosition.scrollTo(id: id, anchor: .bottom) }
     }
 
     private func refreshThread() async {
