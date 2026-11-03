@@ -126,6 +126,7 @@ struct AppComposition {
                 localAccountCleanup: { userID in
                     FileProfileSnapshotCache.shared.remove(userID: userID)
                     GroomerRequestCountCache.shared.remove(groomerID: userID)
+                    ParticipantAvatarCache.shared.remove(accountID: userID)
                     FilePrivateImageCache.shared.removeAll()
                     FileCustomerPetPhotoCache.shared.removeAll(
                         customerID: userID

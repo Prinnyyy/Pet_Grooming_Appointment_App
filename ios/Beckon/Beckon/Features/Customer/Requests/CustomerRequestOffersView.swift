@@ -260,7 +260,7 @@ struct CustomerOfferCard: View {
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
                 : AnyLayout(HStackLayout(alignment: .top, spacing: DesignTokens.Spacing.md))) {
                 BeckonProfileAvatar(data: review.groomerAvatarPhotoData, tone: .groomer, size: 52,
-                    cornerRadius: DesignTokens.CornerRadius.pill, placeholderSize: 20)
+                    cornerRadius: DesignTokens.CornerRadius.pill, placeholderSize: 20, participantID: review.offer.groomerID)
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(review.groomerTitle)
                         .font(DesignTokens.Typography.Expressive.headline)

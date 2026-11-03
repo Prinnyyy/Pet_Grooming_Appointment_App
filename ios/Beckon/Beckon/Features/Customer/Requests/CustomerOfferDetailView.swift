@@ -190,7 +190,8 @@ struct CustomerOfferDetailView: View {
                     subtitle: offerReview.groomerLocationSummary,
                     systemImage: "person.crop.circle.fill",
                     profileAvatarData: offerReview.groomerAvatarPhotoData,
-                    profileAvatarTone: .groomer
+                    profileAvatarTone: .groomer,
+                    profileParticipantID: offerReview.offer.groomerID
                 ) {
                     if offerReview.groomerProfile?.isVerified == true {
                         BeckonStatusChip(.verified)
@@ -384,6 +385,7 @@ private struct CustomerOfferCardHeader<Trailing: View>: View {
     let systemImage: String
     let profileAvatarData: Data?
     let profileAvatarTone: BeckonDefaultProfileAvatarTone?
+    let profileParticipantID: UUID?
     private let trailing: Trailing
 
     init(
@@ -392,6 +394,7 @@ private struct CustomerOfferCardHeader<Trailing: View>: View {
         systemImage: String,
         profileAvatarData: Data? = nil,
         profileAvatarTone: BeckonDefaultProfileAvatarTone? = nil,
+        profileParticipantID: UUID? = nil,
         @ViewBuilder trailing: () -> Trailing
     ) {
         self.title = title
@@ -399,6 +402,7 @@ private struct CustomerOfferCardHeader<Trailing: View>: View {
         self.systemImage = systemImage
         self.profileAvatarData = profileAvatarData
         self.profileAvatarTone = profileAvatarTone
+        self.profileParticipantID = profileParticipantID
         self.trailing = trailing()
     }
 
@@ -413,7 +417,8 @@ private struct CustomerOfferCardHeader<Trailing: View>: View {
                     tone: profileAvatarTone,
                     size: DesignTokens.Spacing.xl + DesignTokens.Spacing.md,
                     cornerRadius: (DesignTokens.Spacing.xl + DesignTokens.Spacing.md) / 2,
-                    placeholderSize: 18
+                    placeholderSize: 18,
+                    participantID: profileParticipantID
                 )
             } else {
                 Image(systemName: systemImage)
@@ -457,6 +462,7 @@ extension CustomerOfferCardHeader where Trailing == EmptyView {
         self.systemImage = systemImage
         profileAvatarData = nil
         profileAvatarTone = nil
+        profileParticipantID = nil
         trailing = EmptyView()
     }
 }

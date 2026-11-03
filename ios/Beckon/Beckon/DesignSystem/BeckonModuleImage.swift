@@ -79,8 +79,16 @@ struct BeckonProfileAvatar: View {
     let cornerRadius: CGFloat
     var placeholderSize: CGFloat = 24
 
+    var participantID: UUID? = nil
+
+    private var resolvedData: Data? {
+        guard let participantID else { return data }
+        return ParticipantAvatarCache.shared.data(for: participantID,
+            role: tone == .groomer ? .groomer : .customer, fallback: data)
+    }
+
     var body: some View {
-        BeckonModuleImage(data: data) {
+        BeckonModuleImage(data: resolvedData) {
             BeckonDefaultProfileAvatar(
                 tone: tone,
                 symbolSize: placeholderSize

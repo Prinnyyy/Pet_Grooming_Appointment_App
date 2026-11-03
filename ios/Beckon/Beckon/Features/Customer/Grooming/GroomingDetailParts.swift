@@ -65,7 +65,8 @@ struct GroomingDetailHero: View {
         .overlay(alignment: .topTrailing) {
             if deadlineInCorner, !typeSize.isAccessibilitySize, let closes {
                 GroomingDetailDeadlineBadge(text: closes)
-                    .padding(DesignTokens.Spacing.sm)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.top, DesignTokens.Spacing.md)
             }
         }
         .accessibilityElement(children: .contain)
@@ -105,13 +106,16 @@ struct GroomingDetailHero: View {
 struct GroomingDetailDeadlineBadge: View {
     let text: String
     var body: some View {
-        Text(text)
-            .font(DesignTokens.Typography.Expressive.micro)
-            .foregroundStyle(DesignTokens.Colors.statusWarningText)
-            .padding(.horizontal, DesignTokens.Spacing.xs)
-            .padding(.vertical, DesignTokens.Spacing.xs)
-            .background(DesignTokens.Colors.statusWarningFill, in: Capsule())
-            .fixedSize()
+        HStack(spacing: DesignTokens.Spacing.xs) {
+            Image(systemName: "hourglass")
+                .font(DesignTokens.Typography.Expressive.micro)
+                .foregroundStyle(DesignTokens.Colors.statusWarningText)
+                .accessibilityHidden(true)
+            Text(text)
+                .font(DesignTokens.Typography.Expressive.chip)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+        }
+        .fixedSize()
     }
 }
 
@@ -265,7 +269,7 @@ struct GroomingDetailsCard: View {
         GroomingPartnerFoot(caption: "Your groomer", name: booking.partnerDisplayTitle(for: .customer),
             messageLabel: "Message your groomer", onMessage: onOpenChat.map { open in { open(booking) } }) {
             BeckonProfileAvatar(data: booking.groomerAvatarPhotoData, tone: .groomer, size: 44,
-                cornerRadius: DesignTokens.CornerRadius.pill)
+                cornerRadius: DesignTokens.CornerRadius.pill, participantID: booking.groomerID)
         }
     }
 }

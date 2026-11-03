@@ -248,7 +248,8 @@ private struct ChatConversationRow: View {
                 tone: role == .customer ? .groomer : .customer,
                 size: presentation.avatarSize,
                 cornerRadius: DesignTokens.CornerRadius.inset,
-                placeholderSize: 24
+                placeholderSize: 24,
+                participantID: role == .customer ? conversation.groomerID : conversation.customerID
             )
             .overlay(
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.inset, style: .continuous)
@@ -393,7 +394,8 @@ struct ChatThreadView: View {
                     role: role,
                     avatarPhotoData: conversation.counterpartAvatarPhotoData,
                     isComposing: isComposing,
-                    dismiss: dismiss
+                    dismiss: dismiss,
+                    counterpartID: role == .customer ? conversation.groomerID : conversation.customerID
                 )
 
                 Divider()
@@ -563,13 +565,14 @@ struct ChatThreadView: View {
 struct ChatThreadLoadingView: View {
     let title: String
     let avatarPhotoData: Data?
+    var counterpartID: UUID? = nil
     @Environment(\.dismiss) private var dismiss
     @FocusState private var isComposing: Bool
 
     var body: some View {
         VStack(spacing: 0) {
             ChatThreadHeader(title: title, subtitle: "Updating…", role: .customer,
-                avatarPhotoData: avatarPhotoData, isComposing: false, dismiss: dismiss)
+                avatarPhotoData: avatarPhotoData, isComposing: false, dismiss: dismiss, counterpartID: counterpartID)
             Divider().overlay(DesignTokens.Colors.borderSoft)
             Spacer(minLength: 0)
         }
@@ -597,6 +600,7 @@ private struct ChatThreadHeader: View {
     let avatarPhotoData: Data?
     let isComposing: Bool
     let dismiss: DismissAction
+    var counterpartID: UUID? = nil
 
     @ViewBuilder
     var body: some View {
@@ -621,7 +625,8 @@ private struct ChatThreadHeader: View {
                 data: avatarPhotoData,
                 tone: role == .customer ? .groomer : .customer,
                 size: 56,
-                cornerRadius: DesignTokens.CornerRadius.inset
+                cornerRadius: DesignTokens.CornerRadius.inset,
+                participantID: counterpartID
             )
               .accessibilityHidden(true)
             }

@@ -159,7 +159,8 @@ struct GroomingDetailSkeleton: View {
                         .hidden()
                         .overlay { DesignSkeletonBlock().clipShape(Capsule()) }
                         .designSkeleton(label: nil)
-                        .padding(DesignTokens.Spacing.sm)
+                        .padding(.horizontal, DesignTokens.Spacing.lg)
+                        .padding(.top, DesignTokens.Spacing.md)
                 }
             }
 

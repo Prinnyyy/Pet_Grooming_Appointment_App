@@ -163,7 +163,8 @@ struct CustomerConversationDestination: View {
             if isLoading {
                 ChatThreadLoadingView(
                     title: previewConversation?.listTitle(for: .customer) ?? booking?.partnerDisplayTitle(for: .customer) ?? "Messages",
-                    avatarPhotoData: previewConversation?.counterpartAvatarPhotoData)
+                    avatarPhotoData: previewConversation?.counterpartAvatarPhotoData,
+                    counterpartID: previewConversation?.groomerID ?? booking?.groomerID)
             } else if let conversation {
                 ChatThreadView(participantID: participantID, role: .customer, conversation: conversation,
                     store: store, initialMessagesPrepared: initialMessagesPrepared)

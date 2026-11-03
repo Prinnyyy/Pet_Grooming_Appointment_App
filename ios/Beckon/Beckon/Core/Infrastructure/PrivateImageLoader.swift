@@ -61,9 +61,14 @@ nonisolated enum PrivateImageLoadingError: Error, Equatable {
 
 @MainActor
 protocol PrivateImageCaching: AnyObject {
+    var invalidationVersion: Int { get }
     func data(for key: PrivateImageCacheKey) -> Data?
     func save(_ data: Data, for key: PrivateImageCacheKey)
     func removeData(for key: PrivateImageCacheKey)
+}
+
+extension PrivateImageCaching {
+    var invalidationVersion: Int { 0 }
 }
 
 @MainActor
@@ -109,8 +114,9 @@ final class PrivateImageLoader: PrivateImageLoading {
             return cachedData
         }
 
+        let version = cache.invalidationVersion
         let data = try await remoteImageData(for: key)
-        cache.save(data, for: key)
+        if cache.invalidationVersion == version { cache.save(data, for: key) }
         return data
     }
 
@@ -121,9 +127,10 @@ final class PrivateImageLoader: PrivateImageLoading {
             return try await remoteImageData(for: key)
         }
 
+        let version = cache.invalidationVersion
         do {
             let data = try await remoteImageData(for: key)
-            cache.save(data, for: key)
+            if cache.invalidationVersion == version { cache.save(data, for: key) }
             return data
         } catch {
             if Self.isCancellationError(error) {
@@ -244,6 +251,8 @@ final class FilePrivateImageCache: PrivateImageCaching {
     static let shared = FilePrivateImageCache()
 
     private static let maximumCachedImageBytes = 10 * 1024 * 1024
+    private(set) var invalidationVersion = 0
+    private let memory = NSCache<NSString, NSData>()
     private let directoryURL: URL
     private let fileManager: FileManager
 
@@ -252,16 +261,20 @@ final class FilePrivateImageCache: PrivateImageCaching {
         fileManager: FileManager = .default
     ) {
         self.fileManager = fileManager
+        memory.totalCostLimit = 20 * 1024 * 1024
+        memory.countLimit = 256
         self.directoryURL = directoryURL ?? Self.defaultDirectoryURL(fileManager: fileManager)
     }
 
     func data(for key: PrivateImageCacheKey) -> Data? {
+        if let cached = memory.object(forKey: key.cacheFileName as NSString) { return cached as Data }
         let fileURL = cacheFileURL(for: key)
         guard let data = try? Data(contentsOf: fileURL),
               data.count <= Self.maximumCachedImageBytes else {
             return nil
         }
 
+        memory.setObject(data as NSData, forKey: key.cacheFileName as NSString, cost: data.count)
         return data
     }
 
@@ -271,6 +284,7 @@ final class FilePrivateImageCache: PrivateImageCaching {
             return
         }
 
+        memory.setObject(data as NSData, forKey: key.cacheFileName as NSString, cost: data.count)
         let fileURL = cacheFileURL(for: key)
         do {
             try fileManager.createDirectory(
@@ -284,10 +298,14 @@ final class FilePrivateImageCache: PrivateImageCaching {
     }
 
     func removeData(for key: PrivateImageCacheKey) {
+        invalidationVersion += 1
+        memory.removeObject(forKey: key.cacheFileName as NSString)
         try? fileManager.removeItem(at: cacheFileURL(for: key))
     }
 
     func removeAll() {
+        invalidationVersion += 1
+        memory.removeAllObjects()
         try? fileManager.removeItem(at: directoryURL)
     }
 

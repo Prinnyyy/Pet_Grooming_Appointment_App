@@ -446,7 +446,8 @@ struct BookingCard: View {
                             : nil,
                         tone: role == .customer ? .groomer : .customer,
                         size: 64,
-                        cornerRadius: 18
+                        cornerRadius: 18,
+                        participantID: role == .customer ? booking.groomerID : booking.customerID
                     )
 
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
@@ -683,7 +684,8 @@ private struct BookingDetailHeroCard: View {
                             data: booking.groomerAvatarPhotoData,
                             tone: .groomer,
                             size: 64,
-                            cornerRadius: 18
+                            cornerRadius: 18,
+                            participantID: booking.groomerID
                         )
                     } else {
                         Image(systemName: "pawprint.fill")
@@ -797,7 +799,8 @@ private struct BookingPartnerOverviewCard: View {
                     tone: role == .customer ? .groomer : .customer,
                     size: 56,
                     cornerRadius: 16,
-                    placeholderSize: 22
+                    placeholderSize: 22,
+                    participantID: role == .customer ? booking.groomerID : booking.customerID
                 )
 
                 Text(role == .groomer
