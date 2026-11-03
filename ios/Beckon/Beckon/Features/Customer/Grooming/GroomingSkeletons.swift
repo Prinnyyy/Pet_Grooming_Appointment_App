@@ -131,6 +131,7 @@ struct GroomingCardSkeleton: View {
 /// The Grooming detail while the grooming is being found: the hero (who and when, the path as bars) and two cards.
 struct GroomingDetailSkeleton: View {
     var pathStops = BeckonJourneyStop.groomingPath
+    var deadlineInCorner = false
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
@@ -147,10 +148,20 @@ struct GroomingDetailSkeleton: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .padding(.top, deadlineInCorner && !typeSize.isAccessibilitySize ? DesignTokens.Spacing.lg : DesignTokens.Spacing.none)
                 GroomingPathSkeleton(stops: pathStops)
             }
             .designSkeleton(label: "Loading your grooming")
             .designCardBody()
+            .overlay(alignment: .topTrailing) {
+                if deadlineInCorner, !typeSize.isAccessibilitySize {
+                    GroomingDetailDeadlineBadge(text: "Closes in 1 day")
+                        .hidden()
+                        .overlay { DesignSkeletonBlock().clipShape(Capsule()) }
+                        .designSkeleton(label: nil)
+                        .padding(DesignTokens.Spacing.sm)
+                }
+            }
 
             section(lines: [0.8, 0.55])
             section(lines: [0.7, 0.6, 0.45])

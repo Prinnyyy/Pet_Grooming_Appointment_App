@@ -56,7 +56,7 @@ struct GroomerRequestDetailView: View {
         } else if requests.isLoadingDetail || offers.isLoading || !hasOpened {
             ZStack {
                 BeckonExpressiveBackdrop()
-                DesignPage(cascades: false) { GroomingDetailSkeleton(pathStops: BeckonJourneyStop.groomerRequestPath) }
+                DesignPage(cascades: false) { GroomingDetailSkeleton(pathStops: BeckonJourneyStop.groomerRequestPath, deadlineInCorner: true) }
                     .accessibilityIdentifier("groomer.requests.detail.loading")
             }
             .navigationTitle("Request")
@@ -210,7 +210,7 @@ struct GroomerRequestDetailView: View {
             zoneIdentifier: request.preferenceTimeZoneIdentifier, now: now)
         return GroomingDetailHero(species: pet.species, avatarData: subject.matched.flatMap(firstPhoto),
             title: "\(request.serviceType.title) · \(pet.name)", time: request.preferredTimePresentation.summary, when: when,
-            card: nil, closed: stage.closed, closes: stage.closes, path: stage.path, identifier: "groomer.requests.hero")
+            card: nil, closed: stage.closed, closes: stage.closes, deadlineInCorner: true, path: stage.path, identifier: "groomer.requests.hero")
     }
 
     /// What holds the groomer back, or what is wrong with their offer. Nothing is drawn when nothing is.

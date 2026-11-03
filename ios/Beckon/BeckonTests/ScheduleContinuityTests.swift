@@ -93,6 +93,17 @@ import XCTest
 }
 
 @MainActor final class SkeletonParityTests: XCTestCase {
+    func testRequestDetailDeadlineDoesNotChangeHeroHeight() {
+        func hero(_ closes: String?) -> some View {
+            GroomingDetailHero(species: "Dog", avatarData: nil, title: "Full groom · Milo",
+                time: "Tomorrow · 10:00 AM", card: nil, closes: closes, deadlineInCorner: true)
+        }
+        for width: CGFloat in [320, 380] {
+            XCTAssertEqual(height(hero(nil), width: width, size: .large),
+                height(hero("Closes in 1 day"), width: width, size: .large), accuracy: 0.5)
+        }
+    }
+
     func testClosingDeadlineDoesNotAddARequestRowFooter() {
         func row(_ note: GroomerRequestRowContent.Note?) -> some View {
             GroomerRequestRow(content: GroomerRequestRowContent(species: "Dog", photo: nil, name: "Milo",

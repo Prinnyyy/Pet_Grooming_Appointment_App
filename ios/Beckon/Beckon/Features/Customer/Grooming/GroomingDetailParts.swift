@@ -25,6 +25,7 @@ struct GroomingDetailHero: View {
     var closed: Closed?
     /// "Closes in 23 hours" on an open request.
     var closes: String?
+    var deadlineInCorner = false
     /// A path of its own instead of the card's: the groomer's booking (design) has other stops and other words.
     var path: Path?
     /// The owner's page and the groomer's booking page share the hero; each says its own id.
@@ -43,6 +44,7 @@ struct GroomingDetailHero: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
             identity
+                .padding(.top, deadlineInCorner && !typeSize.isAccessibilitySize ? DesignTokens.Spacing.lg : DesignTokens.Spacing.none)
             if let path {
                 BeckonJourney(stops: path.stops, current: path.current, fills: path.fills, bubble: path.bubble)
             } else if let card {
@@ -55,11 +57,17 @@ struct GroomingDetailHero: View {
                         .designSupportingText()
                 }
             }
-            if let closes {
+            if let closes, !deadlineInCorner || typeSize.isAccessibilitySize {
                 BeckonMetaChip(text: closes, systemImage: "clock")
             }
         }
         .designCardBody()
+        .overlay(alignment: .topTrailing) {
+            if deadlineInCorner, !typeSize.isAccessibilitySize, let closes {
+                GroomingDetailDeadlineBadge(text: closes)
+                    .padding(DesignTokens.Spacing.sm)
+            }
+        }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(([title, time] + [path?.status ?? card?.status, closed?.message].compactMap { $0 }).joined(separator: ". "))
         .accessibilityIdentifier(identifier)
@@ -92,6 +100,20 @@ struct GroomingDetailHero: View {
     }
 }
 
+
+/// Compact corner treatment shared by the request hero and its placeholder.
+struct GroomingDetailDeadlineBadge: View {
+    let text: String
+    var body: some View {
+        Text(text)
+            .font(DesignTokens.Typography.Expressive.micro)
+            .foregroundStyle(DesignTokens.Colors.statusWarningText)
+            .padding(.horizontal, DesignTokens.Spacing.xs)
+            .padding(.vertical, DesignTokens.Spacing.xs)
+            .background(DesignTokens.Colors.statusWarningFill, in: Capsule())
+            .fixedSize()
+    }
+}
 
 // MARK: Needs you
 
