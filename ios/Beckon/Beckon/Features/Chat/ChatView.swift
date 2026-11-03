@@ -797,7 +797,7 @@ private struct ChatComposerBar: View {
                 }
                 .accessibilityIdentifier("chat.message.read-only")
             } else {
-                HStack(alignment: .bottom, spacing: DesignTokens.Spacing.md) {
+                HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
                     TextField(placeholder, text: $draft, axis: .vertical)
                         .focused($isFocused)
                         .font(DesignTokens.Typography.body)
@@ -828,6 +828,10 @@ private struct ChatComposerBar: View {
                         .frame(width: DesignTokens.Metrics.ledgeRoundControl, height: DesignTokens.Metrics.ledgeRoundControl)
                     }
                     .buttonStyle(BeckonLedgeButtonStyle(hasDraft || isSending ? .pill : .round))
+                    // Align with the visible face; the reserved ledge below it is not part of its center.
+                    .alignmentGuide(VerticalAlignment.center) { size in
+                        size[VerticalAlignment.center] - DesignTokens.Ledge.room / 2
+                    }
                     .disabled(isSending || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .accessibilityIdentifier("chat.message.send")
                     .accessibilityLabel(isSending ? "Sending message" : "Send message")
