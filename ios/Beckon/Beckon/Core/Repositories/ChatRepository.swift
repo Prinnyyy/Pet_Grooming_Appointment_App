@@ -11,6 +11,8 @@ enum ChatRepositoryError: Error, Equatable, Sendable {
 
 @MainActor
 protocol ChatRepository: AnyObject {
+    func sendMessage(messageID: UUID, conversationID: UUID, senderID: UUID, body: String) async throws -> ChatMessage
+
     func conversation(id: UUID, participantID: UUID, role: UserRole) async throws -> ChatConversation
     func conversation(customerID: UUID, groomerID: UUID, role: UserRole) async throws -> ChatConversation
 
@@ -46,6 +48,11 @@ protocol ChatRepository: AnyObject {
 }
 
 extension ChatRepository {
+    // An older repository must not silently retry with a different server identity.
+    func sendMessage(messageID: UUID, conversationID: UUID, senderID: UUID, body: String) async throws -> ChatMessage {
+        throw ChatRepositoryError.unavailable
+    }
+
     func conversation(id: UUID, participantID: UUID, role: UserRole) async throws -> ChatConversation {
         throw ChatRepositoryError.unavailable
     }

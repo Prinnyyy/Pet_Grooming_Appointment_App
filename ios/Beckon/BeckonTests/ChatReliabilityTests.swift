@@ -5,6 +5,19 @@ import Testing
 @MainActor
 struct ChatReliabilityTests {
     @Test
+    func outgoingTextAppearsBeforeItsNetworkRequestFinishes() async throws {
+        let fixture = Fixture()
+        let gate = Gate()
+        fixture.repository.beforeSend = { await gate.suspend() }
+        let send = Task { await fixture.store.sendMessage(in: fixture.conversation, body: "Immediate local echo") }
+        try await gate.waitUntilEntered()
+        #expect(fixture.store.displayMessages(for: fixture.conversation.id).last?.body == "Immediate local echo")
+        #expect(fixture.store.messages(for: fixture.conversation.id).isEmpty, "Pending is not a confirmed server message")
+        gate.release()
+        _ = await send.value
+    }
+
+    @Test
     func historyAppearsWhileRealtimeConnectionIsStillPending() async throws {
         let fixture = Fixture()
         let message = fixture.message("Visible before realtime", at: "2026-10-04T12:01:00Z")

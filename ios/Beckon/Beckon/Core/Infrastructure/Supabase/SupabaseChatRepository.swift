@@ -201,6 +201,31 @@ final class SupabaseChatRepository: ChatRepository {
         )
     }
 
+    func sendMessage(messageID: UUID, conversationID: UUID, senderID: UUID, body: String) async throws -> ChatMessage {
+        do {
+            let rows: [ChatMessageRow]
+            do {
+                rows = try await client.from("messages")
+                    .insert(ChatMessageInsertRow(id: messageID, conversationID: conversationID, senderID: senderID, body: body))
+                    .select(Self.messageColumns).execute().value
+            } catch let error as PostgrestError where error.code == "23505" {
+                // The previous INSERT may have committed while its acknowledgement was lost.
+                // Read through the same participant RLS; never update or overwrite a collided UUID.
+                rows = try await client.from("messages").select(Self.messageColumns)
+                    .eq("id", value: messageID.uuidString.lowercased())
+                    .eq("conversation_id", value: conversationID.uuidString.lowercased())
+                    .eq("sender_id", value: senderID.uuidString.lowercased()).limit(1).execute().value
+            }
+            guard rows.count == 1, let row = rows.first, row.id == messageID,
+                  row.conversationID == conversationID, row.senderID == senderID,
+                  row.kind == .text, row.body == body, row.bookingID == nil else {
+                throw ChatRepositoryError.invalidMessage
+            }
+            return row.message(booking: nil)
+        } catch let error as ChatRepositoryError { throw error }
+        catch { throw Self.map(error) }
+    }
+
     func sendMessage(
         conversationID: UUID,
         senderID: UUID,
@@ -551,12 +576,14 @@ private struct ChatParticipantPair: Hashable, Sendable {
 }
 
 private struct ChatMessageInsertRow: Encodable {
+    var id: UUID? = nil
     let conversationID: UUID
     let senderID: UUID
     let body: String
 
     func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(id?.uuidString.lowercased(), forKey: .id)
         try container.encode(
             conversationID.uuidString.lowercased(),
             forKey: .conversationID
@@ -566,6 +593,7 @@ private struct ChatMessageInsertRow: Encodable {
     }
 
     private enum CodingKeys: String, CodingKey {
+        case id
         case conversationID = "conversation_id"
         case senderID = "sender_id"
         case body

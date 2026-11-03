@@ -17,6 +17,10 @@ final class ChatStore {
     private let readStateCache: any ChatReadStateCaching
     private var debugRecorder: AppDebugEventRecorder?
 
+    private(set) var outgoingMessages: [ChatOutgoingMessage] = []
+    private var localEchoDates: [UUID: Date] = [:]
+    @ObservationIgnored private var outgoingWorkers: [UUID: (token: UUID, task: Task<Void, Never>)] = [:]
+    private var legacyOutgoingIDs: Set<UUID> = []
     private(set) var conversations: [ChatConversation] = []
     private(set) var messagesByConversationID: [UUID: [ChatMessage]] = [:]
     private(set) var bookingDetailStoresByID: [UUID: BookingsStore] = [:]
@@ -84,6 +88,12 @@ final class ChatStore {
             conversations = snapshot.conversations
             messagesByConversationID = snapshot.messages
             resolvedConversationByBookingID = snapshot.bookingConversations
+            localEchoDates = snapshot.localEchoDates
+            outgoingMessages = snapshot.outgoingMessages.map { item in
+                var restored = item
+                if restored.failureMessage == nil { restored.failureMessage = "Sending was interrupted. Tap Retry to confirm or send." }
+                return restored
+            }
             unverifiedCachedConversations = Set(conversations.map(\.id))
             hasLoadedOnce = true // Display readiness only; restored metadata never authorizes sending.
         }
@@ -92,7 +102,8 @@ final class ChatStore {
     private func persistDisplay() {
         displayCache?.save(participantID: participantID, role: role, conversations: conversations,
             messages: messagesByConversationID, generation: displayCacheGeneration,
-            bookingConversations: resolvedConversationByBookingID)
+            bookingConversations: resolvedConversationByBookingID,
+            outgoingMessages: outgoingMessages, localEchoDates: localEchoDates)
     }
 
     private func rememberConversation(_ conversation: ChatConversation) {
@@ -122,6 +133,8 @@ final class ChatStore {
     private func revokeConversation(_ id: UUID) {
         stopMessageSubscription(for: id)
         revokedConversationIDs.insert(id)
+        outgoingWorkers.removeValue(forKey: id)?.task.cancel()
+        outgoingMessages.removeAll { $0.conversationID == id }
         resolvedConversationByBookingID = resolvedConversationByBookingID.filter { $0.value != id }
         conversations.removeAll { $0.id == id }
         messagesByConversationID[id] = nil
@@ -132,6 +145,19 @@ final class ChatStore {
     func setDebugRecorder(_ recorder: AppDebugEventRecorder?) {
         debugRecorder = recorder
     }
+
+    func displayMessages(for conversationID: UUID) -> [ChatMessage] {
+        let confirmed = messages(for: conversationID)
+        let ids = Set(confirmed.map(\.id))
+        let pending = outgoingMessages.filter { $0.conversationID == conversationID && !ids.contains($0.id) }.map(\.message)
+        return (confirmed + pending).enumerated().sorted { lhs, rhs in
+            let left = localEchoDates[lhs.element.id] ?? Self.messageDate(lhs.element.createdAt)
+            let right = localEchoDates[rhs.element.id] ?? Self.messageDate(rhs.element.createdAt)
+            return left == right ? lhs.offset < rhs.offset : left < right
+        }.map(\.element)
+    }
+
+    func outgoingMessage(id: UUID) -> ChatOutgoingMessage? { outgoingMessages.first { $0.id == id } }
 
     func messages(for conversationID: UUID) -> [ChatMessage] {
         messagesByConversationID[conversationID] ?? []
@@ -325,7 +351,9 @@ final class ChatStore {
             try Task.checkCancellation()
             guard displaySessionIsCurrent else { return }
             hasLoadedOnce = true
-            conversations = page.items
+            let queuedIDs = Set(outgoingMessages.map(\.conversationID))
+            let queuedConversations = conversations.filter { queuedIDs.contains($0.id) }
+            conversations = ListPageMerge.appendingUnique(queuedConversations, to: page.items)
             for conversation in page.items {
                 unverifiedCachedConversations.remove(conversation.id)
                 revokedConversationIDs.remove(conversation.id)
@@ -351,6 +379,8 @@ final class ChatStore {
                 unverifiedCachedConversations.formUnion(ids)
                 stopAllMessageSubscriptions()
                 conversations = []; messagesByConversationID = [:]; bookingDetailStoresByID = [:]
+                outgoingWorkers.values.forEach { $0.task.cancel() }; outgoingWorkers = [:]
+                outgoingMessages = []; localEchoDates = [:]
                 persistDisplay()
             }
             errorMessage = message(for: error, action: "load conversations")
@@ -456,6 +486,7 @@ final class ChatStore {
             )
             if !unverifiedCachedConversations.contains(conversation.id) { rememberConversation(conversation) }
             reconcileBookingDetailStores(from: page.items)
+            reconcileOutgoing(with: page.items)
             persistDisplay()
             nextMessagePageRequestByConversationID[conversation.id] = page.nextRequest
             markConversationRead(conversation.id)
@@ -522,6 +553,7 @@ final class ChatStore {
             )
             if !unverifiedCachedConversations.contains(conversation.id) { rememberConversation(conversation) }
             reconcileBookingDetailStores(from: page.items)
+            reconcileOutgoing(with: page.items)
             persistDisplay()
             nextMessagePageRequestByConversationID[conversation.id] = page.nextRequest
             markConversationRead(conversation.id)
@@ -558,76 +590,131 @@ final class ChatStore {
         }
     }
 
+    // MARK: Per-message outbox
+
     @discardableResult
-    func sendMessage(
-        in conversation: ChatConversation,
-        body: String
-    ) async -> Bool {
-        guard !Task.isCancelled, !sendingConversationIDs.contains(conversation.id) else { return false }
+    func enqueueMessage(in conversation: ChatConversation, body: String) -> UUID? {
+        guard let item = beginOutgoing(in: conversation, body: body) else { return nil }
+        startOutgoingWorker(for: conversation)
+        return item.id
+    }
 
-        guard canSendMessages(in: conversation) else {
+    func retryMessage(id: UUID, in conversation: ChatConversation) {
+        guard canSendMessages(in: conversation), let index = outgoingMessages.firstIndex(where: {
+            $0.id == id && $0.conversationID == conversation.id && $0.failureMessage != nil
+        }) else { return }
+        outgoingMessages[index].failureMessage = nil
+        persistDisplay()
+        startOutgoingWorker(for: conversation)
+    }
+
+    private func beginOutgoing(in conversation: ChatConversation, body: String) -> ChatOutgoingMessage? {
+        guard !Task.isCancelled, canSendMessages(in: conversation) else {
             errorMessage = conversation.readOnlyReason
-            noticeMessage = nil
-            return false
+            return nil
         }
-
-        let normalizedBody = body.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !normalizedBody.isEmpty else {
-            errorMessage = "Enter a message before sending."
-            return false
+        let body = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !body.isEmpty else { errorMessage = "Enter a message before sending."; return nil }
+        guard body.count <= 4000 else { errorMessage = "Messages must be 4000 characters or fewer."; return nil }
+        let scopes = Set(outgoingMessages.map(\.conversationID))
+        guard outgoingMessages.count < 100,
+              outgoingMessages.filter({ $0.conversationID == conversation.id }).count < 50,
+              scopes.contains(conversation.id) || scopes.count < 20 else {
+            errorMessage = "Retry pending messages before adding more. Your text is still in the input field."
+            return nil
         }
+        let item = ChatOutgoingMessage(id: UUID(), conversationID: conversation.id, senderID: participantID,
+            body: body, queuedAt: now(), failureMessage: nil)
+        errorMessage = nil; noticeMessage = nil
+        rememberConversation(conversations.first { $0.id == conversation.id } ?? conversation)
+        outgoingMessages.append(item)
+        localEchoDates[item.id] = item.queuedAt
+        persistDisplay()
+        return item
+    }
 
-        guard normalizedBody.count <= 4000 else {
-            errorMessage = "Messages must be 4000 characters or fewer."
-            return false
+    private func startOutgoingWorker(for conversation: ChatConversation) {
+        guard outgoingWorkers[conversation.id] == nil else { return }
+        let token = UUID()
+        let task = Task { [weak self] in
+            guard let self else { return }
+            await self.drainOutgoing(in: conversation, token: token)
         }
+        outgoingWorkers[conversation.id] = (token, task)
+    }
 
+    private func drainOutgoing(in conversation: ChatConversation, token: UUID) async {
+        defer { if outgoingWorkers[conversation.id]?.token == token { outgoingWorkers[conversation.id] = nil } }
+        while displaySessionIsCurrent, !Task.isCancelled, outgoingWorkers[conversation.id]?.token == token,
+              let item = outgoingMessages.first(where: {
+                  $0.conversationID == conversation.id && $0.failureMessage == nil && !legacyOutgoingIDs.contains($0.id)
+              }) {
+            guard canSendMessages(in: conversation) else {
+                failOutgoing(id: item.id, error: ChatRepositoryError.notAllowed)
+                continue
+            }
+            let startedAt = Date()
+            recordStoreStart("sendMessage", metadata: ["conversationID": conversation.id.uuidString])
+            do {
+                let message = try await repository.sendMessage(messageID: item.id, conversationID: item.conversationID,
+                    senderID: participantID, body: item.body)
+                guard displaySessionIsCurrent, outgoingWorkers[conversation.id]?.token == token, !Task.isCancelled else { return }
+                guard item.matches(message) else { throw ChatRepositoryError.invalidMessage }
+                append(message)
+                markConversationRead(conversation.id)
+                recordStoreSuccess("sendMessage", startedAt: startedAt)
+            } catch {
+                guard displaySessionIsCurrent, outgoingWorkers[conversation.id]?.token == token else { return }
+                failOutgoing(id: item.id, error: error)
+                recordStoreFailure("sendMessage", error: error, mappedMessage: outgoingMessage(id: item.id)?.failureMessage,
+                    startedAt: startedAt)
+            }
+        }
+    }
+
+    private func failOutgoing(id: UUID, error: any Error) {
+        // A realtime/snapshot acknowledgement wins even if the HTTP response later fails.
+        guard let index = outgoingMessages.firstIndex(where: { $0.id == id }) else { return }
+        let cancelled = AppDebugErrorClassifier.isCancellation(error) || (error as? ChatRepositoryError) == .cancelled
+        outgoingMessages[index].failureMessage = cancelled ? "Couldn't confirm sending. Tap Retry." :
+            message(for: (error as? ChatRepositoryError) ?? .unavailable, action: "send message")
+        persistDisplay()
+    }
+
+    private func reconcileOutgoing(with messages: [ChatMessage]) {
+        outgoingMessages.removeAll { pending in messages.contains(where: pending.matches) }
+    }
+
+    /// Compatibility for non-composer callers: same confirmation result, with a visible local echo.
+    @discardableResult
+    func sendMessage(in conversation: ChatConversation, body: String) async -> Bool {
+        guard !Task.isCancelled, !sendingConversationIDs.contains(conversation.id),
+              let item = beginOutgoing(in: conversation, body: body) else { return false }
         let startedAt = Date()
-        recordStoreStart(
-            "sendMessage",
-            metadata: ["conversationID": conversation.id.uuidString]
-        )
-        sendingConversationIDs.insert(conversation.id)
-        errorMessage = nil
-        noticeMessage = nil
-        defer { sendingConversationIDs.remove(conversation.id) }
-
+        recordStoreStart("sendMessage", metadata: ["conversationID": conversation.id.uuidString])
+        sendingConversationIDs.insert(conversation.id); legacyOutgoingIDs.insert(item.id)
+        defer { sendingConversationIDs.remove(conversation.id); legacyOutgoingIDs.remove(item.id) }
         do {
-            let message = try await repository.sendMessage(
-                conversationID: conversation.id,
-                senderID: participantID,
-                body: normalizedBody
-            )
+            let message = try await repository.sendMessage(conversationID: conversation.id, senderID: participantID, body: item.body)
+            guard displaySessionIsCurrent else { return false }
+            outgoingMessages.removeAll { $0.id == item.id }
+            if message.id != item.id { localEchoDates[item.id] = nil }
+            localEchoDates[message.id] = item.queuedAt
             append(message)
             markConversationRead(conversation.id)
-            recordStoreSuccess(
-                "sendMessage",
-                startedAt: startedAt,
-                metadata: ["conversationID": conversation.id.uuidString]
-            )
+            recordStoreSuccess("sendMessage", startedAt: startedAt)
             return true
-        } catch ChatRepositoryError.cancelled {
-            recordStoreCancelled("sendMessage", startedAt: startedAt)
-        } catch let error as ChatRepositoryError {
-            errorMessage = self.message(for: error, action: "send message")
-            recordStoreFailure(
-                "sendMessage",
-                error: error,
-                mappedMessage: errorMessage,
-                startedAt: startedAt
-            )
-        } catch where AppDebugErrorClassifier.isCancellation(error) {
-            recordStoreCancelled("sendMessage", startedAt: startedAt)
         } catch {
-            errorMessage = self.message(for: .unavailable, action: "send message")
-            recordStoreFailure(
-                "sendMessage",
-                error: error,
-                mappedMessage: errorMessage,
-                startedAt: startedAt
-            )
+            // This legacy API used a server-generated identity; leave its draft with the caller.
+            // Only the stable-ID composer API exposes a retryable local attempt.
+            outgoingMessages.removeAll { $0.id == item.id }
+            localEchoDates[item.id] = nil
+            persistDisplay()
+            if !AppDebugErrorClassifier.isCancellation(error), (error as? ChatRepositoryError) != .cancelled {
+                errorMessage = message(for: (error as? ChatRepositoryError) ?? .unavailable, action: "send message")
+            }
+            return false
         }
-        return false
     }
 
     func startMessageSubscription(for conversation: ChatConversation) async {
@@ -733,8 +820,9 @@ final class ChatStore {
 
     private func append(_ message: ChatMessage) {
         guard displaySessionIsCurrent, !revokedConversationIDs.contains(message.conversationID) else { return }
+        reconcileOutgoing(with: [message])
         var messages = messagesByConversationID[message.conversationID] ?? []
-        guard !messages.contains(where: { $0.id == message.id }) else { return }
+        guard !messages.contains(where: { $0.id == message.id }) else { persistDisplay(); return }
         messages.append(message)
         messagesByConversationID[message.conversationID] = Self.messagesInDisplayOrder(
             messages

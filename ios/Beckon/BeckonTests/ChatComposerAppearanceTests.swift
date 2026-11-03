@@ -66,7 +66,7 @@ final class ChatComposerAppearanceTests: XCTestCase {
         let text: String
         @FocusState private var focused: Bool
         var body: some View {
-            ChatComposerBar(draft: .constant(text), isFocused: $focused, isSending: false,
+            ChatComposerBar(draft: .constant(text), isFocused: $focused,
                 isReadOnly: false, readOnlyMessage: "", accent: .customer, placeholder: "Message…", send: {})
         }
     }

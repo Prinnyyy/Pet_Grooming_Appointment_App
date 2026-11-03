@@ -1037,6 +1037,10 @@ final class DebugCustomerPetRepository: CustomerPetRepository {
 
 @MainActor
 final class DebugChatRepository: ChatRepository {
+    func sendMessage(messageID: UUID, conversationID: UUID, senderID: UUID, body: String) async throws -> ChatMessage {
+        try await base.sendMessage(messageID: messageID, conversationID: conversationID, senderID: senderID, body: body)
+    }
+
     func conversation(id: UUID, participantID: UUID, role: UserRole) async throws -> ChatConversation {
         try await base.conversation(id: id, participantID: participantID, role: role)
     }

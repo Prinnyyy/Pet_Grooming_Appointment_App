@@ -1033,6 +1033,14 @@ final class ChatRepositoryFake: ChatRepository {
         )
     }
 
+    private(set) var sentMessageIDs: [UUID] = []
+    func sendMessage(messageID: UUID, conversationID: UUID, senderID: UUID, body: String) async throws -> ChatMessage {
+        sentMessageIDs.append(messageID)
+        let response = try await sendMessage(conversationID: conversationID, senderID: senderID, body: body)
+        return ChatMessage(id: messageID, conversationID: conversationID, senderID: senderID, kind: .text,
+            body: body, booking: nil, createdAt: response.createdAt)
+    }
+
     func sendMessage(
         conversationID: UUID,
         senderID: UUID,

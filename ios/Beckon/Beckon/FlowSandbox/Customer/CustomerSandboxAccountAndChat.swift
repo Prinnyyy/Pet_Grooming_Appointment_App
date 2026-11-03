@@ -104,6 +104,15 @@ final class CustomerSandboxChat: ChatRepository {
         try await boundary.check(); return conversationFixture
     }
     func messages(conversationID: UUID) async throws -> [ChatMessage] { try await boundary.check(); return messageItems }
+    func sendMessage(messageID: UUID, conversationID: UUID, senderID: UUID, body: String) async throws -> ChatMessage {
+        try await boundary.check()
+        if let existing = messageItems.first(where: { $0.id == messageID }) { return existing }
+        let message = ChatMessage(id: messageID, conversationID: conversationID, senderID: senderID,
+            kind: .text, body: body, booking: nil, createdAt: Date().ISO8601Format())
+        messageItems.append(message)
+        streams.values.forEach { $0.yield(message) }
+        return message
+    }
     func sendMessage(conversationID: UUID, senderID: UUID, body: String) async throws -> ChatMessage {
         try await boundary.check()
         let message = ChatMessage(id: UUID(), conversationID: conversationID, senderID: senderID,

@@ -18,6 +18,15 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-079
+Date: 2026-11-03
+Task: T-461
+Decision: Chat delivery belongs to the outgoing message, not the Send button. Accept valid text into a local bubble immediately; show per-message sending, failure and explicit same-ID retry. Keep Send circular and available for another draft.
+Consequences: Reuse the scoped chat cache and repository boundary. Pending attempts never grant permissions, mark history read or restore booking actions. Restart retains interrupted attempts for explicit retry after membership verification. Stable UUID INSERT plus exact RLS-protected duplicate lookup prevents ACK-loss retries from creating another message; only the id column INSERT grant is added, with no RLS/UPDATE/DELETE changes. The scoped migration was deployed after explicit authorization, with unchanged message RLS and retained server-field/write restrictions verified read-only. Supersedes D-078’s button-owned busy state only.
+Linked files: docs/01_product/LIVELY_UI_SPEC.md; docs/03_backend/SUPABASE_CONTRACT.md; ios/Beckon/Beckon/Features/Chat/ChatStore.swift.
+```
+
+```text
 Decision ID: D-078
 Date: 2026-11-03
 Task: T-460

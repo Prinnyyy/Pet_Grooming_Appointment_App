@@ -14,7 +14,7 @@ final class FileChatDisplayCache {
     }
 
     func snapshot(participantID: UUID, role: UserRole, now: Date = Date())
-        -> (conversations: [ChatConversation], messages: [UUID: [ChatMessage]], bookingConversations: [UUID: UUID])? {
+        -> (conversations: [ChatConversation], messages: [UUID: [ChatMessage]], bookingConversations: [UUID: UUID], outgoingMessages: [ChatOutgoingMessage], localEchoDates: [UUID: Date])? {
         let file = url(participantID, role)
         guard let data = queue.sync(execute: { try? Data(contentsOf: file) }), data.count <= 8 * 1024 * 1024,
               let archive = try? JSONDecoder().decode(ChatDisplayArchive.self, from: data), archive.version == 1,
@@ -37,14 +37,28 @@ final class FileChatDisplayCache {
         }
         let ids = Set(conversations.map(\.id))
         let mappings = archive.bookingConversations.filter { ids.contains($0.value) }
-        return (conversations, messages, mappings)
+        let outgoing = archive.outgoingMessages ?? []
+        guard outgoing.count <= 100, Set(outgoing.map(\.id)).count == outgoing.count,
+              outgoing.allSatisfy({ item in
+                  ids.contains(item.conversationID) && item.senderID == participantID
+                      && !item.body.isEmpty && item.body.count <= 4000
+                      && item.body == item.body.trimmingCharacters(in: .whitespacesAndNewlines)
+              }), Dictionary(grouping: outgoing, by: \.conversationID).values.allSatisfy({ $0.count <= 50 }) else { return nil }
+        let messageIDs = Set(messages.values.flatMap { $0.map(\.id) }).union(outgoing.map(\.id))
+        let dates = (archive.localEchoDates ?? [:]).filter { messageIDs.contains($0.key) }
+        return (conversations, messages, mappings, outgoing, dates)
     }
 
     func save(participantID: UUID, role: UserRole, conversations: [ChatConversation], messages: [UUID: [ChatMessage]],
-        generation token: Int, bookingConversations: [UUID: UUID] = [:]) {
+        generation token: Int, bookingConversations: [UUID: UUID] = [:],
+        outgoingMessages: [ChatOutgoingMessage] = [], localEchoDates: [UUID: Date] = [:]) {
         guard generation == token else { return }
+        let queuedIDs = Set(outgoingMessages.map(\.conversationID))
         let recent = Array(conversations.filter { (role == .customer ? $0.customerID : $0.groomerID) == participantID }
-            .sorted { $0.updatedAt > $1.updatedAt }.prefix(20))
+            .sorted {
+                if queuedIDs.contains($0.id) != queuedIDs.contains($1.id) { return queuedIDs.contains($0.id) }
+                return $0.updatedAt > $1.updatedAt
+            }.prefix(20))
         let rows = recent.reduce(into: [UUID: [CachedChatMessage]]()) { result, conversation in
             if let values = messages[conversation.id] {
                 result[conversation.id] = values.suffix(50).map(CachedChatMessage.init)
@@ -52,8 +66,12 @@ final class FileChatDisplayCache {
         }
         let ids = Set(recent.map(\.id))
         let mappings = Dictionary(uniqueKeysWithValues: bookingConversations.filter { ids.contains($0.value) }.prefix(100).map { ($0.key, $0.value) })
+        let outgoing = Array(outgoingMessages.filter { ids.contains($0.conversationID) && $0.senderID == participantID }.prefix(100))
+        let messageIDs = Set(rows.values.flatMap { $0.map(\.id) }).union(outgoing.map(\.id))
+        let dates = localEchoDates.filter { messageIDs.contains($0.key) }
         let archive = ChatDisplayArchive(participantID: participantID, role: role.rawValue,
-            savedAt: Date(), conversations: recent, messages: rows, bookingConversations: mappings)
+            savedAt: Date(), conversations: recent, messages: rows, bookingConversations: mappings,
+            outgoingMessages: outgoing, localEchoDates: dates)
         let file = url(participantID, role), directory = directory
         queue.async {
             guard let data = try? JSONEncoder().encode(archive), data.count <= 8 * 1024 * 1024 else { return }
@@ -83,6 +101,8 @@ private nonisolated struct ChatDisplayArchive: Codable, Sendable {
     let conversations: [ChatConversation]
     let messages: [UUID: [CachedChatMessage]]
     let bookingConversations: [UUID: UUID]
+    var outgoingMessages: [ChatOutgoingMessage]?
+    var localEchoDates: [UUID: Date]?
     var recentHistoryOnly = true
 }
 

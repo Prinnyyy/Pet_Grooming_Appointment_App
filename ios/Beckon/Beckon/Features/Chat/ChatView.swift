@@ -423,15 +423,14 @@ struct ChatThreadView: View {
                 ChatComposerBar(
                     draft: $draft,
                     isFocused: $isComposing,
-                    isSending: store.isSendingMessage(for: conversation.id),
                     isReadOnly: !store.canSendMessages(in: conversation) && !store.isVerifyingCachedConversation(conversation.id),
                     readOnlyMessage: conversation.readOnlyReason,
                     accent: role == .customer ? .customer : .groomer,
                     placeholder: "Message \(conversation.shortRecipientName(for: role))...",
                     send: {
                         let body = draft
-                        let sent = await store.sendMessage(in: conversation, body: body)
-                        if sent, draft == body {
+                        let accepted = store.enqueueMessage(in: conversation, body: body) != nil
+                        if accepted, draft == body {
                             draft = ""
                         }
                     }
@@ -449,7 +448,7 @@ struct ChatThreadView: View {
             var transaction = Transaction(animation: nil)
             transaction.disablesAnimations = true
             withTransaction(transaction) {
-                if let latest = store.messages(for: conversation.id).last?.id {
+                if let latest = store.displayMessages(for: conversation.id).last?.id {
                     threadPosition.scrollTo(id: latest, anchor: .bottom)
                 } else {
                     threadPosition.scrollTo(edge: .bottom)
@@ -482,6 +481,7 @@ struct ChatThreadView: View {
 
     @ViewBuilder
     private var threadContent: some View {
+        let messages = store.displayMessages(for: conversation.id)
         Group {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
@@ -496,7 +496,7 @@ struct ChatThreadView: View {
                     }
 
                     if store.hasLoadedMessages(for: conversation.id),
-                              store.messages(for: conversation.id).isEmpty,
+                              messages.isEmpty,
                               store.messageLoadErrors[conversation.id] == nil {
                         BeckonEmptyState(
                             title: "No messages yet",
@@ -529,17 +529,19 @@ struct ChatThreadView: View {
                             }
                         }
 
-                        ForEach(store.messages(for: conversation.id)) { message in
+                        ForEach(messages) { message in
                             ChatMessageRow(
                                 message: message,
                                 isOutgoing: message.isSentBy(participantID),
                                 role: role,
+                                outgoing: store.outgoingMessage(id: message.id),
+                                retry: { store.retryMessage(id: message.id, in: conversation) },
                                 bookingStore: store.bookingDetailStore(
                                     for: message
                                 )
                             )
-                            .padding(.bottom, message.id == store.messages(for: conversation.id).last?.id
-                                ? DesignTokens.Spacing.md : 0)
+                            .padding(.bottom, message.id == messages.last?.id
+                                ? DesignTokens.Spacing.md : DesignTokens.Spacing.none)
                             .id(message.id)
                         }
                     }
@@ -548,7 +550,7 @@ struct ChatThreadView: View {
                 .scrollTargetLayout()
                 .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                 .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, store.messages(for: conversation.id).isEmpty ? DesignTokens.Spacing.md : 0)
+                .padding(.bottom, messages.isEmpty ? DesignTokens.Spacing.md : DesignTokens.Spacing.none)
             }
             .scrollPosition($threadPosition)
             .defaultScrollAnchor(.bottom, for: .initialOffset)
@@ -563,14 +565,14 @@ struct ChatThreadView: View {
             }
             .accessibilityIdentifier("chat.messages.list")
             .refreshable { await refreshThread() }
-            .onChange(of: store.messages(for: conversation.id).last?.id) {
+            .onChange(of: messages.last?.id) {
                 previousLatestMessageID,
                 currentLatestMessageID in
                 guard ChatThreadScrollPolicy.shouldScrollToBottom(
                     previousLatestMessageID: previousLatestMessageID,
                     currentLatestMessageID: currentLatestMessageID,
                     isNearBottom: isNearBottom,
-                    latestIsOutgoing: store.messages(for: conversation.id).last?.isSentBy(participantID) == true
+                    latestIsOutgoing: messages.last?.isSentBy(participantID) == true
                 ) else { return }
                 withAnimation(reduceMotion ? nil : DesignTokens.Motion.reveal) {
                     if let latest = currentLatestMessageID { threadPosition.scrollTo(id: latest, anchor: .bottom) }
@@ -612,7 +614,7 @@ struct ChatThreadLoadingView: View {
             Divider().overlay(DesignTokens.Colors.borderSoft)
             Spacer(minLength: 0)
             ChatComposerBar(draft: .constant(""), isFocused: $isComposing,
-                isSending: false, isReadOnly: false, readOnlyMessage: "", accent: .customer,
+                isReadOnly: false, readOnlyMessage: "", accent: .customer,
                 placeholder: "Message…", send: {})
                 .disabled(true)
                 .accessibilityHidden(true)
@@ -704,6 +706,8 @@ private struct ChatMessageRow: View {
     let message: ChatMessage
     let isOutgoing: Bool
     let role: UserRole
+    var outgoing: ChatOutgoingMessage? = nil
+    var retry: () -> Void = {}
     let bookingStore: BookingsStore?
 
     var body: some View {
@@ -721,34 +725,65 @@ private struct ChatMessageRow: View {
     }
 
     @ViewBuilder private var customerTextRow: some View {
-        HStack(alignment: .bottom) {
-            if isOutgoing {
-                Spacer(minLength: 82)
+        HStack(alignment: .center) {
+            if isOutgoing { Spacer(minLength: DesignTokens.Spacing.xl) }
+            HStack(alignment: .center) {
+                if isOutgoing { deliveryStatus }
+                textBubble
             }
+            .frame(maxWidth: isOutgoing ? 382 : 330, alignment: isOutgoing ? .trailing : .leading)
+            if !isOutgoing { Spacer(minLength: 82) }
+        }
+    }
 
-            VStack(alignment: isOutgoing ? .trailing : .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(message.body ?? "")
-                    .font(DesignTokens.Typography.Expressive.body)
-                    .foregroundStyle(isOutgoing ? DesignTokens.Colors.customerInk : DesignTokens.Colors.textPrimary)
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .padding(.vertical, DesignTokens.Spacing.md)
-                    .background {
-                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.messageBubble, style: .continuous)
-                            .fill(isOutgoing ? DesignTokens.Colors.customerFill : DesignTokens.Colors.surface)
-                    }
-                    .overlay {
-                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.messageBubble, style: .continuous)
-                            .strokeBorder(isOutgoing ? DesignTokens.Colors.customerFillPressed : DesignTokens.Colors.border,
-                                lineWidth: DesignTokens.Ledge.edgeWidth)
-                    }
-            }
-            .frame(maxWidth: 330, alignment: isOutgoing ? .trailing : .leading)
-            .accessibilityElement(children: .combine)
-
-            if !isOutgoing {
-                Spacer(minLength: 82)
+    private var textBubble: some View {
+        VStack(alignment: isOutgoing ? .trailing : .leading, spacing: DesignTokens.Spacing.xs) {
+            Text(message.body ?? "")
+                .font(DesignTokens.Typography.Expressive.body)
+                .foregroundStyle(isOutgoing ? DesignTokens.Colors.customerInk : DesignTokens.Colors.textPrimary)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.vertical, DesignTokens.Spacing.md)
+                .background {
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.messageBubble, style: .continuous)
+                        .fill(isOutgoing ? DesignTokens.Colors.customerFill : DesignTokens.Colors.surface)
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.messageBubble, style: .continuous)
+                        .strokeBorder(isOutgoing ? DesignTokens.Colors.customerFillPressed : DesignTokens.Colors.border,
+                            lineWidth: DesignTokens.Ledge.edgeWidth)
+                }
+            if let failure = outgoing?.failureMessage {
+                Text("Not sent")
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.statusErrorText)
+                    .accessibilityLabel("Message not sent. " + failure)
             }
         }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var deliveryStatus: some View {
+        ZStack {
+            if let outgoing {
+                if let failure = outgoing.failureMessage {
+                    Button(action: retry) {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .font(DesignTokens.Typography.Expressive.glyph)
+                            .foregroundStyle(DesignTokens.Colors.statusErrorText)
+                            .frame(width: 44, height: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Retry sending message")
+                    .accessibilityHint(failure)
+                    .accessibilityIdentifier("chat.message.retry.\(message.id.uuidString.lowercased())")
+                } else {
+                    ProgressView().controlSize(.small)
+                        .accessibilityLabel("Sending message")
+                        .accessibilityIdentifier("chat.message.sending.\(message.id.uuidString.lowercased())")
+                }
+            }
+        }
+        .frame(width: 44, height: 44)
     }
 
     @ViewBuilder
@@ -806,7 +841,6 @@ struct ChatComposerBar: View {
 
     @Binding var draft: String
     @FocusState.Binding var isFocused: Bool
-    let isSending: Bool
     let isReadOnly: Bool
     let readOnlyMessage: String
     let accent: BeckonRoleAccent
@@ -861,28 +895,21 @@ struct ChatComposerBar: View {
                             await send()
                         }
                     } label: {
-                        ZStack {
-                            if isSending {
-                                ProgressView()
-                                    .tint(accent.ink)
-                            } else {
-                                Image(systemName: "paperplane.fill")
-                                    .font(DesignTokens.Typography.Expressive.glyph)
-                                    .foregroundStyle(hasDraft ? DesignTokens.Colors.customerInk : DesignTokens.Colors.textTertiary)
-                                    .offset(x: -1, y: 1)
-                            }
-                        }
+                        Image(systemName: "paperplane.fill")
+                            .font(DesignTokens.Typography.Expressive.glyph)
+                            .foregroundStyle(hasDraft ? DesignTokens.Colors.customerInk : DesignTokens.Colors.textTertiary)
+                            .offset(x: -1, y: 1)
                         .frame(width: DesignTokens.Metrics.ledgeRoundControl, height: DesignTokens.Metrics.ledgeRoundControl)
                     }
-                    .buttonStyle(BeckonLedgeButtonStyle(hasDraft || isSending ? .roundAction : .round,
+                    .buttonStyle(BeckonLedgeButtonStyle(hasDraft ? .roundAction : .round,
                         animatesSurfaceChanges: false))
                     // Align with the visible face; the reserved ledge below it is not part of its center.
                     .alignmentGuide(VerticalAlignment.center) { _ in
                         DesignTokens.Metrics.ledgeRoundControl / 2
                     }
-                    .disabled(isSending || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(!hasDraft)
                     .accessibilityIdentifier("chat.message.send")
-                    .accessibilityLabel(isSending ? "Sending message" : "Send message")
+                    .accessibilityLabel("Send message")
                 }
             }
         }
