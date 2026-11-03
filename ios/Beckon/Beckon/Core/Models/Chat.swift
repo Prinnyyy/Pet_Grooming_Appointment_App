@@ -1,6 +1,6 @@
 import Foundation
 
-struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
+nonisolated struct ChatConversation: Codable, Equatable, Hashable, Identifiable, Sendable {
     let id: UUID
     let customerID: UUID
     let groomerID: UUID
@@ -13,13 +13,20 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
     let completedAt: String?
     let groomerBusinessName: String?
     let counterpartDisplayName: String?
-    let counterpartAvatarPhotoData: Data?
+    var counterpartAvatarPhotoData: Data? = nil
     let latestMessageSenderID: UUID?
     let latestMessageCreatedAt: String?
     let latestMessageBody: String?
     let createdAt: String
     let updatedAt: String
     let serviceTimeZoneIdentifier: String?
+
+    // Avatar bytes retain their existing private-image cache; do not duplicate them in history files.
+    private enum CodingKeys: String, CodingKey {
+        case id, customerID, groomerID, latestBookingID, latestRequestID, scheduledStart, scheduledEnd
+        case priceEstimate, bookingStatus, completedAt, groomerBusinessName, counterpartDisplayName
+        case latestMessageSenderID, latestMessageCreatedAt, latestMessageBody, createdAt, updatedAt, serviceTimeZoneIdentifier
+    }
 
     nonisolated init(
         id: UUID,

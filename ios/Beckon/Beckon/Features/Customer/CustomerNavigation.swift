@@ -148,7 +148,6 @@ struct CustomerConversationDestination: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var conversation: ChatConversation?
     @State private var isLoading = true
-    @State private var initialMessagesPrepared = false
     @State private var retry = 0
 
     private var previewConversation: ChatConversation? {
@@ -160,14 +159,13 @@ struct CustomerConversationDestination: View {
 
     var body: some View {
         Group {
-            if isLoading {
+            if let shown = conversation ?? previewConversation {
+                ChatThreadView(participantID: participantID, role: .customer, conversation: shown, store: store)
+            } else if isLoading {
                 ChatThreadLoadingView(
                     title: previewConversation?.listTitle(for: .customer) ?? booking?.partnerDisplayTitle(for: .customer) ?? "Messages",
                     avatarPhotoData: previewConversation?.counterpartAvatarPhotoData,
                     counterpartID: previewConversation?.groomerID ?? booking?.groomerID)
-            } else if let conversation {
-                ChatThreadView(participantID: participantID, role: .customer, conversation: conversation,
-                    store: store, initialMessagesPrepared: initialMessagesPrepared)
             } else {
                 DesignPage(cascades: false) {
                     BeckonErrorBanner(title: "Conversation unavailable", message: store.errorMessage ?? "Try opening this conversation again.") {
@@ -179,6 +177,11 @@ struct CustomerConversationDestination: View {
         }
         .task(id: scenePhase == .active ? retry : -1) {
             guard scenePhase == .active, isLoading else { return }
+            if let cached = previewConversation {
+                conversation = cached
+                isLoading = false
+                return
+            }
             let resolved: ChatConversation?
             switch route {
             case .conversation(let id): resolved = await store.resolveConversation(conversationID: id)
@@ -187,12 +190,6 @@ struct CustomerConversationDestination: View {
             }
             guard !Task.isCancelled else { return }
             conversation = resolved
-            if let resolved, !store.hasLoadedMessages(for: resolved.id) {
-                store.deferReadAcknowledgement(for: resolved.id)
-                await store.prepareMessages(for: resolved)
-                guard !Task.isCancelled else { return }
-                initialMessagesPrepared = true
-            }
             isLoading = false
         }
         .onDisappear {

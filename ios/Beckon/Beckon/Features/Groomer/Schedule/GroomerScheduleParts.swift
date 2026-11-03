@@ -230,12 +230,12 @@ struct GroomerDayShapeBar: View {
                         }
                         .frame(width: proxy.size.width, height: proxy.size.height)
                         .clipShape(Capsule())
-                        // The taller clock marker decorates the track; it must not size it.
+                        // Keep the clock marker inside the same track height.
                         .overlay(alignment: .leading) {
                             if let now = shape.now, visible.contains(now) {
                                 Capsule().fill(DesignTokens.Colors.textPrimary)
                                     .frame(width: DesignTokens.Metrics.dayShapeNowLine,
-                                        height: proxy.size.height + DesignTokens.Spacing.sm)
+                                        height: proxy.size.height)
                                     .offset(x: min(max(0, x(now) - DesignTokens.Metrics.dayShapeNowLine / 2),
                                         max(0, proxy.size.width - DesignTokens.Metrics.dayShapeNowLine)))
                             }
@@ -246,7 +246,7 @@ struct GroomerDayShapeBar: View {
                 }
             }
             .frame(height: DesignTokens.Metrics.dayShapeHeight)
-            // Reserve the now-marker's overhang in every state, even when there is no marker.
+            // Preserve the shared strip-to-label spacing in loaded and skeleton states.
             .frame(height: DesignTokens.Metrics.dayShapeHeight + DesignTokens.Spacing.sm)
             HStack {
                 GroomerScheduleHeaderText(text: GroomerScheduleText.hour(visible.lowerBound), isLoading: shape == nil)

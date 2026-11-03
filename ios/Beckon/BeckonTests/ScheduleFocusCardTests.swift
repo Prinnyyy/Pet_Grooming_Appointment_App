@@ -7,7 +7,7 @@ import XCTest
         let day = GroomerSandboxFixtures.calendar.startOfDay(for: Date())
         let ordinary = GroomerDayShape(items: [], dayStart: day, open: nil, now: nil)
         let today = GroomerDayShape(items: [], dayStart: day, open: nil, now: day.addingTimeInterval(12 * 3600))
-        func thickness(_ shape: GroomerDayShape?) throws -> Int {
+        func thickness(_ shape: GroomerDayShape?, x: Int = 80, threshold: UInt8 = 250) throws -> Int {
             let renderer = ImageRenderer(content: GroomerDayShapeBar(shape: shape)
                 .frame(width: 320).background(Color.white))
             renderer.scale = 1
@@ -22,14 +22,17 @@ import XCTest
             // This column is clear of both end labels and the noon marker. Count the whole
             // column so bitmap row orientation does not affect the measured bar thickness.
             return (0..<image.height).filter { y in
-                let offset = (y * image.width + 80) * 4
-                return pixels[offset] < 250 || pixels[offset + 1] < 250 || pixels[offset + 2] < 250
+                let offset = (y * image.width + x) * 4
+                return pixels[offset] < threshold || pixels[offset + 1] < threshold || pixels[offset + 2] < threshold
             }.count
         }
         let baseline = try thickness(ordinary)
         XCTAssertEqual(baseline, Int(DesignTokens.Metrics.dayShapeHeight))
         XCTAssertEqual(try thickness(today), baseline, "The now marker must not enlarge the horizontal track")
         XCTAssertEqual(try thickness(nil), baseline, "The skeleton uses the same thin track")
+        // Measure the dark marker ink, excluding the pale track and antialiased fringe.
+        XCTAssertEqual(Double(try thickness(today, x: 128, threshold: 180)), Double(baseline), accuracy: 1,
+            "The noon marker must fit inside the 12pt track")
     }
 
     func testAllFocusStatesKeepTheSameWidthAndHeightWithLongText() throws {

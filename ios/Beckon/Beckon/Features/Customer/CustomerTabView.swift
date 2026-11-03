@@ -61,6 +61,7 @@ struct CustomerTabView: View {
         chatRepository: (any ChatRepository)? = nil,
         accountContent: AnyView? = nil,
         marketplaceServices: CustomerMarketplaceServices? = nil,
+        chatDisplayCache: FileChatDisplayCache? = nil,
         acceptanceSessionIsCurrent: @escaping @MainActor () -> Bool = { true }
     ) {
         self.customerID = customerID
@@ -83,7 +84,8 @@ struct CustomerTabView: View {
             initialValue: Self.makeChatStore(
                 customerID: customerID,
                 repository: chatRepository,
-                bookingRepository: bookingRepository
+                bookingRepository: bookingRepository,
+                displayCache: chatDisplayCache
             )
         )
         let sharedBookingsStore: BookingsStore? = if let customerID, let bookingRepository {
@@ -355,7 +357,8 @@ struct CustomerTabView: View {
     private static func makeChatStore(
         customerID: UUID?,
         repository: (any ChatRepository)?,
-        bookingRepository: (any BookingRepository)?
+        bookingRepository: (any BookingRepository)?,
+        displayCache: FileChatDisplayCache?
     ) -> ChatStore? {
         guard let customerID, let repository, let bookingRepository else {
             return nil
@@ -365,7 +368,8 @@ struct CustomerTabView: View {
             participantID: customerID,
             role: .customer,
             repository: repository,
-            bookingRepository: bookingRepository
+            bookingRepository: bookingRepository,
+            displayCache: displayCache
         )
     }
 

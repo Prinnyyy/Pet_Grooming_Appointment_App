@@ -183,8 +183,19 @@ struct ChatStoreTests {
             ChatThreadScrollPolicy.shouldScrollToBottom(
                 previousLatestMessageID: nil,
                 currentLatestMessageID: currentLatestID
-            ) == true
+            ) == false
         )
+    }
+
+    @Test
+    func incomingMessagesDoNotPullAReaderAwayFromHistoryButSendingReturnsToLatest() {
+        let old = UUID(), new = UUID()
+        #expect(!ChatThreadScrollPolicy.shouldScrollToBottom(previousLatestMessageID: old,
+            currentLatestMessageID: new, isNearBottom: false))
+        #expect(ChatThreadScrollPolicy.shouldScrollToBottom(previousLatestMessageID: old,
+            currentLatestMessageID: new, isNearBottom: false, latestIsOutgoing: true))
+        #expect(!ChatThreadScrollPolicy.shouldScrollToBottom(previousLatestMessageID: nil,
+            currentLatestMessageID: new, isNearBottom: true, latestIsOutgoing: true))
     }
 
     @Test @MainActor
@@ -427,7 +438,8 @@ struct ChatStoreTests {
         #expect(await store.resolveConversation(bookingID: booking.id) == conversation)
         #expect(repository.conversationsCallCount == 0)
         #expect(repository.exactConversationCallCount == 1)
-        #expect(store.conversations.isEmpty)
+        #expect(store.conversations == [conversation])
+        #expect(store.cachedConversation(bookingID: booking.id) == conversation)
         repository.exactConversationResult = .failure(.networkUnavailable)
         #expect(await store.resolveConversation(bookingID: booking.id) == nil)
         #expect(store.errorMessage != nil)

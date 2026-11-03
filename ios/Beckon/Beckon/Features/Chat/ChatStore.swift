@@ -9,6 +9,11 @@ final class ChatStore {
     private let repository: any ChatRepository
     private let bookingRepository: (any BookingRepository)?
     private let now: () -> Date
+    private let displayCache: FileChatDisplayCache?
+    private let displayCacheGeneration: Int
+    private var unverifiedCachedConversations: Set<UUID> = []
+    private var revokedConversationIDs: Set<UUID> = []
+    private var resolvedConversationByBookingID: [UUID: UUID] = [:]
     private let readStateCache: any ChatReadStateCaching
     private var debugRecorder: AppDebugEventRecorder?
 
@@ -59,8 +64,11 @@ final class ChatStore {
         bookingRepository: (any BookingRepository)? = nil,
         now: @escaping () -> Date = Date.init,
         readStateCache: any ChatReadStateCaching = UserDefaultsChatReadStateCache.shared,
-        debugRecorder: AppDebugEventRecorder? = nil
+        debugRecorder: AppDebugEventRecorder? = nil,
+        displayCache: FileChatDisplayCache? = nil
     ) {
+        self.displayCache = displayCache
+        displayCacheGeneration = displayCache?.generation ?? 0
         self.participantID = participantID
         self.role = role
         self.repository = repository
@@ -72,6 +80,53 @@ final class ChatStore {
             participantID: participantID,
             role: role
         )
+        if let snapshot = displayCache?.snapshot(participantID: participantID, role: role) {
+            conversations = snapshot.conversations
+            messagesByConversationID = snapshot.messages
+            resolvedConversationByBookingID = snapshot.bookingConversations
+            unverifiedCachedConversations = Set(conversations.map(\.id))
+            hasLoadedOnce = true // Display readiness only; restored metadata never authorizes sending.
+        }
+    }
+
+    private func persistDisplay() {
+        displayCache?.save(participantID: participantID, role: role, conversations: conversations,
+            messages: messagesByConversationID, generation: displayCacheGeneration,
+            bookingConversations: resolvedConversationByBookingID)
+    }
+
+    private func rememberConversation(_ conversation: ChatConversation) {
+        guard (role == .customer ? conversation.customerID : conversation.groomerID) == participantID else { return }
+        if let index = conversations.firstIndex(where: { $0.id == conversation.id }) { conversations[index] = conversation }
+        else { conversations.append(conversation) }
+        unverifiedCachedConversations.remove(conversation.id)
+        revokedConversationIDs.remove(conversation.id)
+    }
+
+    func cachedConversation(bookingID: UUID) -> ChatConversation? {
+        if let id = resolvedConversationByBookingID[bookingID], let conversation = conversations.first(where: { $0.id == id }) {
+            return conversation
+        }
+        return conversations.first { conversation in
+            conversation.latestBookingID == bookingID
+                || messages(for: conversation.id).contains { $0.bookingID == bookingID }
+        }
+    }
+
+    private var displaySessionIsCurrent: Bool {
+        displayCache.map { $0.generation == displayCacheGeneration } ?? true
+    }
+
+    func isVerifyingCachedConversation(_ id: UUID) -> Bool { unverifiedCachedConversations.contains(id) }
+
+    private func revokeConversation(_ id: UUID) {
+        stopMessageSubscription(for: id)
+        revokedConversationIDs.insert(id)
+        resolvedConversationByBookingID = resolvedConversationByBookingID.filter { $0.value != id }
+        conversations.removeAll { $0.id == id }
+        messagesByConversationID[id] = nil
+        unverifiedCachedConversations.insert(id)
+        persistDisplay()
     }
 
     func setDebugRecorder(_ recorder: AppDebugEventRecorder?) {
@@ -108,6 +163,12 @@ final class ChatStore {
     /// Do not hold history behind a slow realtime handshake. Catch up once connected so
     /// messages sent between the first snapshot and subscription cannot fall into a gap.
     func prepareMessages(for conversation: ChatConversation) async {
+        if unverifiedCachedConversations.contains(conversation.id) {
+            guard await resolveConversation(conversationID: conversation.id) != nil else {
+                messageLoadErrors[conversation.id] = errorMessage
+                return
+            }
+        }
         async let subscription: Void = startMessageSubscription(for: conversation)
         await Task.yield()
         let snapshotHasSubscription = hasActiveMessageSubscription(for: conversation.id)
@@ -132,7 +193,8 @@ final class ChatStore {
     }
 
     func canSendMessages(in conversation: ChatConversation) -> Bool {
-        conversation.canSendMessages(now: now())
+        guard displaySessionIsCurrent, !unverifiedCachedConversations.contains(conversation.id) else { return false }
+        return (conversations.first { $0.id == conversation.id } ?? conversation).canSendMessages(now: now())
     }
 
     func previewText(for conversation: ChatConversation) -> String {
@@ -164,6 +226,9 @@ final class ChatStore {
                   (role == .customer ? conversation.customerID : conversation.groomerID) == participantID else {
                 throw ChatRepositoryError.notAllowed
             }
+            guard displaySessionIsCurrent else { return nil }
+            rememberConversation(conversation)
+            persistDisplay()
             errorMessage = nil
             return conversation
         } catch where AppDebugErrorClassifier.isCancellation(error) {
@@ -171,9 +236,11 @@ final class ChatStore {
         } catch ChatRepositoryError.cancelled {
             return nil
         } catch ChatRepositoryError.conversationNotFound {
+            revokeConversation(conversationID)
             errorMessage = "This conversation is no longer available to this account."
             return nil
         } catch ChatRepositoryError.notAllowed {
+            revokeConversation(conversationID)
             errorMessage = "This conversation is no longer available to this account."
             return nil
         } catch {
@@ -201,6 +268,10 @@ final class ChatStore {
                   conversation.groomerID == booking.groomerID else {
                 throw ChatRepositoryError.notAllowed
             }
+            guard displaySessionIsCurrent else { return nil }
+            rememberConversation(conversation)
+            resolvedConversationByBookingID[bookingID] = conversation.id
+            persistDisplay()
             errorMessage = nil
             return conversation
         } catch is CancellationError {
@@ -252,8 +323,14 @@ final class ChatStore {
                 page: .first
             )
             try Task.checkCancellation()
+            guard displaySessionIsCurrent else { return }
             hasLoadedOnce = true
             conversations = page.items
+            for conversation in page.items {
+                unverifiedCachedConversations.remove(conversation.id)
+                revokedConversationIDs.remove(conversation.id)
+            }
+            persistDisplay()
             nextConversationPageRequest = page.nextRequest
             recordStoreSuccess(
                 "loadConversations",
@@ -268,6 +345,14 @@ final class ChatStore {
         } catch let error as ChatRepositoryError {
             guard !Task.isCancelled else { return }
             hasLoadedOnce = true
+            if error == .notAllowed {
+                let ids = Set(conversations.map(\.id)).union(messagesByConversationID.keys)
+                revokedConversationIDs.formUnion(ids)
+                unverifiedCachedConversations.formUnion(ids)
+                stopAllMessageSubscriptions()
+                conversations = []; messagesByConversationID = [:]; bookingDetailStoresByID = [:]
+                persistDisplay()
+            }
             errorMessage = message(for: error, action: "load conversations")
             recordStoreFailure(
                 "loadConversations",
@@ -364,11 +449,14 @@ final class ChatStore {
                 page: .first
             )
             try Task.checkCancellation()
+            guard displaySessionIsCurrent, !revokedConversationIDs.contains(conversation.id) else { return }
             // Messages are immutable; a refresh must retain sends/events received while it was in flight.
             messagesByConversationID[conversation.id] = Self.messagesInDisplayOrder(
                 ListPageMerge.appendingUnique(messages(for: conversation.id), to: page.items)
             )
+            if !unverifiedCachedConversations.contains(conversation.id) { rememberConversation(conversation) }
             reconcileBookingDetailStores(from: page.items)
+            persistDisplay()
             nextMessagePageRequestByConversationID[conversation.id] = page.nextRequest
             markConversationRead(conversation.id)
             recordStoreSuccess(
@@ -383,6 +471,7 @@ final class ChatStore {
         } catch ChatRepositoryError.cancelled {
             recordStoreCancelled("loadMessages", startedAt: startedAt)
         } catch let error as ChatRepositoryError {
+            if error == .notAllowed || error == .conversationNotFound { revokeConversation(conversation.id) }
             errorMessage = message(for: error, action: "load messages")
             messageLoadErrors[conversation.id] = errorMessage
             recordStoreFailure(
@@ -424,13 +513,16 @@ final class ChatStore {
                 conversationID: conversation.id,
                 page: pageRequest
             )
+            guard displaySessionIsCurrent, !revokedConversationIDs.contains(conversation.id), !Task.isCancelled else { return }
             messagesByConversationID[conversation.id] = Self.messagesInDisplayOrder(
                 ListPageMerge.appendingUnique(
-                    page.items,
-                    to: messagesByConversationID[conversation.id, default: []]
+                    messagesByConversationID[conversation.id, default: []],
+                    to: page.items
                 )
             )
+            if !unverifiedCachedConversations.contains(conversation.id) { rememberConversation(conversation) }
             reconcileBookingDetailStores(from: page.items)
+            persistDisplay()
             nextMessagePageRequestByConversationID[conversation.id] = page.nextRequest
             markConversationRead(conversation.id)
             recordStoreSuccess(
@@ -640,6 +732,7 @@ final class ChatStore {
     }
 
     private func append(_ message: ChatMessage) {
+        guard displaySessionIsCurrent, !revokedConversationIDs.contains(message.conversationID) else { return }
         var messages = messagesByConversationID[message.conversationID] ?? []
         guard !messages.contains(where: { $0.id == message.id }) else { return }
         messages.append(message)
@@ -647,6 +740,7 @@ final class ChatStore {
             messages
         )
         reconcileBookingDetailStores(from: [message])
+        persistDisplay()
     }
 
     private func reconcileBookingDetailStores(from messages: [ChatMessage]) {

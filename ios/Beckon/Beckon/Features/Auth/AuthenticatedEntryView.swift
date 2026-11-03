@@ -76,6 +76,7 @@ struct AuthenticatedEntryView: View {
                     chatRepository: chatRepository,
                     accountContent: customerAccountContent(for: profile),
                     marketplaceServices: marketplaceServices,
+                    chatDisplayCache: .shared,
                     acceptanceSessionIsCurrent: {
                         guard !authenticationStore.isSubmitting,
                               case let .signedIn(current) = authenticationStore.rootState else { return false }
@@ -100,7 +101,8 @@ struct AuthenticatedEntryView: View {
                               case let .signedIn(current) = authenticationStore.rootState else { return false }
                         return current.userID == profile.userID
                     },
-                    requestCountCache: .shared
+                    requestCountCache: .shared,
+                    chatDisplayCache: .shared
                 )
 
             case let .failure(message):

@@ -90,6 +90,11 @@ struct ChatConversationsView: View {
 
     private func openFocusedConversationIfPossible() async {
         guard let bookingID = focusedBookingID else { return }
+        if let cached = store.cachedConversation(bookingID: bookingID) {
+            focusedConversation = cached
+            focusedBookingID = nil
+            return
+        }
         if let conversation = await store.resolveConversation(bookingID: bookingID),
            focusedBookingID == bookingID, !Task.isCancelled {
             focusedConversation = conversation
@@ -328,10 +333,14 @@ private struct ChatMessagesTitle: View {
 nonisolated enum ChatThreadScrollPolicy {
     static func shouldScrollToBottom(
         previousLatestMessageID: UUID?,
-        currentLatestMessageID: UUID?
+        currentLatestMessageID: UUID?,
+        isNearBottom: Bool = true,
+        latestIsOutgoing: Bool = false
     ) -> Bool {
-        guard currentLatestMessageID != nil else { return false }
-        return previousLatestMessageID != currentLatestMessageID
+        // An initial snapshot is positioned by layout, never animated through the history.
+        guard previousLatestMessageID != nil, currentLatestMessageID != nil,
+              previousLatestMessageID != currentLatestMessageID else { return false }
+        return isNearBottom || latestIsOutgoing
     }
 }
 
@@ -372,64 +381,80 @@ struct ChatThreadView: View {
     @State private var draft = ""
     @State private var isVisible = false
     @State private var didActivate = false
+    @State private var threadPosition = ScrollPosition(idType: UUID.self, edge: .bottom)
+    @State private var isNearBottom = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var isComposing: Bool
 
     private var statusText: String {
         if store.isLoadingMessages(for: conversation.id) { return "Updating…" }
         if store.messageLoadErrors[conversation.id] != nil { return "Couldn't update" }
+        if store.isVerifyingCachedConversation(conversation.id) { return "Updating…" }
         if store.interruptedMessageSubscriptions.contains(conversation.id) { return "Live updates paused" }
         if !store.hasLoadedMessages(for: conversation.id) { return "Updating…" }
         return store.canSendMessages(in: conversation) ? "Active chat" : "Read-only"
     }
 
     var body: some View {
+        let conversation = store.conversations.first { $0.id == self.conversation.id } ?? self.conversation
         ZStack {
             DesignTokens.Colors.appBackground
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                ChatThreadHeader(
-                    title: conversation.listTitle(for: role),
-                    subtitle: statusText,
-                    role: role,
-                    avatarPhotoData: conversation.counterpartAvatarPhotoData,
-                    isComposing: isComposing,
-                    dismiss: dismiss,
-                    counterpartID: role == .customer ? conversation.groomerID : conversation.customerID
+                VStack(spacing: 0) {
+                    ChatThreadHeader(
+                        title: conversation.listTitle(for: role),
+                        subtitle: statusText,
+                        role: role,
+                        avatarPhotoData: conversation.counterpartAvatarPhotoData,
+                        isComposing: isComposing,
+                        dismiss: dismiss,
+                        counterpartID: role == .customer ? conversation.groomerID : conversation.customerID
+                    )
+
+                    Divider()
+                        .overlay(DesignTokens.Colors.borderSoft)
+
+                    threadContent
+                }
+                .contentShape(Rectangle())
+                .simultaneousGesture(TapGesture().onEnded { isComposing = false })
+                ChatComposerBar(
+                    draft: $draft,
+                    isFocused: $isComposing,
+                    isSending: store.isSendingMessage(for: conversation.id),
+                    isReadOnly: !store.canSendMessages(in: conversation) && !store.isVerifyingCachedConversation(conversation.id),
+                    readOnlyMessage: conversation.readOnlyReason,
+                    accent: role == .customer ? .customer : .groomer,
+                    placeholder: "Message \(conversation.shortRecipientName(for: role))...",
+                    send: {
+                        let body = draft
+                        let sent = await store.sendMessage(in: conversation, body: body)
+                        if sent, draft == body {
+                            draft = ""
+                        }
+                    }
                 )
-
-                Divider()
-                    .overlay(DesignTokens.Colors.borderSoft)
-
-                threadContent
+                .disabled(store.isVerifyingCachedConversation(conversation.id))
             }
-            .contentShape(Rectangle())
-            .simultaneousGesture(TapGesture().onEnded { isComposing = false })
         }
         .beckonHidesTabBar()
         .beckonAllowsInteractiveBack()
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            ChatComposerBar(
-                draft: $draft,
-                isFocused: $isComposing,
-                isSending: store.isSendingMessage(for: conversation.id),
-                isReadOnly: !store.canSendMessages(in: conversation),
-                readOnlyMessage: conversation.readOnlyReason,
-                accent: role == .customer ? .customer : .groomer,
-                placeholder: "Message \(conversation.shortRecipientName(for: role))...",
-                send: {
-                    let body = draft
-                    let sent = await store.sendMessage(in: conversation, body: body)
-                    if sent, draft == body {
-                        draft = ""
-                    }
-                }
-            )
-        }
         .onAppear {
             isVisible = true
+            isNearBottom = true
+            var transaction = Transaction(animation: nil)
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                if let latest = store.messages(for: conversation.id).last?.id {
+                    threadPosition.scrollTo(id: latest, anchor: .bottom)
+                } else {
+                    threadPosition.scrollTo(edge: .bottom)
+                }
+            }
             store.acknowledgeVisibleMessages(for: conversation.id)
         }
         .task(id: isVisible && scenePhase == .active) {
@@ -457,10 +482,10 @@ struct ChatThreadView: View {
 
     @ViewBuilder
     private var threadContent: some View {
-        ScrollViewReader { proxy in
+        Group {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    if !store.canSendMessages(in: conversation) {
+                    if !store.canSendMessages(in: conversation) && !store.isVerifyingCachedConversation(conversation.id) {
                         ChatReadOnlyBanner(message: conversation.readOnlyReason)
                     }
 
@@ -499,7 +524,7 @@ struct ChatThreadView: View {
                                 await store.loadNextMessagesPage(for: conversation)
                                 await Task.yield()
                                 if let anchorMessageID {
-                                    proxy.scrollTo(anchorMessageID, anchor: .top)
+                                    threadPosition.scrollTo(id: anchorMessageID, anchor: .top)
                                 }
                             }
                         }
@@ -513,33 +538,43 @@ struct ChatThreadView: View {
                                     for: message
                                 )
                             )
+                            .padding(.bottom, message.id == store.messages(for: conversation.id).last?.id
+                                ? DesignTokens.Spacing.md : 0)
                             .id(message.id)
                         }
                     }
 
-                    Color.clear
-                        .frame(height: 1)
-                        .id("chat-thread-bottom")
                 }
+                .scrollTargetLayout()
                 .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                 .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.md)
+                .padding(.bottom, store.messages(for: conversation.id).isEmpty ? DesignTokens.Spacing.md : 0)
             }
-            .defaultScrollAnchor(.bottom)
+            .scrollPosition($threadPosition)
+            .defaultScrollAnchor(.bottom, for: .initialOffset)
+            .defaultScrollAnchor(.bottom, for: .alignment)
+            .defaultScrollAnchor(isNearBottom ? .bottom : nil, for: .sizeChanges)
+            .onScrollGeometryChange(for: Bool.self) { geometry in
+                let end = max(-geometry.contentInsets.top,
+                    geometry.contentSize.height + geometry.contentInsets.bottom - geometry.containerSize.height)
+                return end - geometry.contentOffset.y <= DesignTokens.Spacing.lg
+            } action: { _, nearBottom in
+                isNearBottom = nearBottom
+            }
+            .accessibilityIdentifier("chat.messages.list")
             .refreshable { await refreshThread() }
             .onChange(of: store.messages(for: conversation.id).last?.id) {
                 previousLatestMessageID,
                 currentLatestMessageID in
                 guard ChatThreadScrollPolicy.shouldScrollToBottom(
                     previousLatestMessageID: previousLatestMessageID,
-                    currentLatestMessageID: currentLatestMessageID
+                    currentLatestMessageID: currentLatestMessageID,
+                    isNearBottom: isNearBottom,
+                    latestIsOutgoing: store.messages(for: conversation.id).last?.isSentBy(participantID) == true
                 ) else { return }
-                withAnimation(.easeOut(duration: 0.2)) {
-                    proxy.scrollTo("chat-thread-bottom", anchor: .bottom)
+                withAnimation(reduceMotion ? nil : DesignTokens.Motion.reveal) {
+                    if let latest = currentLatestMessageID { threadPosition.scrollTo(id: latest, anchor: .bottom) }
                 }
-            }
-            .onAppear {
-                proxy.scrollTo("chat-thread-bottom", anchor: .bottom)
             }
         }
     }
@@ -576,19 +611,17 @@ struct ChatThreadLoadingView: View {
                 avatarPhotoData: avatarPhotoData, isComposing: false, dismiss: dismiss, counterpartID: counterpartID)
             Divider().overlay(DesignTokens.Colors.borderSoft)
             Spacer(minLength: 0)
-        }
-        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
-        .beckonHidesTabBar()
-        .beckonAllowsInteractiveBack()
-        .navigationBarBackButtonHidden(true)
-        .toolbar(.hidden, for: .navigationBar)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
             ChatComposerBar(draft: .constant(""), isFocused: $isComposing,
                 isSending: false, isReadOnly: false, readOnlyMessage: "", accent: .customer,
                 placeholder: "Message…", send: {})
                 .disabled(true)
                 .accessibilityHidden(true)
         }
+        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
+        .beckonHidesTabBar()
+        .beckonAllowsInteractiveBack()
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .accessibilityIdentifier("chat.thread.loading")
     }
 }
@@ -742,6 +775,10 @@ private struct ChatMessageRow: View {
             .accessibilityIdentifier(
                 "chat.message.booking.\(booking.id.uuidString.lowercased())"
             )
+        } else if let booking = message.booking {
+            ChatBookingMessageCard(booking: booking, role: role)
+                .beckonLedge(.card)
+                .accessibilityHint("Updating booking details")
         } else {
             ChatBookingUnavailableCard()
         }

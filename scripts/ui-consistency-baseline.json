@@ -2,7 +2,7 @@
   "version": 1,
   "scope": "ios/Beckon/Beckon/Features",
   "lastChange": {
-    "reason": "T-448 removes resolved role-bound chat status-color debt"
+    "reason": "T-459: retire the 1pt chat-bottom sentinel after adopting native ScrollPosition; accept no new debt"
   },
   "findings": [
     {
@@ -116,13 +116,6 @@
       "fingerprint": "7ebbfeb81679eb0a2c12df1ef78a704d86de4b10e42927368cb22eece84b3267",
       "expressionHash": "aa82eb92d055486f1d46fcc3b59b300aa5d7753b73c34407aa39dd58d54acde5",
       "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Chat/ChatView.swift",
-      "fingerprint": "0a74fca9ae2c5c92a0b51ab450863d5feed936ca5093491815115e7a9b7f3572",
-      "expressionHash": "ae5791828456ba4d945df78684c7f13c0ebd4d1a9af86b30539944acc13b7e1e",
-      "occurrence": 2
     },
     {
       "ruleID": "UI001",

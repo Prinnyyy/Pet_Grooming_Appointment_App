@@ -56,7 +56,8 @@ struct GroomerTabView: View {
         authenticationStore: AuthenticationStore? = nil,
         onSignOut: (() -> Void)? = nil,
         sessionIsCurrent: @escaping @MainActor () -> Bool = { true },
-        requestCountCache: GroomerRequestCountCache? = nil
+        requestCountCache: GroomerRequestCountCache? = nil,
+        chatDisplayCache: FileChatDisplayCache? = nil
     ) {
         self.groomerID = groomerID
         self.groomerDisplayName = groomerDisplayName
@@ -90,7 +91,8 @@ struct GroomerTabView: View {
             initialValue: Self.makeChatStore(
                 groomerID: groomerID,
                 repository: chatRepository,
-                bookingRepository: bookingRepository
+                bookingRepository: bookingRepository,
+                displayCache: chatDisplayCache
             )
         )
     }
@@ -255,7 +257,8 @@ struct GroomerTabView: View {
     private static func makeChatStore(
         groomerID: UUID?,
         repository: (any ChatRepository)?,
-        bookingRepository: (any BookingRepository)?
+        bookingRepository: (any BookingRepository)?,
+        displayCache: FileChatDisplayCache?
     ) -> ChatStore? {
         guard let groomerID, let repository, let bookingRepository else {
             return nil
@@ -265,7 +268,8 @@ struct GroomerTabView: View {
             participantID: groomerID,
             role: .groomer,
             repository: repository,
-            bookingRepository: bookingRepository
+            bookingRepository: bookingRepository,
+            displayCache: displayCache
         )
     }
 
