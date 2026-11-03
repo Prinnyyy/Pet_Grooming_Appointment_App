@@ -238,7 +238,7 @@ struct GroomerScheduleView: View {
                     summary: read.hasSnapshot ? summary : nil, isLoading: read.showsPlaceholder)
                 if read.showsPlaceholder {
                     GroomerDayShapeBarSkeleton()
-                } else if scopeMatches, !slots.isEmpty {
+                } else if scopeMatches {
                     GroomerDayShapeBar(shape: GroomerDayShape(items: plan.sequence + plan.behind,
                         dayStart: calendar.startOfDay(for: presentation.selectedDate),
                         open: GroomerScheduleHours.open(window), now: isToday ? now : nil))
@@ -246,6 +246,7 @@ struct GroomerScheduleView: View {
             }
 
             if read.showsPlaceholder {
+                GroomerNowCardSkeleton()
                 GroomerAppointmentRowSkeleton()
                     .accessibilityIdentifier("groomer.schedule.loading")
             } else if read.showsVerificationWarning {
@@ -324,25 +325,10 @@ struct GroomerScheduleView: View {
         serviceAction = .start
     }
 
-    /// A day with nothing booked is a plain card that says so (no mascot), says when the groomer is open, and sends them to the
-    /// requests that could fill it.
+    /// The empty day occupies the same coral focus-card slots as a confirmed appointment.
     private func emptyDay(dayTitle: String, window: GroomerAvailabilityWindow?) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("Nothing booked")
-                .font(DesignTokens.Typography.Expressive.title)
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
-            Text(emptyDayNote(dayTitle: dayTitle, window: window)).designSupportingText()
-            // Requests do not fill a day the groomer is closed.
-            if let onSeeRequests, window?.isEnabled != false {
-                Button(action: onSeeRequests) {
-                    DesignQuietAction(title: "See new requests", systemImage: "tray.full")
-                }
-                .buttonStyle(BeckonGuardedPlainButtonStyle())
-                .accessibilityIdentifier("groomer.schedule.requests")
-            }
-        }
-        .designCardBody()
-        .accessibilityIdentifier("groomer.schedule.empty")
+        GroomerScheduleEmptyCard(note: emptyDayNote(dayTitle: dayTitle, window: window),
+            isClosed: window?.isEnabled == false, onSeeRequests: onSeeRequests)
     }
 
     private func emptyDayNote(dayTitle: String, window: GroomerAvailabilityWindow?) -> String {

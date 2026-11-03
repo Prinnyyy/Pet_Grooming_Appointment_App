@@ -216,6 +216,10 @@ enum DesignTokens {
     }
 
     enum Layout {
+        static let scheduleFocusHeaderHeight: CGFloat = 28
+        static let scheduleFocusIdentityHeight: CGFloat = 64
+        static let scheduleFocusDetailHeight: CGFloat = 60
+
         static let messageGlyphTopInset: CGFloat = 2
         static let pageHorizontalInset: CGFloat = 20
         static let pageTopInset: CGFloat = 24
