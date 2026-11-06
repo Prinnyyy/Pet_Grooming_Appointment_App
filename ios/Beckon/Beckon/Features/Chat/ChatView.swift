@@ -446,11 +446,6 @@ struct ChatThreadView: View {
         .onAppear {
             isVisible = true
             isNearBottom = true
-            // Position only after content exists. Pin the content edge rather than a lazy
-            // row's estimated frame; mixed-height booking cards can settle after that frame.
-            if let latest = store.displayMessages(for: conversation.id).last?.id {
-                positionInitialMessage(latest)
-            }
             store.acknowledgeVisibleMessages(for: conversation.id)
         }
         .task(id: isVisible && scenePhase == .active) {
@@ -482,17 +477,20 @@ struct ChatThreadView: View {
         let completionCards = messages.filter { $0.kind == .bookingCard &&
             ($0.bookingEvent?.isCompletion == true || ($0.bookingEvent == nil && $0.booking?.status == .completed)) }
         let reviewAnchors = Set(Dictionary(grouping: completionCards, by: \.bookingID).values.compactMap { $0.last?.id })
-        Group {
-            ScrollView {
+        GeometryReader { viewport in
+            ScrollView(.vertical) {
                 LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                     if !store.canSendMessages(in: conversation) && !store.isVerifyingCachedConversation(conversation.id) {
                         ChatReadOnlyBanner(message: conversation.readOnlyReason)
+                            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                     }
 
                     if let error = store.messageLoadErrors[conversation.id] {
                         recoveryBanner(title: "Messages unavailable", message: error)
+                            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                     } else if store.interruptedMessageSubscriptions.contains(conversation.id) {
                         recoveryBanner(title: "Live updates paused", message: "Refresh to reconnect and check for new messages.")
+                            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                     }
 
                     if store.hasLoadedMessages(for: conversation.id),
@@ -504,6 +502,7 @@ struct ChatThreadView: View {
                             systemImage: "bubble.left.and.bubble.right",
                             accent: role.beckonEmptyAccent
                         )
+                        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                         .accessibilityIdentifier("chat.messages.empty")
                     } else {
                         if store.canLoadMoreMessages(for: conversation.id)
@@ -528,6 +527,7 @@ struct ChatThreadView: View {
                                     threadPosition.scrollTo(id: anchorMessageID, anchor: .top)
                                 }
                             }
+                            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                         }
 
                         ForEach(messages) { message in
@@ -542,6 +542,8 @@ struct ChatThreadView: View {
                                     for: message
                                 )
                             )
+                            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.bottom, message.id == messages.last?.id
                                 ? DesignTokens.Spacing.md : DesignTokens.Spacing.none)
                             .id(message.id)
@@ -550,9 +552,11 @@ struct ChatThreadView: View {
 
                 }
                 .scrollTargetLayout()
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                 .padding(.top, DesignTokens.Spacing.lg)
                 .padding(.bottom, messages.isEmpty ? DesignTokens.Spacing.md : DesignTokens.Spacing.none)
+                // Measure against this destination, never a lazy row's ideal width or
+                // the navigation transition's offscreen frame. All rows share one width.
+                .frame(width: viewport.size.width, alignment: .leading)
             }
             .scrollPosition($threadPosition)
             .defaultScrollAnchor(.bottom, for: .initialOffset)
@@ -566,9 +570,9 @@ struct ChatThreadView: View {
                     geometry.contentSize.height + geometry.contentInsets.bottom - geometry.containerSize.height)
                 return end - geometry.contentOffset.y <= DesignTokens.Spacing.lg
             } action: { _, nearBottom in
-                // Lazy ticket heights may settle after the initial ID position. Only an actual
-                // user scroll should turn bottom-following off; layout changes are not reading intent.
-                if nearBottom || isUserScrolling { isNearBottom = nearBottom }
+                // Only user scrolling changes reading intent. Geometry updates during
+                // keyboard/navigation layout must not feed state back into the same frame.
+                if isUserScrolling, nearBottom != isNearBottom { isNearBottom = nearBottom }
             }
             .onScrollPhaseChange { _, phase in
                 isUserScrolling = phase == .interacting || phase == .decelerating
@@ -578,8 +582,8 @@ struct ChatThreadView: View {
             .onChange(of: messages.last?.id) {
                 previousLatestMessageID,
                 currentLatestMessageID in
-                if previousLatestMessageID == nil, let currentLatestMessageID {
-                    positionInitialMessage(currentLatestMessageID)
+                if previousLatestMessageID == nil, currentLatestMessageID != nil {
+                    positionInitialMessages()
                     return
                 }
                 guard ChatThreadScrollPolicy.shouldScrollToBottom(
@@ -590,13 +594,13 @@ struct ChatThreadView: View {
                 ) else { return }
                 isNearBottom = true
                 withAnimation(reduceMotion ? nil : DesignTokens.Motion.reveal) {
-                    if let latest = currentLatestMessageID { threadPosition.scrollTo(id: latest, anchor: .bottom) }
+                    threadPosition.scrollTo(edge: .bottom)
                 }
             }
         }
     }
 
-    private func positionInitialMessage(_ id: UUID) {
+    private func positionInitialMessages() {
         var transaction = Transaction(animation: nil)
         transaction.disablesAnimations = true
         withTransaction(transaction) { threadPosition.scrollTo(edge: .bottom) }

@@ -45,10 +45,14 @@ final class ChatViewportTests: XCTestCase {
         scroll.setContentOffset(CGPoint(x: 0, y: -scroll.adjustedContentInset.top), animated: false)
         navigation.popViewController(animated: false)
         try await Task.sleep(for: .milliseconds(30))
-        let reopened = UIHostingController(rootView: ChatThreadView(participantID: groomer, role: .groomer,
-            conversation: conversation, store: store, initialMessagesPrepared: true).environment(\.scenePhase, .active))
-        navigation.pushViewController(reopened, animated: false)
-        try await assertLatestFromFirstContentFrame(reopened, phase: "cached reopen")
+        let reopened = UIHostingController(rootView: ChatConversationDestination(
+            route: .conversation(conversation.id), role: .groomer, participantID: groomer,
+            store: store).environment(\.scenePhase, .active))
+        await store.loadConversations()
+        navigation.pushViewController(reopened, animated: true)
+        try await assertLatestFromFirstContentFrame(reopened, phase: "cached detail-route reopen")
+        try await Task.sleep(for: .milliseconds(400))
+        try await assertLatestFromFirstContentFrame(reopened, phase: "completed navigation")
     }
 
     func testUpdatingKeepsTheSameViewportAsActiveChat() async throws {
@@ -95,6 +99,8 @@ final class ChatViewportTests: XCTestCase {
             XCTAssertEqual(scroll.contentOffset.y, end, accuracy: 2, "Mixed-height history must already show its newest message")
             XCTAssertTrue(store.isLoadingMessages(for: conversation.id))
             XCTAssertEqual(scroll.contentOffset.x + scroll.adjustedContentInset.left, 0, accuracy: 1, "Updating must not shift a vertical conversation sideways")
+            XCTAssertEqual(scroll.contentSize.width, scroll.bounds.width, accuracy: 1,
+                "Mixed booking cards and text must use the viewport width")
             repository.beforeMessageEvents = nil
             release?.resume(); release = nil
             for _ in 0..<100 where store.isLoadingMessages(for: conversation.id) {
@@ -110,6 +116,18 @@ final class ChatViewportTests: XCTestCase {
             XCTAssertGreaterThan(during.height, window.bounds.height * 0.5)
             XCTAssertGreaterThanOrEqual(during.minY, window.safeAreaInsets.top)
             XCTAssertLessThanOrEqual(during.maxY, window.bounds.height - window.safeAreaInsets.bottom)
+            // A keyboard/safe-area change must not leave the latest row above or below
+            // the viewport. Exercise the same layout resize without system keyboard timing.
+            for bottomInset in [CGFloat(260), CGFloat(0)] {
+                host.additionalSafeAreaInsets.bottom = bottomInset
+                try await Task.sleep(for: .milliseconds(100))
+                window.layoutIfNeeded(); host.view.layoutIfNeeded()
+                let resizedEnd = max(-scroll.adjustedContentInset.top,
+                    scroll.contentSize.height + scroll.adjustedContentInset.bottom - scroll.bounds.height)
+                XCTAssertEqual(scroll.contentOffset.y, resizedEnd, accuracy: 2)
+                XCTAssertEqual(scroll.contentOffset.x + scroll.adjustedContentInset.left, 0, accuracy: 1)
+                XCTAssertEqual(scroll.contentSize.width, scroll.bounds.width, accuracy: 1)
+            }
             store.stopAllMessageSubscriptions()
             window.rootViewController = nil
         }
@@ -125,6 +143,8 @@ final class ChatViewportTests: XCTestCase {
             guard let scroll = messageScroll(in: host.view), scroll.contentSize.height > scroll.bounds.height else { continue }
             let end = max(-scroll.adjustedContentInset.top,
                 scroll.contentSize.height + scroll.adjustedContentInset.bottom - scroll.bounds.height)
+            XCTAssertEqual(scroll.contentOffset.x + scroll.adjustedContentInset.left, 0, accuracy: 1, phase)
+            XCTAssertEqual(scroll.contentSize.width, scroll.bounds.width, accuracy: 1, phase)
             XCTAssertEqual(scroll.contentOffset.y, end, accuracy: 2,
                 "\(phase) must already be at latest; content=\(scroll.contentSize.height), viewport=\(scroll.bounds.height), insets=\(scroll.adjustedContentInset)")
             foundContent = true

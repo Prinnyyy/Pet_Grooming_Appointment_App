@@ -59,11 +59,6 @@ struct ChatConversationDestination: View {
             conversation = resolved
             isLoading = false
         }
-        .onDisappear {
-            if let conversation { store.stopMessageSubscription(for: conversation.id) }
-        }
-        .onChange(of: scenePhase) { _, phase in
-            if phase != .active, let conversation { store.stopMessageSubscription(for: conversation.id) }
-        }
+        // ChatThreadView owns its subscription lifecycle for every entry route.
     }
 }
