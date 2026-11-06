@@ -64,7 +64,22 @@ final class GroomerGroomingWorkspace {
     private(set) var bookings: [Booking] = []
     private(set) var loaded: Set<Section> = []
     private(set) var errors: [Section: String] = [:]
-    private var reads: [String: Task<Void, Never>] = [:]
+    private struct PageRead {
+        let id: UUID
+        let task: Task<Void, Never>
+        var prefetch: Bool
+    }
+    private var reads: [String: PageRead] = [:]
+    private enum Page: Equatable {
+        case matches(GroomingLocationMode?), offers(String), bookings(Bool)
+        var key: String {
+            switch self {
+            case .matches(let location): "matches/" + (location?.rawValue ?? "all")
+            case .offers(let group): "offers/" + group
+            case .bookings(let closed): "bookings/" + (closed ? "closed" : "active")
+            }
+        }
+    }
     private var matchLocation: GroomingLocationMode?
     private var offerGroup = "waiting"
     private var bookingsClosed = false
@@ -73,6 +88,7 @@ final class GroomerGroomingWorkspace {
     private var bookingPages: [String: [Booking]] = [:]
     private var nextPages: [String: ListPageRequest] = [:]
     private var loadedKeys: Set<String> = []
+    private var prefetchedAt: [String: Date] = [:]
     private var petPhotos: [UUID: Data] = [:]
     private var petPhotoReads: Set<UUID> = []
     private var photoReadAt: [UUID: Date] = [:]
@@ -105,14 +121,54 @@ final class GroomerGroomingWorkspace {
         matches = matchPages[pageKey(.matches)]?.items ?? []
         offers = offerPages[pageKey(.offers)] ?? []
         bookings = bookingPages[pageKey(.bookings)] ?? []
-        loaded = Set([Section.matches, .offers, .bookings].filter { loadedKeys.contains(pageKey($0)) })
+        loaded = Set([Section.matches, .offers, .bookings].filter { hasLoadedPage(pageKey($0)) })
     }
 
-    private func pageKey(_ section: Section) -> String {
+    private func selectedPage(_ section: Section) -> Page {
         switch section {
-        case .matches: "matches/" + (matchLocation?.rawValue ?? "all")
-        case .offers: "offers/" + offerGroup
-        case .bookings: "bookings/" + (bookingsClosed ? "closed" : "active")
+        case .matches: .matches(matchLocation)
+        case .offers: .offers(offerGroup)
+        case .bookings: .bookings(bookingsClosed)
+        }
+    }
+    private func pageKey(_ section: Section) -> String { selectedPage(section).key }
+
+    /// Promote a neighbour already in flight; stop unrelated speculative network work.
+    func prioritize(_ section: Section) {
+        let key = pageKey(section)
+        for (other, read) in reads where read.prefetch {
+            if other == key { reads[other]?.prefetch = false }
+            else { read.task.cancel() }
+        }
+    }
+
+    func prefetchAdjacent(to section: Section) async {
+        let origin = selectedPage(section)
+        guard session.isCurrent(), hasLoadedPage(origin.key), !Task.isCancelled else { return }
+        let pages: [Page] = switch section {
+        case .matches: [.matches(nil), .matches(.customerComesToGroomer), .matches(.groomerComesToCustomer)]
+        case .offers: [.offers("waiting"), .offers("accepted"), .offers("closed")]
+        case .bookings: [.bookings(false), .bookings(true)]
+        }
+        guard let index = pages.firstIndex(of: origin) else { return }
+        for adjacent in [index + 1, index - 1] where pages.indices.contains(adjacent) {
+            guard session.isCurrent(), !Task.isCancelled, selectedPage(section) == origin else { return }
+            let page = pages[adjacent]
+            if !hasLoadedPage(page.key) {
+                await readPage(section, append: false, page: page, prefetch: true)
+            }
+            guard session.isCurrent(), !Task.isCancelled, selectedPage(section) == origin,
+                  hasLoadedPage(page.key) else { return }
+            // At most two portraits per neighbour; no detail, name or reschedule hydration.
+            let ids: [UUID] = switch page {
+            case .matches: Array((matchPages[page.key]?.items ?? []).prefix(2).map(\.request.id))
+            case .offers: Array((offerPages[page.key] ?? []).prefix(2).map(\.offer.requestID))
+            case .bookings: Array((bookingPages[page.key] ?? []).prefix(2).map(\.requestID))
+            }
+            for id in ids {
+                guard !Task.isCancelled, selectedPage(section) == origin else { return }
+                if photo(for: id) == nil { await loadPetPhoto(requestID: id) }
+            }
         }
     }
 
@@ -123,23 +179,33 @@ final class GroomerGroomingWorkspace {
     }
     func cachedOffers(group: String) -> [GroomerOfferListItem] { offerPages["offers/" + group] ?? session.offers.offers }
     func cachedBookings(closed: Bool) -> [Booking] { bookingPages["bookings/" + (closed ? "closed" : "active")] ?? session.bookings.bookings }
-    func hasLoadedPage(_ key: String) -> Bool { loadedKeys.contains(key) }
+    func hasLoadedPage(_ key: String) -> Bool {
+        loadedKeys.contains(key) && (prefetchedAt[key].map { Date().timeIntervalSince($0) < 60 } ?? true)
+    }
 
-    func refresh(_ section: Section) async { await readPage(section, append: false) }
-    func loadMore(_ section: Section) async { await readPage(section, append: true) }
+    func refresh(_ section: Section) async { prioritize(section); await readPage(section, append: false) }
+    func loadMore(_ section: Section) async { prioritize(section); await readPage(section, append: true) }
 
     func hasMore(_ section: Section) -> Bool {
         let key = pageKey(section)
         return section == .matches ? matchPages[key]?.nextCursor != nil : nextPages[key] != nil
     }
 
-    private func readPage(_ section: Section, append: Bool) async {
-        guard session.isCurrent() else { return }
-        let key = pageKey(section)
-        if let read = reads[key] { await read.value; return }
+    private func readPage(_ section: Section, append: Bool, page target: Page? = nil, prefetch: Bool = false) async {
+        guard session.isCurrent(), !Task.isCancelled else { return }
+        let page = target ?? selectedPage(section)
+        let key = page.key
+        if let read = reads[key], !read.task.isCancelled {
+            if !prefetch { reads[key]?.prefetch = false }
+            await read.task.value
+            return
+        }
         if append && !hasMore(section) { return }
-        let location = matchLocation, group = offerGroup, closed = bookingsClosed
-        let read = Task { @MainActor in
+        let location: GroomingLocationMode? = if case .matches(let value) = page { value } else { nil }
+        let group: String = if case .offers(let value) = page { value } else { "waiting" }
+        let closed: Bool = if case .bookings(let value) = page { value } else { false }
+        let readID = UUID()
+        let read = Task(priority: prefetch ? .utility : .userInitiated) { @MainActor in
             do {
                 switch section {
                 case .matches:
@@ -170,20 +236,21 @@ final class GroomerGroomingWorkspace {
                     for booking in page.items { session.bookings.synchronizeExternalBooking(booking) }
                 }
                 loadedKeys.insert(key)
+                prefetchedAt[key] = reads[key]?.prefetch == true ? Date() : nil
                 if pageKey(section) == key {
                     errors[section] = nil
                     select(location: matchLocation, offers: offerGroup, bookingsClosed: bookingsClosed)
                 }
             } catch {
                 guard session.isCurrent(), !Task.isCancelled else { return }
-                if pageKey(section) == key {
+                if pageKey(section) == key, reads[key]?.prefetch == false {
                     errors[section] = error is MatchRankingError ? "The list changed. Refresh to continue." : "Could not refresh this list."
                 }
             }
         }
-        reads[key] = read
+        reads[key] = PageRead(id: readID, task: read, prefetch: prefetch)
         await read.value
-        reads[key] = nil
+        if reads[key]?.id == readID { reads[key] = nil }
     }
 
     func offerItem(id: UUID, forceRefresh: Bool = false) async throws -> GroomerOfferListItem? {

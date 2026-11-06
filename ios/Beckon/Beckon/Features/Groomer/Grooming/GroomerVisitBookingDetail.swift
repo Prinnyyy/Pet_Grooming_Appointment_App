@@ -356,7 +356,7 @@ struct GroomerVisitBookingDetail: View {
                     if canCancel { DesignRowDivider() }
                 }
                 if canCancel {
-                    DesignManageRow(title: "Cancel appointment", systemImage: "xmark.circle", isDestructive: true) {
+                    DesignManageRow(title: BookingFulfillmentAction.cancel.title, systemImage: BookingFulfillmentAction.cancel.systemImage, isDestructive: true) {
                         fulfillmentAction = .cancel
                     }
                 }

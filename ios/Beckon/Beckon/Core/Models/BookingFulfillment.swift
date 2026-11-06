@@ -105,7 +105,8 @@ nonisolated enum BookingFulfillmentAction: String, Codable, CaseIterable, Identi
         switch self {
         case .start: "play.fill"
         case .complete, .confirmCompletion: "checkmark.circle"
-        case .cancel, .confirmStop, .closeElapsed: "stop.circle"
+        case .cancel: "calendar.badge.minus"
+        case .confirmStop, .closeElapsed: "stop.circle"
         case .withdrawReport: "arrow.uturn.backward"
         case .reportInterruption, .reportNoShow, .recordObjection: "exclamationmark.bubble"
         case .reportCompletion: "clock.badge.checkmark"

@@ -146,7 +146,10 @@ struct GroomerGroomingView: View {
             case .all: nil; case .studio: .customerComesToGroomer; case .home: .groomerComesToCustomer
             }
             workspace.select(location: location, offers: filter.rawValue.lowercased(), bookingsClosed: bookingFilter == .closed)
+            workspace.prioritize(section)
             if !workspace.loaded.contains(section) { await workspace.refresh(section) }
+            guard !Task.isCancelled else { return }
+            await workspace.prefetchAdjacent(to: section)
         }
         .onChange(of: path.count) { previous, count in
             guard previous > 0, count == 0 else { return }
@@ -202,9 +205,9 @@ struct GroomerGroomingView: View {
                     .padding(.horizontal, Self.cardMargin)
                 }
                 switch section {
-                case .offers: offerList(filter: Filter.allCases[index], loaded: loaded)
-                case .matches: matchList(locationFilter: MatchLocation.allCases[index], location: location(at: index), loaded: loaded)
-                case .bookings: bookingList(bookingFilter: BookingFilter.allCases[index], loaded: loaded)
+                case .offers: offerList(filter: Filter.allCases[index], loaded: loaded, active: index == pageSelection.wrappedValue)
+                case .matches: matchList(locationFilter: MatchLocation.allCases[index], location: location(at: index), loaded: loaded, active: index == pageSelection.wrappedValue)
+                case .bookings: bookingList(bookingFilter: BookingFilter.allCases[index], loaded: loaded, active: index == pageSelection.wrappedValue)
                 }
                 if index == pageSelection.wrappedValue && workspace.hasMore(section) {
                     Button { Task { await workspace.loadMore(section) } } label: {
@@ -324,7 +327,7 @@ struct GroomerGroomingView: View {
         }
     }
 
-    @ViewBuilder private func matchList(locationFilter: MatchLocation, location: GroomingLocationMode?, loaded: Bool) -> some View {
+    @ViewBuilder private func matchList(locationFilter: MatchLocation, location: GroomingLocationMode?, loaded: Bool, active: Bool) -> some View {
         let matches = workspace.cachedMatches(location: location).filter {
             locationFilter.includes($0.request.locationMode) &&
                 GroomerRequestStage(.init(matched: $0), now: now).kind == .new
@@ -344,7 +347,9 @@ struct GroomerGroomingView: View {
                     status: GroomerVisitCardStatus.offer(.init(matched: match), stage: GroomerRequestStage(.init(matched: match), now: now), linked: false)) {
                     push(.match(match.id))
                 }
-                .task(id: match.request.id) { await workspace.loadPetPhoto(requestID: match.request.id) }
+                .task(id: match.request.id.uuidString + String(active)) {
+                    if active { await workspace.loadPetPhoto(requestID: match.request.id) }
+                }
             }
         }
     }
@@ -395,7 +400,7 @@ struct GroomerGroomingView: View {
         push(.offer(item))
     }
 
-    @ViewBuilder private func offerList(filter: Filter, loaded: Bool) -> some View {
+    @ViewBuilder private func offerList(filter: Filter, loaded: Bool, active: Bool) -> some View {
         let groups = GroomerOfferGroups(workspace.cachedOffers(group: filter.rawValue.lowercased()).filter { $0.offer.status != .withdrawnByGroomer }, now: now)
         let entries: [GroomerOfferGroups.Entry] = switch filter {
         case .waiting: (groups.attention + groups.pending).sorted {
@@ -430,13 +435,15 @@ struct GroomerGroomingView: View {
                     customerName: nil, decision: decision, status: status) {
                     openOffer(item)
                 }
-                .task(id: item.offer.requestID) { await workspace.loadPetPhoto(requestID: item.offer.requestID) }
+                .task(id: item.offer.requestID.uuidString + String(active)) {
+                    if active { await workspace.loadPetPhoto(requestID: item.offer.requestID) }
+                }
                 .accessibilityIdentifier("groomerVisit.offer." + item.id.uuidString)
             }
         }
     }
 
-    @ViewBuilder private func bookingList(bookingFilter: BookingFilter, loaded: Bool) -> some View {
+    @ViewBuilder private func bookingList(bookingFilter: BookingFilter, loaded: Bool, active: Bool) -> some View {
         let closed = bookingFilter == .closed
         let items = workspace.cachedBookings(closed: closed).filter {
             let stage = GroomerBookingStage($0, now: now)
@@ -460,12 +467,12 @@ struct GroomerGroomingView: View {
                 proposal: session.bookings.rescheduleSnapshots[booking.id]?.proposal, now: now) : nil
             let note = status?.note
             listRow(unread: unread.contains(booking.id)) {
-                GroomerGroomingListCard(model: .workspaceBooking(booking, closed: closed, photo: session.bookings.petPhoto(for: booking), note: note, now: now),
+                GroomerGroomingListCard(model: .workspaceBooking(booking, closed: closed, photo: session.bookings.petPhoto(for: booking) ?? workspace.photo(for: booking.requestID), note: note, now: now),
                     customerName: session.bookings.customerNamesByBookingID[booking.id], decision: decision, status: status) {
                     push(.booking(booking.id))
                 }
-                .task(id: booking.id.uuidString + booking.updatedAt) {
-                    await workspace.loadBookingCard(booking)
+                .task(id: booking.id.uuidString + booking.updatedAt + String(active)) {
+                    if active { await workspace.loadBookingCard(booking) }
                 }
             }
         }

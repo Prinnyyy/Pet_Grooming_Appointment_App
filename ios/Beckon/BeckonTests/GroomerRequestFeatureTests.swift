@@ -1224,6 +1224,12 @@ final class GroomerRequestRepositoryFake: GroomerRequestRepository {
         try offersResult.get()
     }
 
+    private(set) var groomingLocations: [GroomingLocationMode?] = []
+    func groomingMatches(groomerID: UUID, location: GroomingLocationMode?, page: RankedPageRequest<GroomerMatchSort>) async throws -> RankedPage<GroomerMatchedRequest> {
+        groomingLocations.append(location)
+        return try await rankedMatches(groomerID: groomerID, page: page)
+    }
+
     var rankedPages: [Result<RankedPage<GroomerMatchedRequest>, MatchRankingError>] = []
     var onRankedRead: (@MainActor () async -> Void)?
     private(set) var rankedRequests: [RankedPageRequest<GroomerMatchSort>] = []

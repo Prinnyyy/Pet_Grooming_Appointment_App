@@ -43,6 +43,59 @@ import Testing
         #expect(workspace.photo(for: failed) == bytes)
     }
 
+    @Test func adjacentPrefetchWaitsForCurrentPageAndNeverWalksAllPages() async {
+        let fixture = GroomerSandboxSession(state: .loaded)
+        let repository = GroomerRequestRepositoryFake()
+        let workspace = workspace(fixture, repository: repository)
+        await workspace.prefetchAdjacent(to: .matches)
+        #expect(repository.rankedRequests.isEmpty)
+        await workspace.refresh(.matches)
+        await workspace.prefetchAdjacent(to: .matches)
+        #expect(repository.groomingLocations.count == 2)
+        #expect(repository.groomingLocations.last! == .customerComesToGroomer)
+        #expect(repository.rankedRequests.allSatisfy { $0.cursor == nil })
+        await workspace.prefetchAdjacent(to: .matches)
+        #expect(repository.rankedRequests.count == 2, "A cached neighbour is not fetched again")
+        #expect(!workspace.hasLoadedPage("matches/" + GroomingLocationMode.groomerComesToCustomer.rawValue))
+    }
+
+    @Test func neighbourWarmupIsLimitedToTwoPortraits() async {
+        let fixture = GroomerSandboxSession(state: .loaded)
+        let repository = GroomerRequestRepositoryFake(matchedRequestsResult: .success(GroomerSandboxFixtures.matches()))
+        repository.petPhotoResult = .success(Data("portrait".utf8))
+        let workspace = workspace(fixture, repository: repository)
+        await workspace.refresh(.matches)
+        await workspace.prefetchAdjacent(to: .matches)
+        #expect(repository.petPhotoReadCount == 2)
+        await workspace.prefetchAdjacent(to: .matches)
+        #expect(repository.petPhotoReadCount == 2)
+        #expect(repository.rankedRequests.count == 2)
+    }
+
+    @Test func foregroundJoinsAnInFlightNeighbourWithoutDuplicateRequest() async throws {
+        let fixture = GroomerSandboxSession(state: .loaded)
+        let repository = GroomerRequestRepositoryFake()
+        let workspace = workspace(fixture, repository: repository)
+        await workspace.refresh(.matches)
+        var release: CheckedContinuation<Void, Never>?
+        repository.onRankedRead = { await withCheckedContinuation { release = $0 } }
+        let speculative = Task { await workspace.prefetchAdjacent(to: .matches) }
+        for _ in 0..<100 where release == nil { await Task.yield() }
+        let gate = try #require(release)
+        workspace.select(location: .customerComesToGroomer, offers: "waiting", bookingsClosed: false)
+        workspace.prioritize(.matches)
+        var foregroundStarted = false
+        let foreground = Task { foregroundStarted = true; await workspace.refresh(.matches) }
+        for _ in 0..<100 where !foregroundStarted { await Task.yield() }
+        #expect(foregroundStarted)
+        #expect(repository.rankedRequests.count == 2)
+        gate.resume()
+        await speculative.value
+        await foreground.value
+        #expect(repository.rankedRequests.count == 2)
+        #expect(workspace.loaded.contains(.matches))
+    }
+
     @Test func pagedMatchesCanOpenInTheExistingStoreAndRestoreTheirScope() async throws {
         let fixture = GroomerSandboxSession(state: .loaded)
         let rows = Array(GroomerSandboxFixtures.matches().prefix(4))

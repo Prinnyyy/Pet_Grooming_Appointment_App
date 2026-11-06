@@ -79,3 +79,11 @@ Implementation reference: [Apple TabView page style](https://developer.apple.com
 Until a scope's first page arrives, show available account-bound Store rows; do not mark that fallback as a loaded server page. A fetched empty page replaces the fallback. Offers hydrate independent request/evaluation/booking reads concurrently. Groomer booking lists load review state and location concurrently and omit the groomer's own profile/avatar; other booking consumers retain their existing hydration.
 
 Reappearing cards reuse presentation reads for 15 seconds (booking revision changes bypass reuse). Manual pull-to-refresh bypasses this window. Photos remain visible during refresh and failed photo reads remain retryable. Booking presentation and reschedule reads run concurrently. This is a display optimization, not permission to skip detail authorization or mutation validation, and does not introduce cross-restart order persistence.
+
+## Adjacent-page prefetch and cancellation wording (T-472)
+
+After the selected Grooming scope completes its first load, sequentially prefetch only its immediate neighbouring subtab(s), first page only, using the same page cache and in-flight read registry. Do not follow cursors. Skip fresh cached neighbours; prefetched pages older than 60 seconds remain displayable but require foreground revalidation on selection. A user entering an in-flight neighbour joins/promotes that read; unrelated speculative reads are cancelled. Background failures do not show an error on the current page.
+
+Warm at most two pet portraits per neighbouring page through the existing authorized image loader/cache. Offscreen pager cards do not independently hydrate all portraits, customer names or reschedule state. Active cards retain the T-471 behavior. This is bounded prefetch, not an all-orders download or new persistence layer.
+
+The Groomer Manage booking cancellation entry and confirmation title both read “Cancel Booking”. Use `calendar.badge.minus` for cancellation; the legacy stop symbol remains reserved for service-stop actions.
