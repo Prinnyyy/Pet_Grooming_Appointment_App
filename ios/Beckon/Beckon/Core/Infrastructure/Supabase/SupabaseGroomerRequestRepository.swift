@@ -105,6 +105,29 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
         } catch { throw Self.map(error) }
     }
 
+    /// Use the authorized frozen pet portrait, never optional request attachments.
+    func petPhoto(requestID: UUID) async throws -> Data? {
+        nonisolated struct Source: Decodable {
+            let id: UUID
+            let photo_snapshot: [GroomingRequestPhotoSnapshot]
+        }
+        do {
+            let source: Source = try await client.rpc("get_groomer_request_detail_v1",
+                params: ["p_request_id": requestID.uuidString.lowercased()]).execute().value
+            guard source.id == requestID else { throw GroomerRequestRepositoryError.notAllowed }
+            let photo = source.photo_snapshot.sorted {
+                if $0.isPrimary != $1.isPrimary { return $0.isPrimary }
+                if $0.sortOrder != $1.sortOrder { return $0.sortOrder < $1.sortOrder }
+                return $0.id.uuidString < $1.id.uuidString
+            }.first
+            guard let photo else { return nil }
+            guard photo.storageBucket == PhotoStorageBucketID.customerPet.rawValue else {
+                throw GroomerRequestRepositoryError.notAllowed
+            }
+            return try await privateImageLoader.loadData(bucketID: photo.storageBucket, storagePath: photo.storagePath)
+        } catch { throw Self.map(error) }
+    }
+
     func matchedRequest(groomerID: UUID, requestID: UUID) async throws -> GroomerMatchedRequest {
         do {
             let rows: [GroomerRequestMatchRow] = try await client.rpc("get_my_matched_request", params: [

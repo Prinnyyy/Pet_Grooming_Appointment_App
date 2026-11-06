@@ -57,3 +57,11 @@ Views do not call Supabase. Existing feature Stores remain mutation owners; the 
 ## Grooming Subtab Motion (T-468)
 
 Matches location filters, Offers groups and Bookings groups share the same subtab control. Selection moves with a 160 ms ease-out, without spring overshoot; Reduce Motion disables the movement. Selection feedback starts locally and does not wait for list refresh. Keep the existing alignment, colors and touch targets. This replaces the slower general-purpose morph spring only for these subtab controls.
+
+## Grooming presentation corrections (T-469)
+
+Subtab movement animates only one persistent underline (160 ms ease-out; none with Reduce Motion). Label/icon state changes are immediate; switching a filter must not recreate the entire scroll view or replay its entrance. This narrows T-468's animation scope without changing tab layout or colors.
+
+Matches and Offers portraits use the request's authorized frozen pet-photo snapshot, primary photo first, through the existing private image loader. Request attachments are not pet avatars. Preserve already loaded portraits while revalidating; unavailable or unauthorized photos use the existing placeholder, without bypassing access rules.
+
+A Groomer cannot submit a customer review. Awaiting Review has no review footer action. Once a review exists, the existing read-only entry is titled “View review”. A compact read-only review below the hero progress is proposed, not yet adopted.

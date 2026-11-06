@@ -72,6 +72,24 @@ struct BookingPetPhotoTransportTests {
         #expect(bytes == Data("pet image".utf8))
         #expect(images.bucket == "pet-photos")
         #expect(images.path == primaryPath)
+        let requests = SupabaseGroomerRequestRepository(client: client, privateImageLoader: images)
+        #expect(try await requests.petPhoto(requestID: booking.requestID) == bytes)
+        #expect(images.bucket == "pet-photos")
+        #expect(images.path == primaryPath)
+
+        // Even a malformed snapshot may not redirect this reader to attachments or another request.
+        var invalid = payload
+        invalid["photo_snapshot"] = [["id": UUID().uuidString, "storage_bucket": "request-photos",
+            "storage_path": primaryPath, "sort_order": 0, "is_primary": true]]
+        BookingPhotoTransport.setPayload(try JSONSerialization.data(withJSONObject: invalid))
+        await #expect(throws: GroomerRequestRepositoryError.notAllowed) {
+            try await requests.petPhoto(requestID: booking.requestID)
+        }
+        BookingPhotoTransport.setPayload(try JSONSerialization.data(withJSONObject: payload))
+        await #expect(throws: GroomerRequestRepositoryError.notAllowed) {
+            try await requests.petPhoto(requestID: UUID())
+        }
+
     }
 }
 

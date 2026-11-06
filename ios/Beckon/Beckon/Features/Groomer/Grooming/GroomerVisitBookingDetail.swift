@@ -85,7 +85,7 @@ struct GroomerVisitBookingDetail: View {
                 BeckonGlobalFeedbackOverlay(center: fallbackFeedback, bottomPadding: DesignTokens.Spacing.sm)
             }
         }
-        .modifier(GroomerVisitRequestFooter(showsPrimary: stage.isFinished || (!stage.isClosed && (state.isRecovering || !availableActions(state).isEmpty || !changeActions(state).isEmpty)),
+        .modifier(GroomerVisitRequestFooter(showsPrimary: (stage.isFinished && booking.review != nil) || (!stage.isClosed && (state.isRecovering || !availableActions(state).isEmpty || !changeActions(state).isEmpty)),
             busy: store.isMutatingFulfillment || store.isMutatingReschedule, error: store.rescheduleErrors[booking.id]) {
                 let hasChange = store.pendingRescheduleOperation(for: booking.id) != nil || !changeActions(state).isEmpty
                 if changeActions(state) == [.withdraw], availableActions(state).count == 1, !state.isRecovering, !stage.isClosed, !stage.isFinished {
@@ -283,7 +283,9 @@ struct GroomerVisitBookingDetail: View {
 
     @ViewBuilder private func footer(_ state: GroomingBookingActionState, stage: GroomerBookingStage) -> some View {
         if stage.isFinished {
-            Button("Review", systemImage: "star") { showsReview = true }.buttonStyle(GroomerVisitRequestFooterActionStyle())
+            if booking?.review != nil {
+                Button("View review", systemImage: "star") { showsReview = true }.buttonStyle(GroomerVisitRequestFooterActionStyle())
+            }
         } else if state.recovery != nil {
             Button("Retry") { Task { await store.recoverFulfillment(for: bookingID, retryIfMissing: true) } }
                 .buttonStyle(GroomerVisitRequestFooterActionStyle(tone: .secondary))

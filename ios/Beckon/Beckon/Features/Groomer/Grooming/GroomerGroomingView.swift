@@ -30,7 +30,6 @@ struct GroomerGroomingView: View {
     @State private var now = Date()
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Namespace private var scopeSelection
     private let tick = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
     private var session: GroomerGroomingSession { workspace.session }
 
@@ -171,7 +170,6 @@ struct GroomerGroomingView: View {
             .padding(.bottom, DesignTokens.Layout.pageBottomInset)
         }
         .scrollPosition(position(for: listID))
-        .id(listID)
         .refreshable { await workspace.refresh(section) }
     }
 
@@ -242,12 +240,8 @@ struct GroomerGroomingView: View {
                     }
                     .padding(.horizontal, DesignTokens.Spacing.xs)
                     .frame(minHeight: DesignTokens.Metrics.minimumTouchTarget)
-                    .overlay(alignment: .bottom) {
-                        if selected {
-                            let mark = Capsule().fill(DesignTokens.Colors.customerDeep).frame(height: DesignTokens.Ledge.card)
-                            if reduceMotion { mark }
-                            else { mark.matchedGeometryEffect(id: section, in: scopeSelection) }
-                        }
+                    .anchorPreference(key: GroomingSubtabBounds.self, value: .bounds) {
+                        [option.rawValue: $0]
                     }
                     .frame(minWidth: DesignTokens.Metrics.minimumTouchTarget, maxWidth: stacked ? .infinity : nil,
                         alignment: .leading)
@@ -262,7 +256,19 @@ struct GroomerGroomingView: View {
             if !stacked { Rectangle().fill(DesignTokens.Colors.borderSoft).frame(height: 1) }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: selection.wrappedValue)
+        .overlayPreferenceValue(GroomingSubtabBounds.self) { anchors in
+            GeometryReader { geometry in
+                if let anchor = anchors[selection.wrappedValue.rawValue] {
+                    let bounds = geometry[anchor]
+                    // One persistent indicator moves; labels, symbols and list content do not morph.
+                    Capsule().fill(DesignTokens.Colors.customerDeep)
+                        .frame(width: bounds.width, height: DesignTokens.Ledge.card)
+                        .offset(x: bounds.minX, y: bounds.maxY - DesignTokens.Ledge.card)
+                        .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: bounds)
+                }
+            }
+            .allowsHitTesting(false)
+        }
     }
 
     @ViewBuilder private var matchList: some View {
@@ -285,6 +291,7 @@ struct GroomerGroomingView: View {
                     status: GroomerVisitCardStatus.offer(.init(matched: match), stage: GroomerRequestStage(.init(matched: match), now: now), linked: false)) {
                     push(.match(match.id))
                 }
+                .task(id: match.request.id) { await workspace.loadPetPhoto(requestID: match.request.id) }
             }
         }
     }
@@ -374,6 +381,7 @@ struct GroomerGroomingView: View {
                     customerName: nil, decision: decision, status: status) {
                     openOffer(item)
                 }
+                .task(id: item.offer.requestID) { await workspace.loadPetPhoto(requestID: item.offer.requestID) }
                 .accessibilityIdentifier("groomerVisit.offer." + item.id.uuidString)
             }
         }
@@ -449,5 +457,12 @@ struct GroomerGroomingView: View {
 private extension GroomerGroomingWorkspace.MatchLocation {
     var symbol: String {
         switch self { case .all: "rectangle.stack"; case .studio: "storefront"; case .home: "house" }
+    }
+}
+
+private struct GroomingSubtabBounds: PreferenceKey {
+    static let defaultValue: [String: Anchor<CGRect>] = [:]
+    static func reduce(value: inout [String: Anchor<CGRect>], nextValue: () -> [String: Anchor<CGRect>]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, latest in latest })
     }
 }

@@ -73,6 +73,8 @@ final class GroomerGroomingWorkspace {
     private var bookingPages: [String: [Booking]] = [:]
     private var nextPages: [String: ListPageRequest] = [:]
     private var loadedKeys: Set<String> = []
+    private var petPhotos: [UUID: Data] = [:]
+    private var petPhotoReads: Set<UUID> = []
     private(set) var lastSentOfferID: UUID?
     private var seenChangeKeys: Set<String> = []
 
@@ -125,7 +127,6 @@ final class GroomerGroomingWorkspace {
         if append && !hasMore(section) { return }
         let location = matchLocation, group = offerGroup, closed = bookingsClosed
         let read = Task { @MainActor in
-            var photoRequestIDs: [UUID] = []
             do {
                 switch section {
                 case .matches:
@@ -134,7 +135,6 @@ final class GroomerGroomingWorkspace {
                         location: location, page: .init(mode: session.requests.sort, cursor: append ? previous?.nextCursor : nil))
                     guard session.isCurrent(), !Task.isCancelled else { return }
                     session.requests.adoptGroomingMatches(page.items)
-                    photoRequestIDs = page.items.map(\.request.id)
                     if append, let previous {
                         guard previous.canAppend(page) else { throw MatchRankingError.listChanged }
                         matchPages[key] = RankedPage(items: ListPageMerge.appendingUnique(page.items, to: previous.items),
@@ -146,7 +146,6 @@ final class GroomerGroomingWorkspace {
                     let page = try await session.requestRepository.groomingOffers(groomerID: session.groomerID, group: group,
                         page: append ? nextPages[key] ?? .first : .first)
                     guard session.isCurrent(), !Task.isCancelled else { return }
-                    photoRequestIDs = page.items.map(\.offer.requestID)
                     offerPages[key] = append ? ListPageMerge.appendingUnique(page.items, to: offerPages[key] ?? []) : page.items
                     nextPages[key] = page.nextRequest
                 case .bookings:
@@ -161,7 +160,6 @@ final class GroomerGroomingWorkspace {
                 if pageKey(section) == key {
                     errors[section] = nil
                     select(location: matchLocation, offers: offerGroup, bookingsClosed: bookingsClosed)
-                    await session.requests.loadGroomingPhotoRequests(photoRequestIDs)
                 }
             } catch {
                 guard session.isCurrent(), !Task.isCancelled else { return }
@@ -284,10 +282,19 @@ final class GroomerGroomingWorkspace {
         }
     }
 
-    func photo(for requestID: UUID) -> Data? {
-        let store = session.requests
-        return store.requestPhotosByRequestID[requestID]?.sorted { $0.sortOrder < $1.sortOrder }
-            .compactMap(store.requestPhotoData(for:)).first
+    func photo(for requestID: UUID) -> Data? { petPhotos[requestID] }
+
+    func loadPetPhoto(requestID: UUID) async {
+        guard session.isCurrent(), petPhotoReads.insert(requestID).inserted else { return }
+        defer { petPhotoReads.remove(requestID) }
+        do {
+            let data = try await session.requestRepository.petPhoto(requestID: requestID)
+            try Task.checkCancellation()
+            guard session.isCurrent() else { return }
+            petPhotos[requestID] = data
+        } catch let error as GroomerRequestRepositoryError where error == .notAllowed || error == .matchNotFound {
+            petPhotos[requestID] = nil
+        } catch { /* Preserve cached portraits on transient failures. */ }
     }
 
     func petProfilePhotos(for requestID: UUID, matched: GroomerMatchedRequest? = nil) -> [GroomerPetCard.Photo] {

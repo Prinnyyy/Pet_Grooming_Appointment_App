@@ -24,6 +24,7 @@ enum GroomerRequestRepositoryError: Error, Equatable, Sendable {
 
 @MainActor
 protocol GroomerRequestRepository: AnyObject {
+    func petPhoto(requestID: UUID) async throws -> Data?
     func offerDetail(groomerID: UUID, offerID: UUID) async throws -> GroomerOfferListItem?
     func groomingMatches(groomerID: UUID, location: GroomingLocationMode?, page: RankedPageRequest<GroomerMatchSort>) async throws -> RankedPage<GroomerMatchedRequest>
     func groomingOffers(groomerID: UUID, group: String, page: ListPageRequest) async throws -> ListPage<GroomerOfferListItem>
@@ -66,6 +67,7 @@ protocol GroomerRequestRepository: AnyObject {
 }
 
 extension GroomerRequestRepository {
+    func petPhoto(requestID: UUID) async throws -> Data? { nil }
     func offerDetail(groomerID: UUID, offerID: UUID) async throws -> GroomerOfferListItem? {
         guard let offer = try await offer(groomerID: groomerID, offerID: offerID) else { return nil }
         return GroomerOfferListItem(offer: offer, request: nil, booking: nil)
