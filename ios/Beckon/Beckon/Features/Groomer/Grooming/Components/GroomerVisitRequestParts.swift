@@ -288,6 +288,7 @@ struct GroomerVisitRequestFooter<Primary: View>: ViewModifier {
     let showsPrimary: Bool
     var onDismissMatch: (() -> Void)? = nil
     var onWithdrawOffer: (() -> Void)? = nil
+    var isEditing = false
     var busy = false
     var error: String? = nil
     @ViewBuilder let primary: () -> Primary
@@ -297,13 +298,16 @@ struct GroomerVisitRequestFooter<Primary: View>: ViewModifier {
     func body(content: Content) -> some View {
         content
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                Color.clear.frame(height: height).allowsHitTesting(false).accessibilityHidden(true)
+                Color.clear.frame(height: isEditing ? 0 : height).allowsHitTesting(false).accessibilityHidden(true)
             }
             .beckonStationaryPageAction {
                 VStack(spacing: 0) {
                     if showsPrimary || onDismissMatch != nil || onWithdrawOffer != nil { bar }
                 }
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
+                .opacity(isEditing ? 0 : 1)
+                .allowsHitTesting(!isEditing)
+                .accessibilityHidden(isEditing)
             }
 
     }

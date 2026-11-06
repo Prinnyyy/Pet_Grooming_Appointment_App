@@ -4,6 +4,7 @@ import SwiftUI
 
 struct GroomerGroomingRequestDetail: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     let target: GroomerRequestTarget
     let workspace: GroomerGroomingWorkspace
     private var requests: GroomerRequestsStore { workspace.session.requests }
@@ -48,6 +49,13 @@ struct GroomerGroomingRequestDetail: View {
                 form.cancelPendingLoads()
             }
             .onReceive(tick) { now = $0 }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .background {
+                    focusedTarget = nil
+                    UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+                        .flatMap(\.windows).filter(\.isKeyWindow).forEach { $0.endEditing(true) }
+                }
+            }
     }
 
     @ViewBuilder
@@ -178,7 +186,7 @@ struct GroomerGroomingRequestDetail: View {
                 if let error = requests.actionErrorMessage { BeckonLedgeNote(systemImage: "exclamationmark.circle", text: error) }
             }
             .beckonKeyboardAvoidance(focusedTarget: focusedTarget?.rawValue, using: proxy,
-                additionallyPreventsPresentationDismissal: sending)
+                additionallyPreventsPresentationDismissal: sending, showsDoneAccessory: false)
             .groomerVisitDismissKeyboardOnOutsideTap(isEditing: focusedTarget != nil) {
                 focusedTarget = nil
             }
@@ -191,6 +199,7 @@ struct GroomerGroomingRequestDetail: View {
             .modifier(GroomerVisitRequestFooter(showsPrimary: showsSend || showsBooking,
                 onDismissMatch: stage.canDismiss ? { isConfirmingDismissal = true } : nil,
                 onWithdrawOffer: stage.canWithdraw ? { isConfirmingWithdrawal = true } : nil,
+                isEditing: focusedTarget != nil || scenePhase != .active,
                 busy: sending || requests.isDismissing || requests.isWithdrawingOffer || requests.isLoadingDetail,
                 error: quoteError) {
                 if showsBooking, let onOpenBooking {

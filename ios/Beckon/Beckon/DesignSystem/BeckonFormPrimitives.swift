@@ -259,6 +259,7 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
     let focusedTarget: String?
     let proxy: ScrollViewProxy
     let additionallyPreventsPresentationDismissal: Bool
+    let showsDoneAccessory: Bool
 
     @State private var keyboardFrame: CGRect = .null
     @State private var viewportFrame: CGRect = .zero
@@ -283,7 +284,7 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
             .interactiveDismissDisabled(
                 preventsSheetDismissal || additionallyPreventsPresentationDismissal
             )
-            .beckonKeyboardDoneAccessory()
+            .beckonKeyboardDoneAccessory(isEnabled: showsDoneAccessory)
             .onGeometryChange(for: CGRect.self) { geometry in
                 geometry.frame(in: .global)
             } action: { frame in
@@ -425,12 +426,13 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
 }
 
 private struct BeckonKeyboardDoneAccessoryModifier: ViewModifier {
+    var isEnabled = true
     @State private var isKeyboardVisible = false
 
     func body(content: Content) -> some View {
         content
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if isKeyboardVisible {
+                if isEnabled && isKeyboardVisible {
                     BeckonKeyboardDoneAccessoryControl()
                 }
             }
@@ -452,7 +454,9 @@ private struct BeckonKeyboardDoneAccessoryModifier: ViewModifier {
     }
 }
 
-private struct BeckonKeyboardDoneAccessoryControl: View {
+struct BeckonKeyboardDoneAccessoryControl: View {
+    var onDone: (() -> Void)? = nil
+
     var body: some View {
         HStack(spacing: 0) {
             Spacer(minLength: 0)
@@ -481,7 +485,7 @@ private struct BeckonKeyboardDoneAccessoryControl: View {
     }
 
     private var button: some View {
-        Button(action: dismissKeyboard) {
+        Button(action: { if let onDone { onDone() } else { dismissKeyboard() } }) {
             Image(systemName: BeckonKeyboardDoneAccessoryPolicy.symbolName)
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(DesignTokens.Colors.customerDeep)
@@ -564,20 +568,22 @@ extension View {
     func beckonKeyboardAvoidance(
         focusedTarget: String?,
         using proxy: ScrollViewProxy,
-        additionallyPreventsPresentationDismissal: Bool = false
+        additionallyPreventsPresentationDismissal: Bool = false,
+        showsDoneAccessory: Bool = true
     ) -> some View {
         modifier(
             BeckonKeyboardAvoidanceModifier(
                 focusedTarget: focusedTarget,
                 proxy: proxy,
                 additionallyPreventsPresentationDismissal:
-                    additionallyPreventsPresentationDismissal
+                    additionallyPreventsPresentationDismissal,
+                showsDoneAccessory: showsDoneAccessory
             )
         )
     }
 
-    func beckonKeyboardDoneAccessory() -> some View {
-        modifier(BeckonKeyboardDoneAccessoryModifier())
+    func beckonKeyboardDoneAccessory(isEnabled: Bool = true) -> some View {
+        modifier(BeckonKeyboardDoneAccessoryModifier(isEnabled: isEnabled))
     }
 
     func beckonStationaryPageAction<Actions: View>(

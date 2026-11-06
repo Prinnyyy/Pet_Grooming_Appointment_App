@@ -134,6 +134,11 @@ private struct GroomerVisitPriceKeyboard: UIViewRepresentable {
         view.adjustsFontForContentSizeCategory = true
         view.accessibilityLabel = "Price estimate in dollars"
         view.accessibilityHint = "Enter or delete digits at the end of the amount"
+        view.inputAccessoryView = GroomerVisitKeyboardAccessory { [weak view, weak coordinator = context.coordinator] in
+            view?.wantsFocus = false
+            _ = coordinator?.parent.onEditing(false)
+            view?.resignFirstResponder()
+        }
         return view
     }
 
@@ -185,7 +190,10 @@ private struct GroomerVisitPriceKeyboard: UIViewRepresentable {
 /// Native blinking caret remains visible; selection and insertion stay at the trailing edge.
 private final class GroomerVisitPriceTextField: UITextField {
     var wantsFocus = false
-    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool { false }
+    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        // Restrict editing menus, not keyboard dismissal through the responder chain.
+        action == #selector(UIResponder.resignFirstResponder)
+    }
 
     override var selectedTextRange: UITextRange? {
         get { super.selectedTextRange }
@@ -218,6 +226,10 @@ struct GroomerVisitOfferMessageInput: UIViewRepresentable {
         view.keyboardDismissMode = .interactive
         view.autocapitalizationType = .sentences
         view.accessibilityLabel = "Message"
+        view.inputAccessoryView = GroomerVisitKeyboardAccessory { [weak view, weak coordinator = context.coordinator] in
+            coordinator?.parent.focusedTarget.wrappedValue = nil
+            view?.resignFirstResponder()
+        }
         view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         return view
     }
@@ -303,4 +315,31 @@ struct GroomerVisitOfferMessageInput: UIViewRepresentable {
             parent.text = text
         }
     }
+}
+
+/// UIKit owns the attachment to the keyboard, including app/scene transitions.
+/// Reuse the app's circular Done control; the remaining accessory area also dismisses.
+private final class GroomerVisitKeyboardAccessory: UIInputView {
+    private let host: UIHostingController<AnyView>
+
+    init(onDone: @escaping () -> Void) {
+        host = UIHostingController(rootView: AnyView(
+            BeckonKeyboardDoneAccessoryControl(onDone: onDone)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                .background(DesignTokens.Colors.appBackground)
+                .contentShape(Rectangle())
+                .onTapGesture(perform: onDone)
+        ))
+        super.init(frame: CGRect(x: 0, y: 0, width: 0,
+            height: BeckonKeyboardDoneAccessoryPolicy.controlDiameter + BeckonKeyboardDoneAccessoryPolicy.keyboardGap),
+            inputViewStyle: .keyboard)
+        autoresizingMask = [.flexibleWidth]
+        host.safeAreaRegions = []
+        host.view.backgroundColor = .clear
+        host.view.frame = bounds
+        host.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        addSubview(host.view)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 }

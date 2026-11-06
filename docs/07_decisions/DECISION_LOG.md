@@ -425,3 +425,11 @@ Only on this rejection, the repository reads the existing booking-scoped snapsho
 Do not duplicate the Toast with an inline banner. Groomer proposal errors leave the editor open; the customer's existing confirmation closes on submission and retains the attempted time for reopening after rejection.
 
 Validation: four reschedule logic checks, the current-dialog rendering check and three hours/date/time-off checks passed. The rendering harness now targets the current dialog and disables UIKit transition animation for stable capture. Preflight, hygiene and Release device build passed; the paired-device installer reports success. Evidence: `artifacts/evidence/T-474/`. Actual rejection Toast appearance remains user acceptance; no remote booking was mutated for testing.
+
+## T-475 — Native offer-editor keyboard accessory
+
+The adopted Groomer offer form uses one native `inputAccessoryView` for both UIKit editors, reusing the existing circular Done control (52pt control, 12pt keyboard gap). UIKit attaches it to the keyboard; the page disables its duplicate safe-area Done accessory. The entire otherwise-empty accessory area dismisses editing. Done clears editor focus and resigns the actual input; restricting price selection/edit menus must not reject `resignFirstResponder` through the responder chain. See Apple's [inputAccessoryView contract](https://developer.apple.com/documentation/uikit/uitextfield/inputaccessoryview).
+
+While an offer editor is focused, its page action bar is hidden and consumes no safe-area reservation. It stays hidden while the scene is inactive. Entering the background ends editing without clearing the form; returning starts with a stable page rather than replaying keyboard-frame offsets. Existing keyboard-aware pages keep their default accessory behavior. No offer submission or backend rules change.
+
+Validation: 17 focused checks passed, including native input/accessory/responder checks and an opt-in production-page UI test tapping both Done buttons, the blank accessory area, and background/foreground return. No offer was submitted. Preflight, hygiene and Release device build passed; paired iPhone installation reported success. Evidence: `artifacts/evidence/T-475/keyboard-runtime.log` and sibling build/install logs. Phone visual acceptance remains with the user.
