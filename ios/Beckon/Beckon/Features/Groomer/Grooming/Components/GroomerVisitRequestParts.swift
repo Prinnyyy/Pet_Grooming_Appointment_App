@@ -289,13 +289,24 @@ struct GroomerVisitRequestFooter<Primary: View>: ViewModifier {
     var onDismissMatch: (() -> Void)? = nil
     var onWithdrawOffer: (() -> Void)? = nil
     var isEditing = false
+    var usesKeyboardDock = false
     var busy = false
     var error: String? = nil
     @ViewBuilder let primary: () -> Primary
     @Environment(\.dynamicTypeSize) private var typeSize
     @State private var height: CGFloat = 0
 
-    func body(content: Content) -> some View {
+    @ViewBuilder func body(content: Content) -> some View {
+        if usesKeyboardDock {
+            content.beckonKeyboardDock {
+                if showsPrimary || onDismissMatch != nil || onWithdrawOffer != nil { bar }
+            }
+        } else {
+            stationary(content: content)
+        }
+    }
+
+    private func stationary(content: Content) -> some View {
         content
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 // Keep content geometry stable while the keyboard owns the bottom safe area.

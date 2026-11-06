@@ -260,6 +260,8 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
     let proxy: ScrollViewProxy
     let additionallyPreventsPresentationDismissal: Bool
     let showsDoneAccessory: Bool
+    let revealsAfterKeyboardSettles: Bool
+    @State private var keyboardSettled = false
 
     @State private var keyboardFrame: CGRect = .null
     @State private var viewportFrame: CGRect = .zero
@@ -322,6 +324,7 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
                     keyboardFrame: keyboardFrame,
                     screenBounds: screenBounds
                 )
+                keyboardSettled = false
                 keyboardFrame = frame
                 let isKeyboardVisible = BeckonKeyboardPresentationPolicy.keyboardIsOnScreen(
                     keyboardFrame: frame,
@@ -334,6 +337,11 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
                 ) {
                     requestAutomaticReveal()
                 }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
+                guard revealsAfterKeyboardSettles else { return }
+                keyboardSettled = true
+                requestAutomaticReveal()
             }
             .onReceive(NotificationCenter.default.publisher(
                 for: UIResponder.keyboardWillHideNotification
@@ -376,6 +384,7 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
 
     private func scheduleRequestedReveal() {
         pendingTask?.cancel()
+        guard !revealsAfterKeyboardSettles || keyboardSettled else { return }
         guard automaticRevealRequested,
               let target = focusedTarget,
               let measurement = focusMeasurement,
@@ -413,8 +422,8 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
             guard !Task.isCancelled, focusedTarget == target else { return }
             automaticRevealRequested = false
             let marker = BeckonKeyboardFocusTargetID(target)
-            var transaction = Transaction(animation: nil)
-            transaction.disablesAnimations = !BeckonKeyboardRevealPolicy.animatesProgrammaticReveal
+            var transaction = Transaction(animation: revealsAfterKeyboardSettles ? .easeOut(duration: 0.18) : nil)
+            transaction.disablesAnimations = !revealsAfterKeyboardSettles && !BeckonKeyboardRevealPolicy.animatesProgrammaticReveal
             withTransaction(transaction) {
                 proxy.scrollTo(
                     action == .top ? marker.top : marker.bottom,
@@ -569,7 +578,8 @@ extension View {
         focusedTarget: String?,
         using proxy: ScrollViewProxy,
         additionallyPreventsPresentationDismissal: Bool = false,
-        showsDoneAccessory: Bool = true
+        showsDoneAccessory: Bool = true,
+        revealsAfterKeyboardSettles: Bool = false
     ) -> some View {
         modifier(
             BeckonKeyboardAvoidanceModifier(
@@ -577,7 +587,8 @@ extension View {
                 proxy: proxy,
                 additionallyPreventsPresentationDismissal:
                     additionallyPreventsPresentationDismissal,
-                showsDoneAccessory: showsDoneAccessory
+                showsDoneAccessory: showsDoneAccessory,
+                revealsAfterKeyboardSettles: revealsAfterKeyboardSettles
             )
         )
     }
@@ -904,5 +915,42 @@ extension View {
             let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
             action(duration)
         }
+    }
+}
+
+
+/// A single bottom inset; no measured spacer plus independently translated overlay.
+private struct BeckonKeyboardDock<Actions: View>: ViewModifier {
+    let actions: Actions
+    @State private var collapsed = false
+    @State private var keyboardPresented = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content.safeAreaInset(edge: .bottom, spacing: 0) {
+            actions
+                .frame(height: collapsed ? 0 : nil, alignment: .bottom)
+                .clipped()
+                .opacity(keyboardPresented ? 0 : 1)
+                .allowsHitTesting(!keyboardPresented)
+                .accessibilityHidden(keyboardPresented)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { notification in
+            guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+            let visible = BeckonKeyboardPresentationPolicy.keyboardIsOnScreen(keyboardFrame: frame, screenBounds: beckonActiveScreenBounds)
+            if visible { keyboardPresented = true }
+            let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
+            withAnimation(reduceMotion ? nil : .easeOut(duration: duration)) { collapsed = visible }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidHideNotification)) { _ in
+            collapsed = false
+            keyboardPresented = false
+        }
+    }
+}
+
+extension View {
+    func beckonKeyboardDock<Actions: View>(@ViewBuilder actions: () -> Actions) -> some View {
+        modifier(BeckonKeyboardDock(actions: actions()))
     }
 }

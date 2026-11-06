@@ -185,9 +185,9 @@ struct GroomerGroomingRequestDetail: View {
                 }
                 if let error = requests.actionErrorMessage { BeckonLedgeNote(systemImage: "exclamationmark.circle", text: error) }
             }
-            // Native UIKit editors reveal their caret as the keyboard changes the safe area.
-            // Do not issue a second, unanimated ScrollViewReader reveal in the same transition.
-            .scrollDismissesKeyboard(.interactively)
+            .beckonKeyboardAvoidance(focusedTarget: focusedTarget?.rawValue, using: proxy,
+                additionallyPreventsPresentationDismissal: sending, showsDoneAccessory: false,
+                revealsAfterKeyboardSettles: true)
             .groomerVisitDismissKeyboardOnOutsideTap(isEditing: focusedTarget != nil) {
                 focusedTarget = nil
             }
@@ -201,6 +201,7 @@ struct GroomerGroomingRequestDetail: View {
                 onDismissMatch: stage.canDismiss ? { isConfirmingDismissal = true } : nil,
                 onWithdrawOffer: stage.canWithdraw ? { isConfirmingWithdrawal = true } : nil,
                 isEditing: focusedTarget != nil || scenePhase != .active,
+                usesKeyboardDock: true,
                 busy: sending || requests.isDismissing || requests.isWithdrawingOffer || requests.isLoadingDetail,
                 error: quoteError) {
                 if showsBooking, let onOpenBooking {

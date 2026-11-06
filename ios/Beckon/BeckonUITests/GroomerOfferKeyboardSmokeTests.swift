@@ -16,31 +16,40 @@ final class GroomerOfferKeyboardSmokeTests: XCTestCase {
         let price = app.textFields["Price estimate in dollars"].firstMatch
         for _ in 0..<7 where !price.isHittable { app.swipeUp() }
         XCTAssertTrue(price.isHittable)
+        let submit = app.buttons["groomer.offers.submit"].firstMatch
+        let normalFooterY = submit.frame.minY
         price.tap()
-        let done = app.buttons["beckon.keyboard.done"].firstMatch
-        XCTAssertTrue(done.waitForExistence(timeout: 5))
-        XCTAssertTrue(done.isHittable)
-        done.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["beckon.keyboard.done"].exists)
+        app.buttons["Done editing price"].tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+        XCTAssertEqual(submit.frame.minY, normalFooterY, accuracy: 2)
         let note = app.buttons["groomerVisit.quick.note"].firstMatch
         for _ in 0..<3 where !note.isHittable { app.swipeUp() }
         XCTAssertTrue(note.isHittable); note.tap()
-        XCTAssertTrue(done.waitForExistence(timeout: 5)); done.tap()
+        let message = app.textViews["Message"].firstMatch
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        let visible = NSPredicate { _, _ in
+            message.exists && message.frame.maxY <= app.keyboards.firstMatch.frame.minY + 1
+        }
+        expectation(for: visible, evaluatedWith: nil)
+        waitForExpectations(timeout: 5)
+        XCTAssertTrue(message.isHittable)
+        // Tap the page margin beside the input: no accessory-sized dead strip.
+        app.coordinate(withNormalizedOffset: .zero)
+            .withOffset(CGVector(dx: 6, dy: message.frame.midY)).tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+        XCTAssertEqual(submit.frame.minY, normalFooterY, accuracy: 2)
+        note.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        note.tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
         note.tap()
-        XCTAssertTrue(done.waitForExistence(timeout: 5))
-        // The accessory's blank area left of Done must also dismiss, without needing a scroll.
-        app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: 40, dy: done.frame.midY)).tap()
-        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
-        note.tap()
-        XCTAssertTrue(done.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
         XCUIDevice.shared.press(.home)
         app.activate()
         XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["groomer.offers.submit"].firstMatch.isHittable)
-        note.tap()
-        XCTAssertTrue(done.waitForExistence(timeout: 5)); XCTAssertTrue(done.isHittable)
-        done.tap()
-        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(submit.isHittable)
+        XCTAssertEqual(submit.frame.minY, normalFooterY, accuracy: 2)
     }
 }
