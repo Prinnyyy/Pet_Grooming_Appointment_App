@@ -9,7 +9,6 @@ struct GroomerVisitProposeTime: View {
     @State private var sending = false
     @State private var draft: GroomerVisitTimeProposalDraft
     @State private var editing = false
-    @State private var submitError: String?
     @Environment(\.scenePhase) private var scenePhase
     private let clock = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -56,10 +55,8 @@ struct GroomerVisitProposeTime: View {
                             detail: end.map { "Ends " + display($0) })
                     }.padding(DesignTokens.Spacing.lg)
                 }.clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card)).beckonLedge(.card)
-                if let submitError { BeckonInlineError(submitError) }
             }.padding(DesignTokens.Layout.pageHorizontalInset).padding(.top, DesignTokens.Spacing.md)
         }
-        .onChange(of: draft.selectedStart) { _, _ in submitError = nil }
         .onChange(of: scenePhase) { _, phase in if phase == .active { draft.refreshMinimum() } }
         .onReceive(clock) { _ in if scenePhase == .active { draft.refreshMinimum() } }
         .overlay(alignment: .bottom) {
@@ -75,10 +72,8 @@ struct GroomerVisitProposeTime: View {
                     let previous = draft.selectedStart
                     draft.refreshMinimum()
                     guard previous == draft.selectedStart, draft.hasChanged, let start = draft.proposedStart else { return }
-                    submitError = nil
                     if let error = GroomerVisitRescheduleValidation.message(booking: booking, start: start, bookings: bookings()) {
-                        if error == GroomerVisitRescheduleValidation.conflictMessage { feedback.showNotice(error) }
-                        else { submitError = error }
+                        feedback.showNotice(error)
                         return
                     }
                     sending = true
@@ -86,9 +81,7 @@ struct GroomerVisitProposeTime: View {
                         let error = await submit(start)
                         sending = false
                         if let error {
-                            if error.localizedCaseInsensitiveContains("conflict") || error.localizedCaseInsensitiveContains("overlap") {
-                                feedback.showNotice(GroomerVisitRescheduleValidation.conflictMessage)
-                            } else { submitError = error }
+                            feedback.showNotice(error)
                         } else { dismiss() }
                     }
                 }.labelStyle(GroomerVisitFooterLabelStyle()).buttonStyle(GroomerVisitRequestFooterActionStyle())

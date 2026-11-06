@@ -29,6 +29,9 @@ struct GroomingDetailView: View {
     @FocusState private var focusedReviewTarget: GroomingReviewFocusTarget?
     @State private var fulfillmentAction: BookingFulfillmentAction?
     @State private var rescheduleReview: GroomingRescheduleSelection?
+    @State private var rescheduleDraftStart: Date?
+    @State private var fallbackFeedback = BeckonFeedbackCenter()
+    @Environment(\.beckonFeedbackCenter) private var hostFeedback
     @State private var isCancelRequestPresented = false
     @State private var now = Date()
     @State private var loadError: String?
@@ -93,6 +96,9 @@ struct GroomingDetailView: View {
             isResolving = false
         }
         .onReceive(tick) { if scenePhase == .active { now = $0 } }
+        .overlay(alignment: .bottom) {
+            if hostFeedback == nil { BeckonGlobalFeedbackOverlay(center: fallbackFeedback) }
+        }
     }
 
     private var page: some View {
@@ -120,9 +126,17 @@ struct GroomingDetailView: View {
         .groomingFulfillmentDialog(action: $fulfillmentAction) { action, note in
             if let booking, let bookingsStore { Task { await bookingsStore.performFulfillment(action, for: booking, note: note) } }
         }
-        .groomingRescheduleDialog(selection: $rescheduleReview, booking: booking) { selection, newStart in
+        .groomingRescheduleDialog(selection: $rescheduleReview, booking: booking, initialStart: rescheduleDraftStart) { selection, newStart in
             if let booking, let bookingsStore {
-                Task { await bookingsStore.performReschedule(selection.action, for: booking, reviewedProposal: selection.proposal, newStart: newStart) }
+                if selection.action == .propose { rescheduleDraftStart = newStart }
+                Task {
+                    await bookingsStore.performReschedule(selection.action, for: booking, reviewedProposal: selection.proposal, newStart: newStart)
+                    if let error = bookingsStore.rescheduleErrors[booking.id] {
+                        if BookingRescheduleAvailabilityFeedback.isAvailabilityMessage(error) {
+                            (hostFeedback ?? fallbackFeedback).showNotice(error)
+                        }
+                    } else { rescheduleDraftStart = nil }
+                }
             }
         }
         .designAlertDialog(isPresented: $isCancelRequestPresented) {

@@ -132,7 +132,13 @@ struct GroomerVisitBookingDetail: View {
                     : "This will decline the customer’s time change. The appointment will stay booked for the time below.",
                 actions: [
                     .primary(accept ? "Accept time" : "Keep original", systemImage: "checkmark", identifier: "booking.reschedule.confirm") {
-                        Task { await store.performReschedule(reply.action, for: booking, reviewedProposal: reply.proposal, newStart: nil) }
+                        Task {
+                            await store.performReschedule(reply.action, for: booking, reviewedProposal: reply.proposal, newStart: nil)
+                            if let error = store.rescheduleErrors[booking.id],
+                               BookingRescheduleAvailabilityFeedback.isAvailabilityMessage(error) {
+                                feedback.showNotice(error)
+                            }
+                        }
                     },
                     .quiet("Cancel", identifier: "dialog.cancel")
                 ]) {

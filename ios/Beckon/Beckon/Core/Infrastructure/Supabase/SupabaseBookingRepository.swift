@@ -421,7 +421,44 @@ final class SupabaseBookingRepository: BookingRepository {
             let response: SupabaseRescheduleResponse = try await client.rpc("mutate_booking_reschedule",
                 params: SupabaseRescheduleParameters(operation: operation)).execute().value
             return response.result
-        } catch { throw Self.map(error) }
+        } catch {
+            if let rejection = error as? PostgrestError,
+               rejection.message == "reschedule_outside_availability",
+               let explanation = await rescheduleAvailabilityExplanation(operation) {
+                throw BookingRepositoryError.rescheduleRejected(explanation)
+            }
+            throw Self.map(error)
+        }
+    }
+
+    // Read only on rejection. Reuse the existing owner/customer-safe schedule APIs;
+    // never turn a failed explanation lookup into a new mutation or a different error.
+    private func rescheduleAvailabilityExplanation(_ operation: BookingRescheduleOperation) async -> String? {
+        do {
+            guard let actorID = client.auth.currentUser?.id else { return nil }
+            let snapshot = try await reschedule(bookingID: operation.bookingID)
+            let booking = snapshot.booking
+            guard let startText = operation.newStart ?? snapshot.proposal?.proposedStart,
+                  let start = GroomingRequestDateFormatting.parsedDate(from: startText),
+                  let originalStart = GroomingRequestDateFormatting.parsedDate(from: booking.scheduledStart),
+                  let originalEnd = GroomingRequestDateFormatting.parsedDate(from: booking.scheduledEnd) else { return nil }
+            let windows: [GroomerAvailabilityWindow]
+            let timeOff: [GroomerTimeOffWindow]
+            if actorID == booking.groomerID {
+                let schedule = try await SupabaseGroomerProfileRepository(client: client)
+                    .availabilitySnapshot(groomerID: booking.groomerID)
+                windows = schedule.windows; timeOff = schedule.timeOff
+            } else {
+                let profile = try await SupabaseCustomerGroomerDiscoveryRepository(client: client)
+                    .publicProfile(groomerID: booking.groomerID)
+                windows = profile.content.windows
+                timeOff = profile.content.timeOff.map { [$0] } ?? []
+            }
+            guard !Task.isCancelled, client.auth.currentUser?.id == actorID,
+                  let zone = windows.first?.timezone ?? booking.scheduleTimeZoneIdentifier else { return nil }
+            return BookingRescheduleAvailabilityFeedback.message(start: start,
+                duration: originalEnd.timeIntervalSince(originalStart), zone: zone, windows: windows, timeOff: timeOff)
+        } catch { return nil }
     }
 
     func rescheduleOperation(id: UUID) async throws -> BookingRescheduleResult? {
@@ -448,7 +485,7 @@ final class SupabaseBookingRepository: BookingRepository {
                 "invalid_reschedule_operation": "This time change could not be submitted. Refresh and try again.",
                 "reschedule_agreement_verification_required": "The original agreement needs verification before its time can change.",
                 "reschedule_notice_required": "The proposed time does not meet the current advance-notice requirement.",
-                "reschedule_outside_availability": "The proposed service and its buffers do not fit the current schedule.",
+                "reschedule_outside_availability": BookingRepositoryError.outsideAvailabilityMessage,
                 "reschedule_resource_conflict": "The proposed time is no longer available. The original appointment is unchanged.",
                 "reschedule_daily_limit": "The groomer has reached the daily limit on that date.",
                 "reschedule_proposal_pending": "An existing time change must be resolved or withdrawn first.",

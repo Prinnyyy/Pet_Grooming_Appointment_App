@@ -415,3 +415,13 @@ Keep the existing account-scoped cache, immutable message merging, outbox identi
 Validation evidence: `artifacts/evidence/T-473/chat-tests.log` (11 focused viewport/back/cache/outbox checks) and `viewport-row-insets.log` (final viewport checks after the resize regression was corrected). The resize check uses safe-area changes, not an automated physical keyboard interaction. SwiftUI still emits an `OnScrollGeometryChange` multiple-updates diagnostic during lazy layout; the final measured horizontal origin, viewport width and bottom position pass, so this is not claimed as a warning-free runtime or a substitute for phone visual acceptance.
 
 Release device build, preflight and context hygiene passed; installed on the paired iPhone for user acceptance. Build/install logs are in the same T-473 evidence directory.
+
+## T-474 — Explain rescheduling availability rejections in Toasts
+
+Both roles show the groomer's actual weekly hours for the proposed service dates in the existing bottom Toast when `reschedule_outside_availability` rejects a submission. Cross-midnight intervals show both affected dates; ending exactly at midnight excludes the next date. Disabled days say Closed; known time off overrides regular hours without revealing its private title. These hours explain the schedule, not a guarantee that an individual slot is free.
+
+Only on this rejection, the repository reads the existing booking-scoped snapshot and reuses the owner's availability API or the customer's safe public-profile API. No new endpoint, permission, scheduling rule or backend write. The customer projection exposes only its next public time-off range, so the message must not promise exhaustive availability; other time off and booking conflicts remain server-checked. If explanation reads fail, use the shared fallback: the service is outside the groomer's working hours or overlaps time off; choose another time. Never mention removed buffers or misclassify time off as an overlapping booking.
+
+Do not duplicate the Toast with an inline banner. Groomer proposal errors leave the editor open; the customer's existing confirmation closes on submission and retains the attempted time for reopening after rejection.
+
+Validation: four reschedule logic checks, the current-dialog rendering check and three hours/date/time-off checks passed. The rendering harness now targets the current dialog and disables UIKit transition animation for stable capture. Preflight, hygiene and Release device build passed; the paired-device installer reports success. Evidence: `artifacts/evidence/T-474/`. Actual rejection Toast appearance remains user acceptance; no remote booking was mutated for testing.

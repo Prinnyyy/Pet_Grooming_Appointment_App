@@ -143,16 +143,19 @@ final class BookingRescheduleRenderingTests: XCTestCase {
         let booking: Booking
         let proposal: BookingRescheduleProposal
         let action: BookingRescheduleAction
-        @State private var selection: BookingRescheduleSelection?
+        @State private var selection: GroomingRescheduleSelection?
 
         var body: some View {
             Color.clear
-                .bookingRescheduleDialog(selection: $selection, booking: booking) { _, _ in }
-                .task { selection = BookingRescheduleSelection(action: action, proposal: proposal) }
+                .groomingRescheduleDialog(selection: $selection, booking: booking) { _, _ in }
+                .task { selection = GroomingRescheduleSelection(action: action, proposal: proposal) }
         }
     }
 
     private func render<Content: View>(_ content: Content, name: String) async throws {
+        let animationsEnabled = UIView.areAnimationsEnabled
+        UIView.setAnimationsEnabled(false)
+        defer { UIView.setAnimationsEnabled(animationsEnabled) }
         let host = UIHostingController(rootView: content)
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let previous = scene.windows.first(where: \.isKeyWindow)
@@ -173,6 +176,6 @@ final class BookingRescheduleRenderingTests: XCTestCase {
         add(attachment)
         let pixels = try XCTUnwrap(image.cgImage?.dataProvider?.data)
         let bytes = try XCTUnwrap(CFDataGetBytePtr(pixels))
-        XCTAssertGreaterThan(Set(stride(from: 0, to: CFDataGetLength(pixels), by: 4).map { bytes[$0] }).count, 8)
+        XCTAssertGreaterThan(Set(stride(from: 0, to: CFDataGetLength(pixels), by: 4).map { bytes[$0] }).count, 8, name)
     }
 }

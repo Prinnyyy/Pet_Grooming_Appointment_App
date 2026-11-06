@@ -49,14 +49,14 @@ extension View {
 
     /// Asks before a time change is sent. Proposing a new time is a modal with the time picker (its button waits for a valid time);
     /// answering a proposal is a modal that shows the two times.
-    func groomingRescheduleDialog(selection: Binding<GroomingRescheduleSelection?>, booking: Booking?,
+    func groomingRescheduleDialog(selection: Binding<GroomingRescheduleSelection?>, booking: Booking?, initialStart: Date? = nil,
                                           confirm: @escaping @MainActor (GroomingRescheduleSelection, Date?) -> Void) -> some View {
         designModal(item: selection) { item in
             guard let booking else {
                 return DesignModal(systemImage: "exclamationmark.circle", title: "Booking unavailable",
                     message: "Refresh this grooming before changing its time.", actions: [.quiet("Close")])
             }
-            let draft = GroomingProposalDraft(booking: booking)
+            let draft = GroomingProposalDraft(booking: booking, initialStart: initialStart)
             let isPropose = item.action == .propose
             return DesignModal(systemImage: "calendar.badge.clock", title: item.action.title,
                 message: isPropose
@@ -112,13 +112,13 @@ private final class GroomingProposalDraft {
     var proposedWallTime = Date() { didSet { selectedOccurrence = nil } }
     var selectedOccurrence: Date?
 
-    init(booking: Booking) {
+    init(booking: Booking, initialStart: Date? = nil) {
         self.booking = booking
         if let zone = booking.serviceTimeZoneIdentifier,
            let original = GroomingRequestDateFormatting.parsedDate(from: booking.scheduledStart),
-           let input = try? GroomingServiceTiming.wallInput(for: original.addingTimeInterval(3600), timeZoneIdentifier: zone) {
+           let input = try? GroomingServiceTiming.wallInput(for: initialStart ?? original.addingTimeInterval(3600), timeZoneIdentifier: zone) {
             proposedWallTime = input
-            selectedOccurrence = nil
+            selectedOccurrence = initialStart
         }
     }
 

@@ -1,6 +1,8 @@
 import Foundation
 
 enum BookingRepositoryError: Error, Equatable, Sendable {
+    static let outsideAvailabilityMessage = "The service falls outside the groomer’s working hours or overlaps time off. Choose another time."
+
     case notAllowed
     case offerNotFound
     case offerNoLongerPending

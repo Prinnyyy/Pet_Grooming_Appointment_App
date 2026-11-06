@@ -84,7 +84,7 @@ struct GroomingNeedsYou: View {
                 proposalBody(proposal, state: state)
             }
             .accessibilityIdentifier(proposalIdentifier)
-        } else if let error = store.rescheduleErrors[booking.id], !state.hasServiceBlock {
+        } else if let error = store.rescheduleErrors[booking.id], !BookingRescheduleAvailabilityFeedback.isAvailabilityMessage(error), !state.hasServiceBlock {
             BeckonErrorBanner(title: "Time change unavailable", message: error)
         }
         if state.hasServiceBlock {
@@ -127,7 +127,7 @@ struct GroomingNeedsYou: View {
                     }
                 }
             }
-            if let error = store.rescheduleErrors[booking.id] {
+            if let error = store.rescheduleErrors[booking.id], !BookingRescheduleAvailabilityFeedback.isAvailabilityMessage(error) {
                 BeckonErrorBanner(title: "Time change unavailable", message: error)
             }
         }

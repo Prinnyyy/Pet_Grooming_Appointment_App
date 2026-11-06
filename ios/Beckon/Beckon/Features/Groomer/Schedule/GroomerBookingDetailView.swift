@@ -17,6 +17,9 @@ struct GroomerBookingDetailView: View {
     @Environment(\.openBookingChat) private var shellOpenChat
     @State private var fulfillmentAction: BookingFulfillmentAction?
     @State private var rescheduleReview: GroomingRescheduleSelection?
+    @State private var rescheduleDraftStart: Date?
+    @State private var fallbackFeedback = BeckonFeedbackCenter()
+    @Environment(\.beckonFeedbackCenter) private var hostFeedback
     @State private var now = Date()
     @Environment(\.scenePhase) private var scenePhase
     /// The service and time-change records are still being read: their slot under the hero is kept, as a slim placeholder.
@@ -61,6 +64,9 @@ struct GroomerBookingDetailView: View {
                     isLoading: store.isLoading, errorMessage: store.errorMessage))
         }
         .onReceive(tick) { if scenePhase == .active { now = $0 } }
+        .overlay(alignment: .bottom) {
+            if hostFeedback == nil { BeckonGlobalFeedbackOverlay(center: fallbackFeedback) }
+        }
     }
 
     private func page(_ booking: Booking) -> some View {
@@ -89,8 +95,16 @@ struct GroomerBookingDetailView: View {
         .groomingFulfillmentDialog(action: $fulfillmentAction) { action, note in
             Task { await store.performFulfillment(action, for: booking, note: note) }
         }
-        .groomingRescheduleDialog(selection: $rescheduleReview, booking: booking) { selection, newStart in
-            Task { await store.performReschedule(selection.action, for: booking, reviewedProposal: selection.proposal, newStart: newStart) }
+        .groomingRescheduleDialog(selection: $rescheduleReview, booking: booking, initialStart: rescheduleDraftStart) { selection, newStart in
+            if selection.action == .propose { rescheduleDraftStart = newStart }
+            Task {
+                await store.performReschedule(selection.action, for: booking, reviewedProposal: selection.proposal, newStart: newStart)
+                if let error = store.rescheduleErrors[booking.id] {
+                    if BookingRescheduleAvailabilityFeedback.isAvailabilityMessage(error) {
+                        (hostFeedback ?? fallbackFeedback).showNotice(error)
+                    }
+                } else { rescheduleDraftStart = nil }
+            }
         }
     }
 
