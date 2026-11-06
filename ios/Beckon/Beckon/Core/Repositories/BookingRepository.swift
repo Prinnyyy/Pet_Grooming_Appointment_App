@@ -27,6 +27,7 @@ enum BookingRepositoryError: Error, Equatable, Sendable {
 
 @MainActor
 protocol BookingRepository: AnyObject {
+    func groomingBookings(participantID: UUID, closed: Bool, page: ListPageRequest) async throws -> ListPage<Booking>
     func cachedPetPhoto(for booking: Booking) -> Data?
     func petPhoto(for booking: Booking) async throws -> Data?
     func customerDisplayName(for booking: Booking) async throws -> String?
@@ -81,6 +82,9 @@ protocol BookingRepository: AnyObject {
 }
 
 extension BookingRepository {
+    func groomingBookings(participantID: UUID, closed: Bool, page: ListPageRequest) async throws -> ListPage<Booking> {
+        try await bookings(participantID: participantID, role: .groomer, page: page)
+    }
     func cachedPetPhoto(for booking: Booking) -> Data? { nil }
     func petPhoto(for booking: Booking) async throws -> Data? { nil }
     func customerDisplayName(for booking: Booking) async throws -> String? { nil }

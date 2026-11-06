@@ -10,7 +10,7 @@ struct GroomingBookingActionState {
     let store: BookingsStore
     let now: Date
 
-    private static let forwardActions: Set<BookingFulfillmentAction> = [.start, .complete, .reportCompletion, .confirmCompletion]
+    private static let forwardActions: Set<BookingFulfillmentAction> = [.complete]
 
     var proposal: BookingRescheduleProposal? { store.rescheduleSnapshots[booking.id]?.proposal }
 
@@ -178,10 +178,10 @@ struct GroomingNeedsYou: View {
 
     /// The phase's own words; the groomer, whose booking is "Confirmed" until the service starts, is told what the time has come to.
     private func serviceTitle(_ state: GroomingBookingActionState) -> String {
-        guard role == .groomer, state.phase == .scheduled,
-              let end = GroomingRequestDateFormatting.parsedDate(from: booking.scheduledEnd) else { return booking.fulfillmentTitle }
-        if now >= end { return "Needs closing" }
-        return state.decisionActions.contains(.start) ? "Time to start" : booking.fulfillmentTitle
+        guard booking.status == .confirmed,
+              let start = GroomingRequestDateFormatting.parsedDate(from: booking.scheduledStart), now >= start else { return booking.fulfillmentTitle }
+        let ended = GroomingRequestDateFormatting.parsedDate(from: booking.scheduledEnd).map { now >= $0 } ?? false
+        return ended ? "Awaiting completion" : "In service"
     }
 
     private func phaseIcon(_ phase: BookingFulfillmentPhase?) -> String {

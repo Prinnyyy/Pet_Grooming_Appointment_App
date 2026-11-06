@@ -10,7 +10,7 @@ nonisolated enum GroomerTab: CaseIterable, Identifiable, Equatable {
     var title: String {
         switch self {
         case .home: "Home"
-        case .requests: "Requests"
+        case .requests: "Grooming"
         case .bookings: "Schedule"
         case .messages: "Messages"
         case .account: "Account"

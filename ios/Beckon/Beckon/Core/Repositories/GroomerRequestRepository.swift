@@ -24,6 +24,9 @@ enum GroomerRequestRepositoryError: Error, Equatable, Sendable {
 
 @MainActor
 protocol GroomerRequestRepository: AnyObject {
+    func offerDetail(groomerID: UUID, offerID: UUID) async throws -> GroomerOfferListItem?
+    func groomingMatches(groomerID: UUID, location: GroomingLocationMode?, page: RankedPageRequest<GroomerMatchSort>) async throws -> RankedPage<GroomerMatchedRequest>
+    func groomingOffers(groomerID: UUID, group: String, page: ListPageRequest) async throws -> ListPage<GroomerOfferListItem>
     func rankedMatches(groomerID: UUID, page: RankedPageRequest<GroomerMatchSort>) async throws -> RankedPage<GroomerMatchedRequest>
     func matchedRequest(groomerID: UUID, requestID: UUID) async throws -> GroomerMatchedRequest
     func offer(groomerID: UUID, offerID: UUID) async throws -> GroomerOffer?
@@ -63,6 +66,16 @@ protocol GroomerRequestRepository: AnyObject {
 }
 
 extension GroomerRequestRepository {
+    func offerDetail(groomerID: UUID, offerID: UUID) async throws -> GroomerOfferListItem? {
+        guard let offer = try await offer(groomerID: groomerID, offerID: offerID) else { return nil }
+        return GroomerOfferListItem(offer: offer, request: nil, booking: nil)
+    }
+    func groomingMatches(groomerID: UUID, location: GroomingLocationMode?, page: RankedPageRequest<GroomerMatchSort>) async throws -> RankedPage<GroomerMatchedRequest> {
+        try await rankedMatches(groomerID: groomerID, page: page)
+    }
+    func groomingOffers(groomerID: UUID, group: String, page: ListPageRequest) async throws -> ListPage<GroomerOfferListItem> {
+        try await offers(groomerID: groomerID, page: page)
+    }
     func rankedMatches(groomerID: UUID, page: RankedPageRequest<GroomerMatchSort>) async throws -> RankedPage<GroomerMatchedRequest> {
         throw MatchRankingError.unavailable
     }

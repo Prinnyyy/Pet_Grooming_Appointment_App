@@ -12,9 +12,9 @@ struct GroomingLifecycleTests {
             completedBy: nil, createdAt: start, updatedAt: end, review: nil, serviceTimeZoneIdentifier: zone)
     }
 
-    @Test func elapsedConfirmedGroomingCanBeReviewedFromHistory() {
+    @Test func elapsedConfirmedGroomingRequiresExplicitCompletion() {
         let value = Self.booking()
-        #expect(value.canReview(for: .customer))
+        #expect(!value.canReview(for: .customer))
         #expect(value.status == .confirmed) // Eligibility must not fabricate a completed service.
         #expect(value.completedAt == nil)
     }
@@ -27,9 +27,9 @@ struct GroomingLifecycleTests {
         #expect(!Self.booking().canReview(for: .groomer))
     }
     @Test func serviceDayBoundaryAndRetentionAreSeparateFromReviewEligibility() throws {
-        let booking = Self.booking(start: "2032-06-15T18:00:00Z", end: "2032-06-15T19:00:00Z")
+        let booking = Self.booking(status: .completed, start: "2032-06-15T18:00:00Z", end: "2032-06-15T19:00:00Z")
         let finish = try #require(GroomingLifecycle.finishedAt(booking))
-        #expect(finish == GroomingRequestDateFormatting.parsedDate(from: "2032-06-16T07:00:00Z"))
+        #expect(finish == GroomingRequestDateFormatting.parsedDate(from: "2032-06-15T19:00:00Z"))
         #expect(!booking.canReview(for: .customer, now: finish.addingTimeInterval(-1)))
         #expect(booking.canReview(for: .customer, now: finish))
         #expect(GroomingFeed.isActive(booking, now: finish.addingTimeInterval(14 * 86_400 - 1)))
@@ -48,7 +48,7 @@ struct GroomingLifecycleTests {
         #expect(try #require(GroomingLifecycle.endOfAppointmentDay(autumn))
             .timeIntervalSince(try #require(GroomingLifecycle.startOfAppointmentDay(autumn))) == 25 * 3600)
         let overnight = Self.booking(start: "2032-06-16T06:00:00Z", end: "2032-06-16T09:00:00Z")
-        #expect(GroomingLifecycle.finishedAt(overnight) == GroomingRequestDateFormatting.parsedDate(from: overnight.scheduledEnd))
+        #expect(GroomingLifecycle.finishedAt(overnight) == nil)
     }
 
     @Test func currentBookingReplacesStaleHandoffAndAppearsOnlyInHistory() throws {
@@ -69,10 +69,9 @@ struct GroomingLifecycleTests {
         let request = CustomerSandboxFixtures.request()
         let booking = Self.booking(requestID: request.id)
         let cards = [CustomerRequestActionCardItem(request: request, handoff: .init(request: request, booking: booking))]
-        #expect(GroomingFeed.activeEntries(cards: cards, bookings: [], avatar: { _ in nil }).isEmpty)
+        #expect(GroomingFeed.activeEntries(cards: cards, bookings: [], avatar: { _ in nil }).count == 1)
         let history = GroomingFeed.pastEntries(cards: cards, bookings: [], closedRequests: [], avatar: { _ in nil })
-        #expect(history.count == 1)
-        #expect(history.first?.content.status.title == "Finished")
+        #expect(history.isEmpty)
         #expect(booking.status == .confirmed) // The customer journey label is not a fulfillment mutation.
     }
 

@@ -1,0 +1,79 @@
+import SwiftUI
+import Testing
+@testable import Beckon
+
+@MainActor struct GroomerGroomingWorkspaceTests {
+    private func workspace(_ fixture: GroomerSandboxSession, repository: (any GroomerRequestRepository)? = nil,
+        isCurrent: @escaping @MainActor () -> Bool = { true }) -> GroomerGroomingWorkspace {
+        GroomerGroomingWorkspace(session: GroomerGroomingSession(groomerID: fixture.groomerID,
+            requests: fixture.requests, offers: fixture.offers, bookings: fixture.bookings,
+            chat: fixture.chat, notifications: fixture.notifications,
+            requestRepository: repository ?? fixture.requestRepository, chatRepository: fixture.chatRepository,
+            bookingRepository: fixture.bookingRepository, isCurrent: isCurrent))
+    }
+
+    @Test func pagedMatchesCanOpenInTheExistingStoreAndRestoreTheirScope() async throws {
+        let fixture = GroomerSandboxSession(state: .loaded)
+        let rows = Array(GroomerSandboxFixtures.matches().prefix(4))
+        let repository = GroomerRequestRepositoryFake()
+        func page(_ items: [GroomerMatchedRequest], next: String?) -> RankedPage<GroomerMatchedRequest> {
+            RankedPage(items: items, rankingRevision: "fixture", scoreAsOf: Date(timeIntervalSince1970: 1),
+                validUntil: Date(timeIntervalSince1970: 301), algorithmVersion: "matching-v1",
+                requestedMode: fixture.requests.sort.rawValue, effectiveMode: fixture.requests.sort.rawValue,
+                pendingCount: 0, assessmentCount: 0, nextCursor: next)
+        }
+        repository.rankedPages = [.success(page(Array(rows.prefix(2)), next: "2")),
+                                  .success(page(Array(rows.suffix(2)), next: nil))]
+        let workspace = workspace(fixture, repository: repository)
+        workspace.select(location: nil, offers: "waiting", bookingsClosed: false)
+        await workspace.refresh(.matches)
+        #expect(workspace.errors[.matches] == nil)
+        #expect(workspace.matches.count == 2)
+        #expect(workspace.hasMore(.matches))
+        let first = try #require(workspace.matches.first)
+        await fixture.requests.openDetail(matchID: first.id)
+        #expect(fixture.requests.authorizedDetail?.id == first.id)
+        await workspace.loadMore(.matches)
+        #expect(workspace.matches.count == 4)
+        #expect(Set(workspace.matches.map(\.id)).count == 4)
+        let cached = workspace.matches
+        workspace.select(location: .customerComesToGroomer, offers: "waiting", bookingsClosed: false)
+        #expect(!workspace.loaded.contains(.matches))
+        #expect(workspace.matches.isEmpty)
+        workspace.select(location: nil, offers: "waiting", bookingsClosed: false)
+        #expect(workspace.loaded.contains(.matches))
+        #expect(workspace.matches == cached)
+    }
+
+    @Test func retiredSessionCannotPublishAnInFlightPage() async {
+        let fixture = GroomerSandboxSession(state: .loading)
+        var active = true
+        let repository = GroomerRequestRepositoryFake()
+        repository.onRankedRead = { try? await fixture.boundary.check() }
+        let workspace = workspace(fixture, repository: repository, isCurrent: { active })
+        let read = Task { await workspace.refresh(.matches) }
+        await Task.yield()
+        active = false
+        fixture.boundary.release()
+        await read.value
+        #expect(workspace.matches.isEmpty)
+        #expect(workspace.loaded.isEmpty)
+        #expect(workspace.errors.isEmpty)
+    }
+
+    @Test func exactOfferLookupDoesNotDependOnTheFirstPage() async throws {
+        let fixture = GroomerSandboxSession(state: .loaded)
+        let repository = GroomerRequestRepositoryFake()
+        let items = GroomerSandboxFixtures.offers()
+        repository.offersResult = .success(Array(items.prefix(1)))
+        repository.offerReadResult = .success(items.last?.offer)
+        let workspace = workspace(fixture, repository: repository)
+        await workspace.refresh(.offers)
+        #expect(workspace.offers.count == 1)
+        let id = try #require(GroomerSandboxFixtures.offers().last?.id)
+        #expect(workspace.offers.first?.id != id)
+        let detail = try await workspace.offerItem(id: id)
+        #expect(detail?.id == id)
+        #expect(workspace.offers.count == 1, "Opening a detail must not eagerly fetch every list page")
+    }
+}

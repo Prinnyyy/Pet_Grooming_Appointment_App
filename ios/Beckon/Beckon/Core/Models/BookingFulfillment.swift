@@ -57,7 +57,7 @@ nonisolated enum BookingFulfillmentRejection: String, Sendable {
         switch self {
         case .stateChanged: "This booking changed. Refresh and review its current outcome."
         case .outsideStart: "Service can start only during its scheduled appointment window."
-        case .tooEarly: "Wait at least one minute after starting service before recording completion."
+        case .tooEarly: "Service can be finished after its scheduled start."
         case .noShowWait: "Wait 15 minutes after the scheduled start before reporting a no-show."
         case .otherParticipant: "The other participant must confirm this service outcome."
         case .noteRequired: "Add a short description of what happened, up to 500 characters."
@@ -157,33 +157,10 @@ extension Booking {
 
     nonisolated func fulfillmentActions(for role: UserRole, participantID: UUID, now: Date = Date()) -> [BookingFulfillmentAction] {
         guard (role == .customer && participantID == customerID) || (role == .groomer && participantID == groomerID),
-              let fulfillment,
-              let start = GroomingRequestDateFormatting.parsedDate(from: scheduledStart),
-              let end = GroomingRequestDateFormatting.parsedDate(from: scheduledEnd) else { return [] }
-        var actions: [BookingFulfillmentAction] = []
-        switch fulfillment.phase {
-        case .scheduled:
-            if now < start { return [.cancel] }
-            if role == .groomer && now < end { actions.append(.start) }
-            actions.append(.reportInterruption)
-            if now >= start.addingTimeInterval(900) { actions.append(.reportNoShow) }
-        case .inService:
-            if canComplete(for: role, now: now) { actions.append(.complete) }
-            actions.append(.reportInterruption)
-        case .outcomeReported:
-            if fulfillment.reportedBy == participantID { actions.append(.withdrawReport) }
-            else { actions.append(fulfillment.reportedOutcome == "completion" ? .confirmCompletion : .confirmStop) }
-        case .unfulfilled:
-            if now >= end { actions.append(.reportCompletion) }
-            actions.append(.recordObjection)
-        case .completed, .cancelled:
-            actions.append(.recordObjection)
-        }
-        if status == .confirmed && now >= end {
-            actions.append(.closeElapsed)
-            if fulfillment.phase != .outcomeReported { actions.append(.reportCompletion) }
-        }
-        return actions
+              status == .confirmed, let fulfillment,
+              let start = GroomingRequestDateFormatting.parsedDate(from: scheduledStart) else { return [] }
+        if now < start { return fulfillment.phase == .scheduled ? [.cancel] : [] }
+        return canComplete(for: role, now: now) ? [.complete] : []
     }
 
     nonisolated var fulfillmentTitle: String {

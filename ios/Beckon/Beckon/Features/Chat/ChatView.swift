@@ -446,8 +446,8 @@ struct ChatThreadView: View {
         .onAppear {
             isVisible = true
             isNearBottom = true
-            // Never queue an edge request while the lazy layout is empty. Once real targets
-            // exist, use their IDs to handle variable-height cached history accurately.
+            // Position only after content exists. Pin the content edge rather than a lazy
+            // row's estimated frame; mixed-height booking cards can settle after that frame.
             if let latest = store.displayMessages(for: conversation.id).last?.id {
                 positionInitialMessage(latest)
             }
@@ -599,7 +599,7 @@ struct ChatThreadView: View {
     private func positionInitialMessage(_ id: UUID) {
         var transaction = Transaction(animation: nil)
         transaction.disablesAnimations = true
-        withTransaction(transaction) { threadPosition.scrollTo(id: id, anchor: .bottom) }
+        withTransaction(transaction) { threadPosition.scrollTo(edge: .bottom) }
     }
 
     private func refreshThread() async {

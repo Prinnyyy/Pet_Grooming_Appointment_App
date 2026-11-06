@@ -14,15 +14,24 @@ private struct BeckonTabRootVisibility: UIViewControllerRepresentable {
     func updateUIViewController(_ controller: Controller, context: Context) {}
     final class Controller: UIViewController {
         override func viewDidLoad() { super.viewDidLoad(); view.isUserInteractionEnabled = false }
+        override func viewWillAppear(_ animated: Bool) {
+            super.viewWillAppear(animated)
+            synchronizeSelection()
+        }
         override func viewDidAppear(_ animated: Bool) {
             super.viewDidAppear(animated)
-            guard let tabs = tabBarController, let selected = tabs.selectedViewController,
-                  let navigation = findNavigation(selected) else { return }
-            if let transition = navigation.transitionCoordinator,
+            synchronizeSelection()
+        }
+        private func synchronizeSelection() {
+            guard let tabs = tabBarController, let selected = tabs.selectedViewController else { return }
+            let navigation = findNavigation(selected)
+            if let navigation, let transition = navigation.transitionCoordinator,
                navigation.viewControllers.contains(where: {
                    $0 === transition.viewController(forKey: .from) || $0 === transition.viewController(forKey: .to)
                }) { return }
-            tabs.setTabBarHidden(navigation.topViewController?.hidesBottomBarWhenPushed ?? false, animated: false)
+            // SwiftUI mounts the selected root's navigation controller after willAppear.
+            // Until then this is a root, so never inherit the outgoing tab's hidden bar.
+            tabs.setTabBarHidden(navigation?.topViewController?.hidesBottomBarWhenPushed ?? false, animated: false)
         }
         private func findNavigation(_ controller: UIViewController) -> UINavigationController? {
             (controller as? UINavigationController) ?? controller.children.lazy.compactMap { self.findNavigation($0) }.first
@@ -55,13 +64,14 @@ private struct BeckonTabBarHider: UIViewControllerRepresentable {
             super.viewWillAppear(animated)
             // SwiftUI mounts this bridge after it starts the push. Establish the initial hidden state
             // explicitly; the hosting page's native flag then owns pop progress and cancellation.
-            if transitionCoordinator?.isInteractive != true {
+            if transitionCoordinator?.isInteractive != true, belongsToSelectedTab {
                 tabBarController?.setTabBarHidden(true, animated: false)
             }
         }
         override func viewWillDisappear(_ animated: Bool) {
             super.viewWillDisappear(animated)
-            guard let navigation = navigationController, let tabs = tabBarController else { return }
+            guard let navigation = navigationController, let tabs = tabBarController,
+                  belongsToSelectedTab else { return }
             guard let transition = transitionCoordinator else {
                 tabs.setTabBarHidden(navigation.topViewController?.hidesBottomBarWhenPushed ?? false, animated: false)
                 return
@@ -103,6 +113,16 @@ private struct BeckonTabBarHider: UIViewControllerRepresentable {
                 bar.transform = .identity
                 tabs.setTabBarHidden(false, animated: false)
             }
+        }
+
+        private var belongsToSelectedTab: Bool {
+            guard let selected = tabBarController?.selectedViewController else { return false }
+            var ancestor: UIViewController? = self
+            while let candidate = ancestor {
+                if candidate === selected { return true }
+                ancestor = candidate.parent
+            }
+            return false
         }
 
         private func owns(_ page: UIViewController) -> Bool {

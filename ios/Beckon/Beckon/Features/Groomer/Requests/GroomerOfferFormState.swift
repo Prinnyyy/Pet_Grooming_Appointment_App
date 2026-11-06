@@ -28,8 +28,7 @@ final class GroomerOfferFormState {
     }
 
     func submitOffer(for matchedRequest: GroomerMatchedRequest) async {
-        guard didInitializeOfferForm, let proposedEnd, let start = resolvedProposedStart,
-              confirmedAssessmentKeys == (matchedRequest.match.eligibilityEvaluation?.confirmationKeys ?? []) else { return }
+        guard didInitializeOfferForm, let proposedEnd, let start = resolvedProposedStart else { return }
         await store.submitOffer(for: matchedRequest, proposedStart: start, proposedEnd: proposedEnd,
             priceEstimateText: priceEstimateText, message: message, confirmedAssessmentKeys: confirmedAssessmentKeys)
     }

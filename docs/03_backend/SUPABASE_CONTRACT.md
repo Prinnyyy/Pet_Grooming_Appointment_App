@@ -1,5 +1,18 @@
 # Supabase Contract
 
+## T-466 adoption
+
+The production client targets six T-466 migrations, applied after successful transactional rollback validation. [Adoption plan](../superpowers/plans/2026-11-05-groomer-grooming-adoption.md) owns delivery status.
+
+- Lifecycle follows the [adopted fulfillment replacement](BOOKING_FULFILLMENT_CONTRACT.md#t-466-adopted-replacement): automatic clock start, either-party explicit completion and review only after completion.
+- A quoted interval is a proposal and may extend outside the preferred window. Service availability, known species, finite whole-minute duration (15–720), notice, time off, daily limit, pet/groomer overlap and locked acceptance remain mandatory. Price is 0.00–9999.99; optional offer message is at most 200 characters. Removed assessment UI is not replaced with fabricated consent.
+- Accepted bookings durably invalidate overlapping pending offers. A private conflict marker captures `time_slot_booked` under admission serialization; quote evaluation rejects it immediately, and each offer is normalized under its own request lock. Adjacent intervals remain valid. Later cancellation/rescheduling never revives that offer. Withdraw-and-send creates a new independent offer under the existing request.
+- `get_grooming_matches` applies location before ranking/paging and binds signed cursors to that location. `get_grooming_offers` applies Waiting/Accepted/Closed before paging and excludes withdrawals. Bookings use existing authorized table reads filtered before pagination.
+- `get_request_chat_contact` exposes only counterpart display name and eligibility; `open_request_conversation` reuses the existing pair. A valid invitation lets the invited groomer initiate; a valid offer lets its customer initiate. An empty conversation is not consent. Expiry/revocation is rechecked at first message; established text conversations and existing booking chat remain accessible under existing participant/read-only rules. No general profile RLS broadening.
+- Request detail exposes only recognized street name plus locality/postcode before this groomer's booking exists. House/unit details remain withheld; unrecognized free-text addresses fail closed to locality. Only the owning booking unlocks the complete address.
+- `get_booking_reschedule` adds operation history; existing revision/receipt contracts remain. No new booking, price-edit API or payment processing is introduced.
+
+
 Verification is scoped by section. The latest recorded pet-save and linked-history verification is T-406, 2026-10-17. Other domains retain their named acceptance baselines; documentation reconciliation does not revalidate remote behavior.
 
 This is the active fast-path backend contract. It records current authoritative facts and points to the right detailed source instead of embedding every historical table, RPC, Storage, and migration note.

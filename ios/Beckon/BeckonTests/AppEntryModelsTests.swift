@@ -140,7 +140,7 @@ struct TabModelsTests {
     @Test
     func groomerTabsHaveExactOrderTitlesAndSymbols() {
         #expect(GroomerTab.allCases == [.home, .requests, .bookings, .messages, .account])
-        #expect(GroomerTab.allCases.map(\.title) == ["Home", "Requests", "Schedule", "Messages", "Account"])
+        #expect(GroomerTab.allCases.map(\.title) == ["Home", "Grooming", "Schedule", "Messages", "Account"])
         #expect(GroomerTab.allCases.map(\.systemImage) == ["house", "person.2", "calendar", "message", "person.crop.circle"])
         #expect(GroomerTab.allCases.allSatisfy { $0.id == $0 })
         #expect(GroomerTab.allCases.map(\.accessibilityIdentifier) == [

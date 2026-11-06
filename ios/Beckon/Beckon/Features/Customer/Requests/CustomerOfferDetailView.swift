@@ -125,6 +125,8 @@ struct CustomerOfferDetailView: View {
                             BeckonLedgeHeading(title: "Offer", systemImage: "tag.fill")
 
                             groomerCard(offerReview)
+                            RequestContactButton(requestID: request.id, groomerID: offerReview.offer.groomerID,
+                                authorizationRevision: "\(offerReview.offer.id)/\(offerReview.offer.status.rawValue)/\(request.updatedAt)")
                             TimelineView(.periodic(from: .now, by: 1)) { _ in
                                 appointmentCard(offerReview)
                             }

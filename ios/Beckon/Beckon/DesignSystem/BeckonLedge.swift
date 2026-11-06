@@ -105,6 +105,8 @@ extension View {
 /// Scroll cancellation fades quietly; the existing guarded body still decides whether the action can fire.
 /// Reduce Motion keeps the haptic and drops the travel.
 struct BeckonLedgePressStyle: ButtonStyle {
+    @Environment(\.groomerVisitAppearance) private var visitAppearance
+    @Environment(\.preservesSandboxPressFace) private var preservesFace
     let surface: BeckonLedgeSurface
     var onPressChange: ((Bool) -> Void)?
     var animatesSurfaceChanges = true
@@ -118,7 +120,19 @@ struct BeckonLedgePressStyle: ButtonStyle {
         self.animatesSurfaceChanges = animatesSurfaceChanges
     }
 
+    private var buttonLip: Color {
+        if visitAppearance {
+            switch surface {
+            case .pill, .roundAction: return GroomerVisitButtonLips.coral
+            case .primary: return GroomerVisitButtonLips.whiteFace
+            default: break
+            }
+        }
+        return surface.lip
+    }
+
     func makeBody(configuration: Configuration) -> some View {
+        let lip = buttonLip
         let surface = surface, onPressChange = onPressChange, reduceMotion = reduceMotion, isEnabled = isEnabled
         let animatesSurfaceChanges = animatesSurfaceChanges
         return BeckonPressEngine(isPressed: configuration.isPressed && isEnabled, haptic: .impact(weight: .medium)) { amount in
@@ -126,10 +140,11 @@ struct BeckonLedgePressStyle: ButtonStyle {
             // A surface without an edge draws its edge in the colour of its face: invisible, and a colour the real edge can fade to.
             let edge = surface.edge ?? surface.face
             configuration.label
+                .opacity(preservesFace && reduceMotion ? 1 - 0.22 * amount : 1)
                 .background {
                     ZStack {
                         shape.fill(surface.face)
-                        shape.fill(surface.pressedFace).opacity(min(1, max(0, amount)))
+                        if !preservesFace { shape.fill(surface.pressedFace).opacity(min(1, max(0, amount))) }
                     }
                 }
                 .overlay {
@@ -142,7 +157,7 @@ struct BeckonLedgePressStyle: ButtonStyle {
                     }
                 }
                 .offset(y: reduceMotion ? 0 : surface.depth * amount)
-                .background { shape.fill(surface.lip).offset(y: surface.depth) }
+                .background { shape.fill(lip).offset(y: surface.depth) }
                 .padding(.bottom, DesignTokens.Ledge.room)
                 .contentShape(Rectangle())
                 // The look turning into another look; the press itself is animated by the engine.

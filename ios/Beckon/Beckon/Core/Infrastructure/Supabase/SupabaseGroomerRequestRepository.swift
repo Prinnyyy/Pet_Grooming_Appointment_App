@@ -40,10 +40,34 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
         try await matchedRequests(groomerID: groomerID, page: .first).items
     }
 
+    func groomingMatches(groomerID: UUID, location: GroomingLocationMode?, page: RankedPageRequest<GroomerMatchSort>) async throws -> RankedPage<GroomerMatchedRequest> {
+        do {
+            let row: RankedPageRow<RankedMatchRow> = try await client.rpc("get_grooming_matches",
+                params: RankedMatchParameters(p_sort: page.mode.rawValue, p_limit: page.limit, p_cursor: page.cursor, p_location: location?.rawValue))
+                .execute().value
+            let result = try row.page()
+            guard result.requestedMode == page.mode.rawValue,
+                  result.effectiveMode == page.mode.rawValue || (page.mode == .fit && result.effectiveMode == "time_fallback") else {
+                throw MatchRankingError.unavailable
+            }
+            return try result.mapping { item in
+                guard item.match.groomerID == groomerID, item.match.requestID == item.request.id else {
+                    throw GroomerRequestRepositoryError.notAllowed
+                }
+                return GroomerMatchedRequest(match: item.match.match, request: item.request.request,
+                    offer: nil, matchingEvidence: item.evidence)
+            }
+        } catch let error as MatchRankingError { throw error }
+        catch let error as PostgrestError where error.message == "list_changed" { throw MatchRankingError.listChanged }
+        catch let error as PostgrestError where error.message == "invalid_cursor" { throw MatchRankingError.invalidCursor }
+        catch let error as PostgrestError where error.message == "ranking_unavailable" { throw MatchRankingError.unavailable }
+        catch { throw Self.map(error) }
+    }
+
     func rankedMatches(groomerID: UUID, page: RankedPageRequest<GroomerMatchSort>) async throws -> RankedPage<GroomerMatchedRequest> {
         do {
             let row: RankedPageRow<RankedMatchRow> = try await client.rpc("get_ranked_matched_requests_v2",
-                params: RankedMatchParameters(p_sort: page.mode.rawValue, p_limit: page.limit, p_cursor: page.cursor))
+                params: LegacyRankedMatchParameters(p_sort: page.mode.rawValue, p_limit: page.limit, p_cursor: page.cursor))
                 .execute().value
             let result = try row.page()
             guard result.requestedMode == page.mode.rawValue,
@@ -150,6 +174,27 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
         try await offers(groomerID: groomerID, page: .first).items
     }
 
+    func groomingOffers(
+        groomerID: UUID, group: String,
+        page: ListPageRequest
+    ) async throws -> ListPage<GroomerOfferListItem> {
+        do {
+            let offerRows: [SupabaseGroomerOfferRow] = try await client.rpc("get_grooming_offers",
+                params: GroomingOffersParameters(p_group: group, p_limit: page.fetchLimit, p_offset: page.offset))
+                .select(Self.offerColumns).execute().value
+            guard offerRows.allSatisfy({ $0.groomerID == groomerID }) else { throw GroomerRequestRepositoryError.notAllowed }
+
+            guard !offerRows.isEmpty else {
+                return ListPage(items: [], request: page)
+            }
+
+            let offers = try await hydrateOffers(offerRows, groomerID: groomerID)
+            return ListPage(items: offers, request: page)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
     func offers(
         groomerID: UUID,
         page: ListPageRequest
@@ -168,6 +213,25 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
                 return ListPage(items: [], request: page)
             }
 
+            let offers = try await hydrateOffers(offerRows, groomerID: groomerID)
+            return ListPage(items: offers, request: page)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func offerDetail(groomerID: UUID, offerID: UUID) async throws -> GroomerOfferListItem? {
+        do {
+            let rows: [SupabaseGroomerOfferRow] = try await client.from("groomer_offers").select(Self.offerColumns)
+                .eq("groomer_id", value: groomerID.uuidString.lowercased()).eq("id", value: offerID.uuidString.lowercased())
+                .limit(1).execute().value
+            return try await hydrateOffers(rows, groomerID: groomerID).first
+        } catch { throw Self.map(error) }
+    }
+
+    private func hydrateOffers(_ offerRows: [SupabaseGroomerOfferRow], groomerID: UUID) async throws -> [GroomerOfferListItem] {
+        guard !offerRows.isEmpty else { return [] }
+        guard offerRows.allSatisfy({ $0.groomerID == groomerID }) else { throw GroomerRequestRepositoryError.notAllowed }
             let requestsByID = await visibleRequestsByID(
                 requestIDs: offerRows.map(\.requestID)
             )
@@ -186,10 +250,7 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
                     booking: bookingsByOfferID[row.id]
                 )
             }
-            return ListPage(items: offers, request: page)
-        } catch {
-            throw Self.map(error)
-        }
+        return offers
     }
 
     func requestPhotos(
@@ -592,6 +653,7 @@ private struct RankedMatchParameters: Encodable {
     let p_sort: String
     let p_limit: Int
     let p_cursor: String?
+    var p_location: String? = nil
 }
 
 nonisolated private struct RankedMatchRow: Decodable, Sendable {
@@ -868,3 +930,6 @@ private struct WithdrawGroomerOfferParameters: Encodable {
         case offerID = "p_offer_id"
     }
 }
+
+private struct LegacyRankedMatchParameters: Encodable { let p_sort: String; let p_limit: Int; let p_cursor: String? }
+private struct GroomingOffersParameters: Encodable { let p_group: String; let p_limit: Int; let p_offset: Int }

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Customer journey timing. Finishing by elapsed time never changes fulfillment or verifies service evidence.
+/// Only an explicitly completed service is finished; elapsed time alone never enables review.
 /// Keep the eligibility boundary aligned with app_private.grooming_finished_at.
 nonisolated enum GroomingLifecycle {
     static func serviceCalendar(_ booking: Booking) -> Calendar? {
@@ -31,8 +31,7 @@ nonisolated enum GroomingLifecycle {
                 ?? booking.fulfillment?.actualEndedAt.flatMap(GroomingRequestDateFormatting.parsedDate)
                 ?? GroomingRequestDateFormatting.parsedDate(from: booking.scheduledEnd)
         }
-        guard booking.status == .confirmed, booking.fulfillment?.phase != .outcomeReported else { return nil }
-        return endOfAppointmentDay(booking)
+        return nil
     }
 
     static func isFinished(_ booking: Booking, now: Date = Date()) -> Bool {

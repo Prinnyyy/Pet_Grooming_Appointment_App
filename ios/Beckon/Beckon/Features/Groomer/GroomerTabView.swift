@@ -42,6 +42,7 @@ struct GroomerTabView: View {
     }
     @State private var notificationStore: GroomerNotificationsStore?
     @State private var chatStore: ChatStore?
+    @State private var groomingWorkspace: GroomerGroomingWorkspace?
     @State private var feedbackCenter = BeckonFeedbackCenter()
 
     init(
@@ -95,6 +96,14 @@ struct GroomerTabView: View {
                 displayCache: chatDisplayCache
             )
         )
+        if let groomerID, let requestsStore, let offersStore, let bookingsStore, let chatStore,
+           let requestRepository, let bookingRepository, let chatRepository {
+            _groomingWorkspace = State(initialValue: GroomerGroomingWorkspace(session: GroomerGroomingSession(
+                groomerID: groomerID, requests: requestsStore, offers: offersStore, bookings: bookingsStore,
+                chat: chatStore, notifications: notificationStore, requestRepository: requestRepository,
+                chatRepository: chatRepository, bookingRepository: bookingRepository, isCurrent: sessionIsCurrent)))
+        }
+
     }
 
     var body: some View {
@@ -131,6 +140,8 @@ struct GroomerTabView: View {
 
         .environment(\.beckonFeedbackCenter, feedbackCenter)
         .environment(\.openBookingChat, openBookingChat)
+        .environment(\.openRequestChat, { navigation.open(.conversation($0)) })
+        .environment(\.groomerGroomingWorkspace, groomingWorkspace)
         .overlay(alignment: .bottom) {
             BeckonGlobalFeedbackOverlay(center: feedbackCenter)
         }
@@ -171,10 +182,10 @@ struct GroomerTabView: View {
                 bookingAction: { navigation.open(.booking($0.id)) }, messagesAction: { select(.messages) },
                 availabilityAction: openAvailability, scheduleAction: { select(.bookings) },
                 accountAction: { select(.account) })
-        } else if tab == .requests, let requestsStore, let offersStore {
-            GroomerRequestsView(route: Binding(get: { requestsRoute }, set: { requestsRoute = $0 }),
-                requests: requestsStore, offers: offersStore,
-                onOpenBooking: { navigation.open(.booking($0.id)) }, sessionIsCurrent: sessionIsCurrent)
+        } else if tab == .requests, let groomingWorkspace {
+            GroomerGroomingView(workspace: groomingWorkspace,
+                path: Binding(get: { paths[.requests] ?? NavigationPath() }, set: { paths[.requests] = $0 }),
+                externalRoute: Binding(get: { requestsRoute }, set: { requestsRoute = $0 }))
         } else if tab == .bookings, let bookingsStore {
             GroomerScheduleView(store: bookingsStore,
                 focusedBooking: Binding(get: { focusedBooking }, set: { focusedBooking = $0 }),
@@ -220,6 +231,11 @@ struct GroomerTabView: View {
             if let groomerID, let chatStore {
                 ChatConversationDestination(route: .bookingConversation(id), role: .groomer,
                     participantID: groomerID, store: chatStore, booking: bookingsStore?.booking(withID: id))
+            }
+        case .conversation(let id):
+            if let groomerID, let chatStore {
+                ChatConversationDestination(route: .conversation(id), role: .groomer,
+                    participantID: groomerID, store: chatStore)
             }
         case .availability:
             if let profileStore { GroomerAvailabilityDestination(store: profileStore) }

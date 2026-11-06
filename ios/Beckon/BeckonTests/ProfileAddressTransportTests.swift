@@ -120,6 +120,7 @@ struct ProfileAddressTransportTests {
         let repository = SupabaseChatRepository(client: Self.client())
         let conversations = try await repository.conversations(participantID: customer, role: .customer)
         #expect(conversations.count == 2)
+        #expect(conversations.allSatisfy { $0.serverCanSend == true })
         #expect(conversations.last?.latestMessageBody == "Quiet latest")
         #expect(AddressTransportStub.state.paths.filter { $0.hasSuffix("/get_conversation_summaries") }.count == 1)
         #expect(!AddressTransportStub.state.paths.contains("/rest/v1/messages"))
@@ -444,6 +445,10 @@ nonisolated private final class AddressTransportStub: URLProtocol, @unchecked Se
                     if path.hasSuffix("/conversations") {
                         rows = ids.map { ["id": $0, "customer_id": customer, "groomer_id": groomer,
                             "created_at": time, "updated_at": time] }
+                    } else if path.hasSuffix("/get_chat_counterpart_names") {
+                        rows = ids.map { ["conversation_id": $0, "display_name": "Groomer"] }
+                    } else if path.hasSuffix("/get_conversation_send_permissions") {
+                        rows = ids.map { ["conversation_id": $0, "can_send": true] }
                     } else if path.hasSuffix("/get_conversation_summaries") {
                         rows = ids.enumerated().map { index, id in ["conversation_id": id,
                             "booking_summary": NSNull(), "latest_message": ["id": id,

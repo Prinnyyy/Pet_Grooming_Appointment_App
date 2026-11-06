@@ -110,6 +110,12 @@ struct CustomerTabView: View {
         _requestStore = State(initialValue: sharedRequestsStore)
     }
 
+    private var customerRequestChatContext: RequestChatContext? {
+        guard let customerID, let chatRepository, let chatStore else { return nil }
+        return RequestChatContext(participantID: customerID, role: .customer, repository: chatRepository,
+            store: chatStore, isCurrent: acceptanceSessionIsCurrent)
+    }
+
     var body: some View {
         tabs
         .modifier(CustomerRequestFlowPresenter(store: requestStore, profileRepository: customerProfileRepository,
@@ -123,7 +129,9 @@ struct CustomerTabView: View {
         .toolbarBackground(.visible, for: .tabBar)
         .environment(\.beckonFeedbackCenter, feedbackCenter)
 
+        .environment(\.requestChatContext, customerRequestChatContext)
         .environment(\.openBookingChat, openBookingChat)
+        .environment(\.openRequestChat, { navigation[navigation.selection].append(.conversation($0)) })
         .environment(\.bookingConfirmed, confirmBooking)
         .environment(\.customerGroomingRequestStore, requestStore)
         .environment(\.customerNavigation, navigation)

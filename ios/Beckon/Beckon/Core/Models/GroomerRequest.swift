@@ -399,7 +399,7 @@ struct GroomerOffer: Equatable, Hashable, Identifiable, Sendable {
         if hasPassedConfirmationDeadline(now: now) { return .status(.expired) }
         guard let quoteEvaluation else { return .checking }
         if !quoteEvaluation.termsValid {
-            return quoteEvaluation.reason == "expired" ? .status(.expired) : .newOfferRequired
+            return ["expired", "time_slot_booked"].contains(quoteEvaluation.reason) ? .status(.expired) : .newOfferRequired
         }
         return quoteEvaluation.selectable ? .status(status) : .timeUnavailable
     }

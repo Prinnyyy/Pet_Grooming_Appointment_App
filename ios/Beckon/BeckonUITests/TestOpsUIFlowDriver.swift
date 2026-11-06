@@ -131,7 +131,10 @@ final class TestOpsUIFlowDriver {
             }
             XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 3),
                 "The sign-in field must receive keyboard input before typing")
-            if let value = field.value as? String, !value.isEmpty {
+            // The keyboard may already belong to the preceding field. Tap again
+            // after keyboard avoidance settles, and don't select placeholder dots.
+            field.tap()
+            if let value = field.value as? String, !value.isEmpty, value != field.placeholderValue {
                 field.typeKey("a", modifierFlags: .command)
             }
             field.typeText(text)
@@ -150,6 +153,31 @@ final class TestOpsUIFlowDriver {
         assertTab("customer.tab.messages", destination: "chat.conversations.list")
         assertTab("customer.tab.account", destination: "customer.account")
         assertTab("customer.tab.home", destination: "customer.home")
+    }
+
+    func assertGroomingWorkspaceScopes() {
+        assertTab("groomer.tab.requests", destination: "groomer.requests.list")
+        func choose(_ title: String) {
+            let button = app.buttons[title].firstMatch
+            XCTAssertTrue(button.waitForExistence(timeout: 8))
+            button.tap()
+            XCTAssertTrue(button.isSelected)
+        }
+        choose("Studio")
+        app.buttons["groomer.requests.segment.offers"].tap()
+        XCTAssertTrue(app.buttons["Waiting"].isSelected)
+        choose("Accepted")
+        choose("Closed")
+        app.buttons["groomer.requests.segment.bookings"].tap()
+        XCTAssertTrue(app.buttons["Active"].isSelected)
+        choose("Closed")
+        app.buttons["groomer.requests.segment.matches"].tap()
+        XCTAssertTrue(app.buttons["All"].isSelected)
+        app.buttons["groomer.requests.segment.offers"].tap()
+        XCTAssertTrue(app.buttons["Waiting"].isSelected)
+        app.buttons["groomer.requests.segment.bookings"].tap()
+        XCTAssertTrue(app.buttons["Active"].isSelected)
+        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label CONTAINS 'Could not refresh'")).firstMatch.exists)
     }
 
     func assertGroomerNavigation() {

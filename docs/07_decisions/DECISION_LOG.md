@@ -398,3 +398,10 @@ Full text for the entries below is preserved in `../09_frozen/decisions/DECISION
 | 2026-07-08 | Reduce active Markdown before raising the 32k total budget. | `../09_frozen/decisions/DECISION_LOG_D-012_2026-07-09.md` |
 | 2026-07-08 | Keep branch baseline as a single active fact in CURRENT_STATE. | `../09_frozen/decisions/DECISION_LOG_D-011_2026-07-09.md` |
 | 2026-07-08 | Track meta-review cadence by completed-task distance, not wall-clock age. | `../09_frozen/decisions/DECISION_LOG_D-010_2026-07-09.md` |
+
+
+## T-466 — Adopt the approved Groomer Grooming flow
+
+The user approved promotion of the current independently editable Groomer sandbox to production, including the corresponding backend rules. `Features/Groomer/Grooming/` is Tier M; shared row geometry, press surfaces and animated bubble geometry live under `DesignSystem/GroomerVisit/`. Production uses real account-bound Stores/repositories and server-filtered pages. The sandbox remains independent. The six scoped backend migrations are deployed; detailed acceptance evidence belongs to the T-466 plan.
+
+Services enter In service by scheduled time; either participant may mark Finished after start. End-time passage alone does not complete a booking or permit a review. New actions no longer expose interruption/outcome confirmation. Offers remain independent records under one request, withdrawn offers leave Offers, and an overlapping accepted booking closes affected offers permanently. Prebooking first contact requires a valid invitation (groomer) or offer (customer); existing text conversations remain available under existing restrictions. Activity uses immutable backend operation timestamps. Backend changes use six append-only migrations deployed with explicit user authorization, transaction rollback checks and HTTP concurrency/contact verification.

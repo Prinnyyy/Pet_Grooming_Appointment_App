@@ -127,6 +127,7 @@ struct AppComposition {
                     FileProfileSnapshotCache.shared.remove(userID: userID)
                     GroomerRequestCountCache.shared.remove(groomerID: userID)
                     ParticipantAvatarCache.shared.remove(accountID: userID)
+                    GroomingReadStateCache.shared.remove(accountID: userID)
                     FileChatDisplayCache.shared.remove(participantID: userID)
                     FilePrivateImageCache.shared.removeAll()
                     FileCustomerPetPhotoCache.shared.removeAll(

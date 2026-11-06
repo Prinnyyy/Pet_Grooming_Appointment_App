@@ -441,6 +441,8 @@ enum DesignTokens {
 
         /// SF Rounded roles for expressive (Tier L/M) screens. Still semantic text styles, so Dynamic Type applies.
         enum Expressive {
+            /// Approved Grooming amount row: 40pt at the default content size.
+            static func offerAmount(size: CGFloat) -> Font { .system(size: size, weight: .bold, design: .rounded) }
             static func homeGreeting(size: CGFloat) -> Font {
                 .system(size: size, weight: .black, design: .rounded)
             }

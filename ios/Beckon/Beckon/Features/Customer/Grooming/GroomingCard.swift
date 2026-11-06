@@ -331,11 +331,7 @@ extension GroomingCardContent {
         )
     }
 
-    /// A booking: the same card, the path lit up to Booked. The owner is at Booked until the appointment day is over: its calendar
-    /// pulses and the bubble says when ("In 3 days", "Tomorrow", then "Today!"). The line on to Finished is empty before the day,
-    /// half full on the day, most of the way once the appointment's own time is over. The day ending, or the groomer marking the
-    /// service done, whichever is first, moves the bubble to Finished: "Rate it!" and one button. The groomer does not have to press
-    /// anything for that to happen. The one thing that stays at Booked on the day is a reported service waiting for the owner.
+    /// The scheduled clock starts service; only a participant marks it finished.
     static func booking(_ booking: Booking, avatar: Data?, isNew: Bool, now: Date = Date(), request: CustomerGroomingRequest? = nil) -> GroomingCardContent {
         let isFinished = GroomingFeed.isFinished(booking, now: now)
         let needsReview = isFinished && booking.review == nil
@@ -355,9 +351,10 @@ extension GroomingCardContent {
         } else if needsReview {
             bubble = .init(kind: .review, column: 3)
             status = "Finished, leave a review"
-        } else if phase == .outcomeReported {
-            bubble = .init(kind: .confirmOutcome, column: 2)
-            status = "Confirm the outcome"
+        } else if let start = GroomingRequestDateFormatting.parsedDate(from: booking.scheduledStart), start <= now {
+            let ended = GroomingRequestDateFormatting.parsedDate(from: booking.scheduledEnd).map { now >= $0 } ?? false
+            bubble = .init(kind: ended ? .waitingFor("Awaiting completion") : .status("In service", systemImage: "scissors"), column: 2)
+            status = ended ? "Awaiting completion" : "In service"
         } else if isNew {
             bubble = .init(kind: .booked, column: 2)
             status = "Booking confirmed"

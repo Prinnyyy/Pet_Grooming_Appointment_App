@@ -146,12 +146,10 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
     }
 
     nonisolated func canComplete(for role: UserRole, now: Date = Date()) -> Bool {
-        guard role == .groomer, status == .confirmed,
+        guard status == .confirmed,
               let start = GroomingRequestDateFormatting.parsedDate(from: scheduledStart), now >= start else { return false }
         guard let fulfillment else { return true }
-        guard fulfillment.phase == .inService,
-              let actualStart = fulfillment.actualStartedAt.flatMap(GroomingRequestDateFormatting.parsedDate) else { return false }
-        return now >= actualStart.addingTimeInterval(60)
+        return [.scheduled, .inService, .outcomeReported].contains(fulfillment.phase)
     }
 
     nonisolated func canReview(for role: UserRole, now: Date = Date()) -> Bool {

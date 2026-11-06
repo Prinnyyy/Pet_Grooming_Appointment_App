@@ -159,6 +159,30 @@ final class SupabaseBookingRepository: BookingRepository {
         ).items
     }
 
+    func groomingBookings(
+        participantID: UUID,
+        closed: Bool,
+        page: ListPageRequest
+    ) async throws -> ListPage<Booking> {
+        do {
+            let rows: [SupabaseBookingRow] = try await client
+                .from("bookings")
+                .select(Self.bookingColumns + "," + SupabaseBookingRow.fulfillmentColumns)
+                .eq("groomer_id", value: participantID.uuidString.lowercased())
+                .in("status", values: closed ? ["completed", "unfulfilled", "cancelled_by_customer", "cancelled_by_groomer"] : ["confirmed"])
+                .order("scheduled_start", ascending: !closed)
+                .order("id", ascending: true)
+                .range(from: page.offset, to: page.inclusiveRangeEnd)
+                .execute()
+                .value
+
+            let bookings = try await hydrate(rows)
+            return ListPage(items: bookings, request: page)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
     func bookings(
         participantID: UUID,
         role: UserRole,

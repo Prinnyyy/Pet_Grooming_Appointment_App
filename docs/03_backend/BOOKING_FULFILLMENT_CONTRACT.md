@@ -1,5 +1,21 @@
 # Booking Fulfillment Contract
 
+## T-466 adopted replacement
+
+The user-approved Grooming flow is deployed by T-466 and supersedes the historical action semantics below. Six migrations were applied after transactional rollback validation; the adoption plan records the remaining delivery evidence.
+
+- A confirmed appointment displays **In service** at its scheduled start. This is a clock projection, not a fabricated `start` operation or actual-start timestamp.
+- After scheduled start, either participant may mark it **Finished** through the existing versioned `complete` operation. No counterpart confirmation is required. Scheduled end alone never finishes a booking or makes it reviewable; the completion action remains available later.
+- Pre-start cancellation remains participant-owned. New interruption, no-show, unfulfilled and retrospective-confirmation actions are retired. Existing historical rows and receipts remain readable. Legacy clients cannot create retired actions through the authoritative writer.
+- Customer review requires explicit completion. This replaces T-421's elapsed-but-unverified review eligibility for new submissions. Existing reviews are preserved.
+- Completion preserves existing actual timestamps when present; it does not invent missing ones. Early release is clamped to the agreed service interval. No buffers are reintroduced.
+- The same actor/operation ID, exact-intent replay, revision checks, request/booking/admission lock order, one chat card and participant permissions remain. Only `completed_by` expands from groomer-only to either participant.
+- Reschedule state includes immutable operation history with actor and recorded time. Only a proposal Activity entry repeats previous/proposed service intervals; responses record their action/time. Automatic start creates no Activity event.
+
+Validation/deployment status belongs to [T-466](../superpowers/plans/2026-11-05-groomer-grooming-adoption.md), not the historical acceptance link below.
+
+## Historical deployed contract (before T-466)
+
 T-377 / WP-06. Adopted under delegated judgment, deployed and [accepted](../06_tasks/sql_reviews/T-377_FULFILLMENT_ACCEPTANCE.md). Extends Booking, not a general workflow engine.
 
 ## Timing And Release

@@ -41,34 +41,18 @@ struct GroomerBookingStage {
         }
         isFinished = false
 
-        switch phase {
-        case .inService:
-            let started = booking.fulfillment?.actualStartedAt.flatMap { GroomingRequestDateFormatting.parsedDate(from: $0) } ?? start
-            let length = max(1, (end ?? now).timeIntervalSince(start ?? now))
-            let progress = started.map { min(0.92, max(0.08, now.timeIntervalSince($0) / length)) } ?? 0.08
+        if let start, now >= start {
+            let length = max(1, (end ?? now).timeIntervalSince(start))
+            let progress = min(0.92, max(0.08, now.timeIntervalSince(start) / length))
+            let elapsed = end.map { now >= $0 } ?? false
             path = .init(stops: stops, current: 1, fills: [1, progress, 0],
-                bubble: .init(kind: .status("In service", systemImage: "scissors"), column: 1), status: "In service")
-        case .outcomeReported:
-            let reportedByGroomer = booking.fulfillment?.reportedBy == booking.groomerID
-            path = .init(stops: stops, current: 1, fills: [1, 0.8, 0],
-                bubble: .init(kind: reportedByGroomer ? .waitingFor("Customer to confirm") : .confirmOutcome, column: 1),
-                status: reportedByGroomer ? "Service reported, waiting for the customer" : "Confirm the outcome")
-        default:
-            // Until the service record is read the groomer can do nothing with a booking, so the bubble only counts the days.
-            if phase != nil, let end, now >= end {
-                path = .init(stops: stops, current: 0, fills: [0.8, 0, 0],
-                    bubble: .init(kind: .attention("Close it out", systemImage: "exclamationmark.circle.fill"), column: 0),
-                    status: "The time is over and the service was not closed")
-            } else if phase != nil, let start, now >= start {
-                path = .init(stops: stops, current: 0, fills: [0.8, 0, 0],
-                    bubble: .init(kind: .attention("Start now", systemImage: "play.circle.fill"), column: 0),
-                    status: "Time to start")
-            } else {
-                let countdown = BeckonBookingCountdown.label(for: booking, now: now)
-                path = .init(stops: stops, current: 0, fills: [GroomingFeed.waitingProgress(booking, now: now), 0, 0],
-                    bubble: .init(kind: .countdown(countdown == "Today" ? "Today!" : (countdown ?? "Booked")), column: 0),
-                    status: countdown.map { "Booked, \($0.lowercased())" } ?? "Booked")
-            }
+                bubble: .init(kind: elapsed ? .waitingFor("Awaiting completion") : .status("In service", systemImage: "scissors"), column: 1),
+                status: elapsed ? "Awaiting completion" : "In service")
+        } else {
+            let countdown = BeckonBookingCountdown.label(for: booking, now: now)
+            path = .init(stops: stops, current: 0, fills: [GroomingFeed.waitingProgress(booking, now: now), 0, 0],
+                bubble: .init(kind: .countdown(countdown ?? "Booked"), column: 0),
+                status: countdown.map { "Booked, \($0.lowercased())" } ?? "Booked")
         }
     }
 

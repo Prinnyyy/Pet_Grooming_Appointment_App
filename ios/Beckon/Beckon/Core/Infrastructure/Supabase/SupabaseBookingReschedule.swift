@@ -4,8 +4,9 @@ nonisolated struct SupabaseRescheduleResponse: Decodable {
     let booking: SupabaseBookingRow
     let proposal: BookingRescheduleProposal?
     let receipt: BookingRescheduleReceipt?
+    let history: [BookingTimeChangeActivity]?
     @MainActor var result: BookingRescheduleResult {
-        BookingRescheduleResult(booking: booking.booking, proposal: proposal, receipt: receipt)
+        BookingRescheduleResult(booking: booking.booking, proposal: proposal, receipt: receipt, history: history ?? [])
     }
 }
 

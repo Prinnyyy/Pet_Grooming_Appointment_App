@@ -10,6 +10,7 @@ import SwiftUI
 
 
 struct GroomerBookingDetailView: View {
+    @Environment(\.groomerGroomingWorkspace) private var adoptedWorkspace
     let bookingID: UUID
     let store: BookingsStore
     var onOpenChat: ((Booking) -> Void)?
@@ -28,6 +29,13 @@ struct GroomerBookingDetailView: View {
     private var openChat: ((Booking) -> Void)? { onOpenChat ?? shellOpenChat }
 
     var body: some View {
+        if let adoptedWorkspace {
+            GroomerVisitBookingDetail(bookingID: bookingID, store: store, chat: adoptedWorkspace.session.chat,
+                decision: adoptedWorkspace.bookingDecision)
+        } else { legacyBody }
+    }
+
+    private var legacyBody: some View {
         Group {
             if let booking {
                 page(booking).environment(\.beckonRevealsInPlace, waitedForBooking)

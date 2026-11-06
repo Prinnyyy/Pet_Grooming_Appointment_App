@@ -4,6 +4,7 @@ import Observation
 nonisolated enum GroomerDestination: Hashable {
     case booking(UUID)
     case bookingConversation(UUID)
+    case conversation(UUID)
     case availability
 }
 

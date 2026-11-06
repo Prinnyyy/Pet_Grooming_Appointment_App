@@ -71,6 +71,7 @@ nonisolated struct QuoteEvaluation: Decodable, Equatable, Hashable, Sendable {
 
     var summary: String {
         switch reason {
+        case "time_slot_booked": "This offer closed because another appointment was booked for this time."
         case "available": "Available to confirm"
         case "capacity_unavailable": "This time is currently unavailable. Check again before the offer expires."
         case "expired": "This offer has expired. Request a new offer."

@@ -215,6 +215,7 @@ private struct DesignDialogPresenter: ViewModifier {
     @State private var isShowing = false
     @State private var spec: DesignDialogSpec?
     @Environment(\.beckonRole) private var role
+    @Environment(\.groomerVisitDialogRules) private var groomerRules
 
     /// The body reads `spec` and `isShowing` itself and hands the cover plain values. A cover's content closure that reads this
     /// modifier's state only inside the closure leaves the dialog blank when the caller's own `@State` drives it: the body never
@@ -223,11 +224,12 @@ private struct DesignDialogPresenter: ViewModifier {
         let spec = spec
         let isShowing = isShowing
         let role = role
+        let groomerRules = groomerRules
         content
             .fullScreenCover(isPresented: $isCovering) {
                 Group {
                     if let spec {
-                        DesignDialogStage(spec: spec, style: style, isPresented: isShowing) {
+                        DesignDialogStage(spec: spec, style: groomerRules ? .modal : style, isPresented: isShowing) {
                             DesignDialogSequence.closing()
                             self.isShowing = false
                             isPresented = false
@@ -276,6 +278,8 @@ private struct DesignDialogStage: View {
     let style: DesignDialogPresenter.Style
     let isPresented: Bool
     let close: () -> Void
+    @Environment(\.groomerVisitDialogRules) private var groomerRules
+    @Environment(\.groomerVisitModalDismissesOnBackground) private var dismissesOnBackground
     @State private var hasArrived = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -307,7 +311,7 @@ private struct DesignDialogStage: View {
         let dim = DesignTokens.Colors.scrim
             .ignoresSafeArea()
             .opacity(isVisible ? 1 : 0)
-        if style == .modal {
+        if style == .modal && (!groomerRules || dismissesOnBackground) {
             dim
                 .contentShape(Rectangle())
                 .onTapGesture(perform: close)
@@ -323,6 +327,7 @@ private struct DesignDialogStage: View {
 
 /// The shared face of both dialogs. Too tall for the screen (accessibility sizes), the text scrolls and the buttons stay in view.
 struct DesignDialogCard: View {
+    @Environment(\.groomerVisitDialogRules) private var groomerRules
     let spec: DesignDialogSpec
     let showsClose: Bool
     let close: () -> Void
@@ -356,7 +361,7 @@ struct DesignDialogCard: View {
 
             if !spec.actions.isEmpty {
                 VStack(spacing: DesignTokens.Spacing.sm) {
-                    ForEach(spec.actions) { action in
+                    ForEach(groomerRules ? spec.actions.filter { $0.role == .primary } + spec.actions.filter { $0.role != .primary } : spec.actions) { action in
                         actionButton(action)
                     }
                 }
@@ -399,15 +404,28 @@ struct DesignDialogCard: View {
         switch action.role {
         case .primary:
             Button { choose(action) } label: {
-                DesignActionLabel(title: action.title, systemImage: action.systemImage)
+                if groomerRules {
+                    GroomerVisitDialogPrimaryLabel(title: action.title)
+                } else {
+                    DesignActionLabel(title: action.title, systemImage: action.systemImage)
+                }
             }
             .buttonStyle(BeckonLedgeButtonStyle(.pill))
             .disabled(!action.isEnabled())
             .accessibilityIdentifier(action.identifier ?? "dialog.primary")
         case .quiet, .destructive:
             Button { choose(action) } label: {
-                DesignQuietAction(title: action.title, systemImage: action.systemImage,
-                    isDestructive: action.role == .destructive)
+                if groomerRules {
+                    Text(action.title)
+                        .font(DesignTokens.Typography.Expressive.headline)
+                        .foregroundStyle(action.role == .destructive ? DesignTokens.Colors.statusErrorText : DesignTokens.Colors.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.minimumTouchTarget)
+                } else {
+                    DesignQuietAction(title: action.title, systemImage: action.systemImage,
+                        isDestructive: action.role == .destructive)
+                }
             }
             .buttonStyle(BeckonGuardedPlainButtonStyle())
             .accessibilityIdentifier(action.identifier ?? "dialog.quiet")
@@ -423,9 +441,97 @@ struct DesignDialogCard: View {
                 .frame(width: DesignTokens.Metrics.minimumTouchTarget, height: DesignTokens.Metrics.minimumTouchTarget)
                 .contentShape(Circle())
         }
-        .buttonStyle(BeckonGuardedPlainButtonStyle())
-        .padding(DesignTokens.Spacing.xs)
+        .modifier(GroomerVisitDialogCloseStyle(groomerRules: groomerRules))
+        .padding(groomerRules ? DesignTokens.Spacing.sm : DesignTokens.Spacing.xs)
         .accessibilityLabel("Close")
         .accessibilityIdentifier("dialog.close")
+    }
+}
+
+private struct GroomerVisitModalDismissesOnBackgroundKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+private struct GroomerVisitGroomerDialogRulesKey: EnvironmentKey {
+    static let defaultValue = false
+}
+extension EnvironmentValues {
+    var groomerVisitModalDismissesOnBackground: Bool {
+        get { self[GroomerVisitModalDismissesOnBackgroundKey.self] }
+        set { self[GroomerVisitModalDismissesOnBackgroundKey.self] = newValue }
+    }
+    var groomerVisitDialogRules: Bool {
+        get { self[GroomerVisitGroomerDialogRulesKey.self] }
+        set { self[GroomerVisitGroomerDialogRulesKey.self] = newValue }
+    }
+}
+
+private struct GroomerVisitDialogPrimaryLabel: View {
+    let title: String
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        Text(title)
+            .font(DesignTokens.Typography.Expressive.headline)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .foregroundStyle(DesignTokens.Colors.customerInk)
+            .padding(.vertical, typeSize.isAccessibilitySize ? DesignTokens.Spacing.md : 0)
+            .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.ledgePrimaryButtonHeight)
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+    }
+}
+
+private struct GroomerVisitDialogCloseStyle: ViewModifier {
+    let groomerRules: Bool
+    func body(content: Content) -> some View {
+        if groomerRules { content.buttonStyle(GroomerVisitDialogCloseButtonStyle(enabled: true)) }
+        else { content.buttonStyle(BeckonGuardedPlainButtonStyle()) }
+    }
+}
+
+private struct GroomerVisitDialogCloseButtonStyle: ButtonStyle {
+    let enabled: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    func makeBody(configuration: Configuration) -> some View {
+        if enabled {
+            configuration.label
+                .background {
+                    Circle().fill(DesignTokens.Colors.customerFill.opacity(configuration.isPressed ? 0.28 : 0))
+                        .frame(width: 32, height: 32)
+                }
+                .clipShape(Circle())
+                .animation(.easeOut(duration: reduceMotion ? 0.1 : 0.12), value: configuration.isPressed)
+        } else {
+            configuration.label
+        }
+    }
+}
+
+
+extension View {
+    func groomerVisitDesignModal<Item>(item: Binding<Item?>, allowsBackgroundDismissal: Bool = false,
+        _ make: @escaping (Item) -> DesignModal) -> some View {
+        designModal(item: item, make)
+            .environment(\.groomerVisitDialogRules, true)
+            .environment(\.groomerVisitModalDismissesOnBackground, allowsBackgroundDismissal)
+    }
+
+    func groomerVisitDesignModal(isPresented: Binding<Bool>, _ make: @escaping () -> DesignAlertDialog) -> some View {
+        designModal(isPresented: isPresented) {
+            let source = make()
+            return DesignModal(systemImage: source.systemImage, tone: source.tone,
+                title: source.title, message: source.message, actions: source.actions)
+        }
+        .environment(\.groomerVisitDialogRules, true)
+    }
+}
+
+extension View {
+    func groomerVisitGroomingFulfillmentModal(action: Binding<BookingFulfillmentAction?>,
+        confirm: @escaping @MainActor (BookingFulfillmentAction, String?) -> Void) -> some View {
+        groomingFulfillmentDialog(action: action, confirm: confirm)
+            .environment(\.groomerVisitDialogRules, true)
+            .environment(\.groomerVisitModalDismissesOnBackground, false)
     }
 }

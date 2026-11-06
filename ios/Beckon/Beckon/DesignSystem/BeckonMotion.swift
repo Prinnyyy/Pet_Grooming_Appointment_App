@@ -203,7 +203,7 @@ private struct BeckonCascadeOwnsArrivalKey: ContainerValueKey {
 
 extension ContainerValues {
     /// Set by a cascade on itself: its blocks arrive one by one, so an outer cascade must not also animate it as one block.
-    fileprivate var beckonCascadeOwnsArrival: Bool {
+    var beckonCascadeOwnsArrival: Bool {
         get { self[BeckonCascadeOwnsArrivalKey.self] }
         set { self[BeckonCascadeOwnsArrivalKey.self] = newValue }
     }

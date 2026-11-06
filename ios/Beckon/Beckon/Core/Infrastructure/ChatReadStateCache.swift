@@ -37,3 +37,19 @@ final class UserDefaultsChatReadStateCache: ChatReadStateCaching {
         "beckon.chat.read.\(role.rawValue).\(participantID.uuidString.lowercased())"
     }
 }
+
+/// Bounded non-content receipts for Grooming updates. Account/role scoped like chat read state.
+@MainActor
+final class GroomingReadStateCache {
+    static let shared = GroomingReadStateCache()
+    private let defaults: UserDefaults
+    init(defaults: UserDefaults = .standard) { self.defaults = defaults }
+    private func key(_ id: UUID) -> String { "beckon.grooming.read.groomer.\(id.uuidString.lowercased())" }
+    func keys(accountID: UUID) -> Set<String> { Set(defaults.stringArray(forKey: key(accountID)) ?? []) }
+    func record(_ values: [String], accountID: UUID) {
+        let old = defaults.stringArray(forKey: key(accountID)) ?? []
+        let merged = old.filter { !values.contains($0) } + values
+        defaults.set(Array(merged.suffix(500)), forKey: key(accountID))
+    }
+    func remove(accountID: UUID) { defaults.removeObject(forKey: key(accountID)) }
+}

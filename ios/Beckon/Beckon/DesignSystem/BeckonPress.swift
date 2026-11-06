@@ -81,7 +81,23 @@ struct BeckonPressEngine<Content: View>: View {
         self.content = content
     }
 
-    var body: some View {
+    @Environment(\.groomerVisitNavigationPress) private var visitNavigationPress
+
+    @ViewBuilder var body: some View {
+        if let press = visitNavigationPress {
+            let face = content(press.amount)
+                .onChange(of: isPressed) { _, down in
+                    guard isEnabled, !reduceMotion else { return }
+                    press.touch(down)
+                }
+            if let haptic { face.sensoryFeedback(haptic, trigger: taps) }
+            else { face }
+        } else {
+            regularBody
+        }
+    }
+
+    private var regularBody: some View {
         Group {
             if let haptic { content(amount).sensoryFeedback(haptic, trigger: hapticCount) }
             else { content(amount) }
@@ -189,7 +205,14 @@ extension BeckonLedgeSurface {
     }
 }
 
+extension EnvironmentValues {
+    var preservesSandboxPressFace: Bool {
+        groomerVisitAppearance
+    }
+}
+
 struct BeckonPressFace: ViewModifier {
+    @Environment(\.preservesSandboxPressFace) private var preservesFace
     let face: Color
     let pressedFace: Color
     let lip: Color
@@ -202,10 +225,11 @@ struct BeckonPressFace: ViewModifier {
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         content
+            .opacity(preservesFace && reduceMotion ? 1 - 0.22 * amount : 1)
             .background {
                 ZStack {
                     shape.fill(face)
-                    shape.fill(pressedFace).opacity(min(1, max(0, amount)))
+                    if !preservesFace { shape.fill(pressedFace).opacity(min(1, max(0, amount))) }
                 }
             }
             .overlay { if let edge { shape.strokeBorder(edge, lineWidth: DesignTokens.Ledge.edgeWidth) } }
@@ -256,6 +280,7 @@ private struct BeckonPlainPressBody<Label: View>: View {
 
 
 struct BeckonPlainPressLook: ViewModifier {
+    @Environment(\.preservesSandboxPressFace) private var preservesFace
     let kind: BeckonPressKind
     let amount: CGFloat
     let size: CGSize
@@ -277,7 +302,7 @@ struct BeckonPlainPressLook: ViewModifier {
         // Keep the label's identity when automatic classification learns its size. Only decoration changes.
         // Tint belongs inside the scale, so it cannot leave an unscaled frame around a pressed card.
         content
-            .modifier(BeckonPressSurfaceTint(share: surface ? share : 0))
+            .modifier(BeckonPressSurfaceTint(share: surface && !preservesFace ? share : 0))
             .scaleEffect(1 - loss * amount * motion)
             .opacity(kind == .inline ? 1 - BeckonPressMeasure.inlineDim * share : 1)
             .background {

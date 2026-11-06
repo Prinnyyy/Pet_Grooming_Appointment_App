@@ -1049,7 +1049,8 @@ extension CustomerRequestsStoreTests {
             customerID: customerID,
             status: .confirmed
         )
-        let presentation = GroomingCardContent.entry(.booking(booking, handoff: .init(request: bookedRequest, booking: booking), avatar: nil))
+        let beforeStart = try #require(GroomingRequestDateFormatting.parsedDate(from: booking.scheduledStart)).addingTimeInterval(-60)
+        let presentation = GroomingCardContent.entry(.booking(booking, handoff: .init(request: bookedRequest, booking: booking), avatar: nil), now: beforeStart)
         #expect(presentation.status == "Booking confirmed")
         #expect(presentation.title.contains("Mochi"))
         #expect(presentation.time == booking.scheduledTimePresentation.summary)

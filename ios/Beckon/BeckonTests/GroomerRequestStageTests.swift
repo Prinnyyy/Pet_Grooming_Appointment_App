@@ -3,11 +3,12 @@ import Testing
 @testable import Beckon
 
 @MainActor struct GroomerRequestStageTests {
-    @Test func newAndOfferedShareTheRequestStoryButDoNotShareMatches() {
+    @Test func newAndOfferedShareTheRequestStoryButDoNotShareMatches() throws {
         let matches = GroomerSandboxFixtures.matches()
         let now = Date()
         let new = GroomerRequestStage(.init(matched: matches[0]), now: now)
-        let offered = GroomerRequestStage(.init(matched: matches[4]), now: now)
+        let offeredMatch = try #require(matches.first { $0.offer?.status == .pending })
+        let offered = GroomerRequestStage(.init(matched: offeredMatch), now: now)
         #expect(new.kind == .new)
         #expect(new.canAnswer)
         #expect(offered.kind == .offered)

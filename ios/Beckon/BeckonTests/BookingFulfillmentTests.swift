@@ -53,7 +53,7 @@ final class BookingFulfillmentRenderingTests: XCTestCase {
         attachment.lifetime = .keepAlways
         add(attachment)
         XCTAssertGreaterThan(scroll.contentOffset.y, 0)
-        XCTAssertTrue(store.fulfillmentActions(for: booking).contains(role == .customer ? .withdrawReport : .confirmStop))
+        XCTAssertFalse(store.fulfillmentActions(for: booking).contains(.confirmStop))
         XCTAssertFalse(store.fulfillmentActions(for: booking).contains(.cancel))
         let pixels = try XCTUnwrap(image.cgImage?.dataProvider?.data)
         let bytes = try XCTUnwrap(CFDataGetBytePtr(pixels))
@@ -175,37 +175,40 @@ struct BookingFulfillmentTests {
         #expect(!booking.canComplete(for: .groomer, now: before))
     }
 
-    @Test func startDoesNotPermitInstantCompletion() throws {
+    @Test func eitherParticipantCanFinishAfterScheduledStartWithoutAStartMutation() throws {
         var booking = ServiceAgreementTests.booking()
-        booking.fulfillment = state(.inService, actualStart: booking.scheduledStart)
         let start = try #require(GroomingRequestDateFormatting.parsedDate(from: booking.scheduledStart))
-        #expect(!booking.canComplete(for: .groomer, now: start.addingTimeInterval(59)))
-        #expect(booking.canComplete(for: .groomer, now: start.addingTimeInterval(60)))
-        #expect(!booking.canComplete(for: .customer, now: start.addingTimeInterval(60)))
+        for phase: BookingFulfillmentPhase in [.scheduled, .inService, .outcomeReported] {
+            booking.fulfillment = state(phase)
+            for role: UserRole in [.customer, .groomer] {
+                let participant = role == .customer ? booking.customerID : booking.groomerID
+                #expect(!booking.canComplete(for: role, now: start.addingTimeInterval(-1)))
+                #expect(booking.fulfillmentActions(for: role, participantID: participant, now: start) == [.complete])
+                #expect(booking.fulfillmentActions(for: role, participantID: UUID(), now: start).isEmpty)
+            }
+        }
     }
 
-    @Test func noShowWaitAndElapsedRecoveryHaveExplicitBoundaries() throws {
+    @Test func elapsedServiceNeverOffersAnUnfulfilledOrAutomaticCompletionBranch() throws {
         var booking = ServiceAgreementTests.booking()
         booking.fulfillment = state(.scheduled)
         let start = try #require(GroomingRequestDateFormatting.parsedDate(from: booking.scheduledStart))
         #expect(booking.fulfillmentActions(for: .customer, participantID: booking.customerID, now: start.addingTimeInterval(-1)) == [.cancel])
-        #expect(!booking.fulfillmentActions(for: .customer, participantID: booking.customerID, now: start.addingTimeInterval(899)).contains(.reportNoShow))
-        #expect(booking.fulfillmentActions(for: .customer, participantID: booking.customerID, now: start.addingTimeInterval(900)).contains(.reportNoShow))
         let end = try #require(GroomingRequestDateFormatting.parsedDate(from: booking.scheduledEnd))
-        #expect(booking.fulfillmentActions(for: .customer, participantID: booking.customerID, now: end).contains(.closeElapsed))
-        #expect(booking.fulfillmentActions(for: .groomer, participantID: booking.groomerID, now: end).contains(.reportCompletion))
-        #expect(!booking.fulfillmentActions(for: .groomer, participantID: booking.groomerID, now: end).contains(.start))
+        for time in [end, end.addingTimeInterval(30 * 86400)] {
+            #expect(booking.fulfillmentActions(for: .customer, participantID: booking.customerID, now: time) == [.complete])
+            #expect(booking.fulfillmentActions(for: .groomer, participantID: booking.groomerID, now: time) == [.complete])
+            #expect(!GroomingLifecycle.isFinished(booking, now: time))
+            #expect(!booking.canReview(for: .customer, now: time))
+        }
     }
 
-    @Test func reportAuthorCannotSupplyBothParticipantsConsent() {
+    @Test func historicalClosedOutcomesStayReadableWithoutNewMutations() {
         var booking = ServiceAgreementTests.booking()
-        booking.fulfillment = state(.outcomeReported, reporter: booking.customerID)
-        let customer = booking.fulfillmentActions(for: .customer, participantID: booking.customerID)
-        let groomer = booking.fulfillmentActions(for: .groomer, participantID: booking.groomerID)
-        #expect(customer.contains(.withdrawReport))
-        #expect(!customer.contains(.confirmStop))
-        #expect(groomer.contains(.confirmStop))
-        #expect(booking.fulfillmentActions(for: .customer, participantID: UUID()).isEmpty)
-        #expect(booking.replacing(status: .confirmed, cancelledBy: nil, cancelledAt: nil).fulfillment == booking.fulfillment)
+        booking.fulfillment = state(.unfulfilled)
+        booking = booking.replacing(status: .unfulfilled, cancelledBy: nil, cancelledAt: nil)
+        #expect(booking.fulfillmentActions(for: .customer, participantID: booking.customerID).isEmpty)
+        #expect(booking.fulfillmentActions(for: .groomer, participantID: booking.groomerID).isEmpty)
+        #expect(!booking.canReview(for: .customer))
     }
 }

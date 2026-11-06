@@ -42,9 +42,12 @@ final class CustomerNavigationSmokeTests: XCTestCase {
         let confirmed = app.buttons.matching(NSPredicate(format: "identifier == 'customer.notifications.open' AND label CONTAINS 'appointment is confirmed'")).firstMatch
         tap(confirmed, in: app, scrolling: true)
         XCTAssertTrue(screen("bookings.detail", in: app).waitForExistence(timeout: 8))
-        XCTAssertTrue(tab("Grooming", in: app).isSelected)
+        XCTAssertFalse(app.tabBars.firstMatch.exists, "Booking detail hides the tab bar")
         tap(app.buttons["bookings.detail.open-chat"], in: app, scrolling: true)
         XCTAssertTrue(screen("chat.thread", in: app).waitForExistence(timeout: 8))
+        XCTAssertFalse(app.tabBars.firstMatch.exists, "Chat is a secondary page")
+        tap(app.buttons["Back"], in: app)
+        XCTAssertTrue(tab("Messages", in: app).waitForExistence(timeout: 5))
         XCTAssertTrue(tab("Messages", in: app).isSelected)
         tap(tab("Home", in: app), in: app)
         XCTAssertTrue(app.buttons["customer.home.start-request"].exists)

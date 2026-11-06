@@ -357,7 +357,7 @@ struct BookingsStoreTests {
 
         #expect(groomerActions.canComplete)
         #expect(groomerActions.canCancel)
-        #expect(!customerActions.canComplete)
+        #expect(customerActions.canComplete)
         #expect(customerActions.canCancel)
         #expect(!completedActions.canComplete)
         #expect(!completedActions.canCancel)
@@ -888,8 +888,18 @@ struct BookingsStoreTests {
         ))
     }
 
+    @Test @MainActor
+    func uncompletedBookingCannotCreateAReviewAfterScheduledEnd() async {
+        let booking = Self.booking(status: .confirmed)
+        let repository = BookingRepositoryFake()
+        let store = BookingsStore(participantID: booking.customerID, role: .customer, repository: repository, initialBookings: [booking])
+        await store.createReview(for: booking, rating: 5, content: "Not finished")
+        #expect(repository.reviewCallCount == 0)
+        #expect(store.booking(withID: booking.id)?.review == nil)
+    }
+
     @Test(arguments: [BookingRepositoryError.networkUnavailable, .unavailable, .reviewAlreadyExists],
-          [BookingStatus.completed, .confirmed])
+          [BookingStatus.completed])
     @MainActor
     func uncertainReviewRecoversAuthoritativeResult(error: BookingRepositoryError, status: BookingStatus) async throws {
         let booking = Self.booking(status: status,

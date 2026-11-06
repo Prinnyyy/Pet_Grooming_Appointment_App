@@ -724,7 +724,7 @@ struct GroomerRequestsStoreTests {
         #expect(store.errorMessage == "This match can no longer be dismissed.")
     }
 
-    @Test(arguments: [(-60.0, 3600.0), (3600.0, 3660.0), (0.0, 840.0), (0.0, 901.0), (0.0, Double.infinity)])
+    @Test(arguments: [(-3600.0, 3600.0), (0.0, 43260.0), (0.0, 840.0), (0.0, 901.0), (0.0, Double.infinity)])
     @MainActor
     func invalidOfferTimingNeverCallsRepository(offset: Double, duration: Double) async throws {
         let groomerID = UUID()
@@ -786,35 +786,31 @@ struct GroomerRequestsStoreTests {
     }
 
     @Test @MainActor
-    func assessmentWithoutConfirmationDoesNotCallRepository() async throws {
+    func proposedTermsDoNotInventAnAssessmentAttestation() throws {
         let groomerID = UUID()
         let base = Self.matchedRequest(groomerID: groomerID)
         var match = base.match
-        match.eligibilityEvaluation = MatchEligibilityEvaluation(
-            state: "assessment_required", reason: nil, serviceStart: nil, serviceEnd: nil,
-            requiredConfirmations: ["pet_size"]
-        )
+        match.eligibilityEvaluation = MatchEligibilityEvaluation(state: "estimated_fit", reason: nil,
+            serviceStart: nil, serviceEnd: nil, requiredConfirmations: [])
         let matched = GroomerMatchedRequest(match: match, request: base.request, offer: nil)
-        let repository = GroomerRequestRepositoryFake(matchedRequestsResult: .success([matched]))
-        let store = GroomerRequestsStore(groomerID: groomerID, repository: repository)
-        await store.load()
-        let start = try #require(GroomingRequestDateFormatting.parsedDate(from: matched.request.preferredStart))
-        await store.submitOffer(for: matched, proposedStart: start,
-            proposedEnd: start.addingTimeInterval(3600), priceEstimateText: "80", message: "",
-            now: start.addingTimeInterval(-3600))
-        #expect(repository.createOfferCallCount == 0)
-        #expect(store.errorMessage != nil)
-
-        await store.submitOffer(for: matched, proposedStart: start,
-            proposedEnd: start.addingTimeInterval(3600), priceEstimateText: "80", message: "",
-            confirmedAssessmentKeys: ["pet_size", "custom_service"], now: start.addingTimeInterval(-3600))
-        #expect(repository.createOfferCallCount == 0)
-
-        await store.submitOffer(for: matched, proposedStart: start,
-            proposedEnd: start.addingTimeInterval(3600), priceEstimateText: "80", message: "",
-            confirmedAssessmentKeys: ["pet_size"], now: start.addingTimeInterval(-3600))
-        #expect(repository.createOfferCallCount == 1)
-        #expect(repository.lastOfferDraft?.assessmentConfirmations == ["pet_size"])
+        let store = GroomerRequestsStore(groomerID: groomerID,
+            repository: GroomerRequestRepositoryFake(matchedRequestsResult: .success([matched])))
+        let end = try #require(GroomingRequestDateFormatting.parsedDate(from: matched.request.preferredEnd))
+        // The proposed interval can differ from the customer's preferred window;
+        // exact terms are accepted by the customer, while admission remains server checked.
+        let draft = try store.makeOfferDraft(matchedRequest: matched, proposedStart: end,
+            proposedEnd: end.addingTimeInterval(3600), priceEstimateText: "9999.99", message: "",
+            confirmedAssessmentKeys: ["pet_size"], now: end.addingTimeInterval(-7200))
+        #expect(draft.assessmentConfirmations.isEmpty)
+        #expect(draft.priceEstimate == 9999.99)
+        #expect(throws: (any Error).self) {
+            try store.makeOfferDraft(matchedRequest: matched, proposedStart: end, proposedEnd: end.addingTimeInterval(3600),
+                priceEstimateText: "10000", message: "", confirmedAssessmentKeys: [], now: end.addingTimeInterval(-7200))
+        }
+        #expect(throws: (any Error).self) {
+            try store.makeOfferDraft(matchedRequest: matched, proposedStart: end, proposedEnd: end.addingTimeInterval(3600),
+                priceEstimateText: "95", message: String(repeating: "a", count: 201), confirmedAssessmentKeys: [], now: end.addingTimeInterval(-7200))
+        }
     }
 
     @Test @MainActor
@@ -841,7 +837,7 @@ struct GroomerRequestsStoreTests {
         )
 
         #expect(repository.createOfferCallCount == 0)
-        #expect(store.errorMessage == "Price must be 0–100000 with at most 2 decimals.")
+        #expect(store.errorMessage == "Price must be 0–9999.99 with at most 2 decimals.")
     }
 
     @Test(arguments: ["matching", "wrong_owner", "cancelled", "withdrawn"], [false, true]) @MainActor

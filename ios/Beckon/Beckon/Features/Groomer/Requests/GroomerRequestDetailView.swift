@@ -14,6 +14,7 @@ import SwiftUI
 
 struct GroomerRequestDetailView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.groomerGroomingWorkspace) private var adoptedWorkspace
     let target: GroomerRequestTarget
     let requests: GroomerRequestsStore
     let offers: GroomerOffersStore
@@ -38,6 +39,13 @@ struct GroomerRequestDetailView: View {
     }
 
     var body: some View {
+        if let adoptedWorkspace {
+            GroomerGroomingRequestDetail(target: target, workspace: adoptedWorkspace, onOpenBooking: onOpenBooking)
+                .environment(\.groomerVisitAppearance, true)
+        } else { legacyBody }
+    }
+
+    private var legacyBody: some View {
         content
             .beckonHidesTabBar()
             .task(id: target) {

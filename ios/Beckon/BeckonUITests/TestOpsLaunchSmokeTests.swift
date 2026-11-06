@@ -40,6 +40,16 @@ final class TestOpsLaunchSmokeTests: XCTestCase {
     }
 
     @MainActor
+    func testSeededGroomingWorkspaceScopes() throws {
+        let account = try TestOpsSeedAccount.fromEnvironment(role: .groomer)
+        let driver = TestOpsUIFlowDriver()
+        driver.launchSignedOut()
+        driver.signIn(account)
+        driver.assertGroomingWorkspaceScopes()
+        driver.resetSession()
+    }
+
+    @MainActor
     func testSeededGroomerCanNavigateTabs() throws {
         let account = try TestOpsSeedAccount.fromEnvironment(role: .groomer)
         let driver = TestOpsUIFlowDriver()

@@ -88,6 +88,7 @@ struct BookingRescheduleResult: Sendable {
     let booking: Booking
     let proposal: BookingRescheduleProposal?
     let receipt: BookingRescheduleReceipt?
+    var history: [BookingTimeChangeActivity] = []
 }
 
 extension Booking {
@@ -115,5 +116,18 @@ extension Booking {
             appliedTimingBuffers: current.appliedTimingBuffers, serviceTimeZoneIdentifier: current.serviceTimeZoneIdentifier,
             scheduleTimeZoneIdentifier: current.scheduleTimeZoneIdentifier, occupiedStart: current.occupiedStart,
             occupiedEnd: current.occupiedEnd, agreementSnapshot: current.agreementSnapshot, fulfillment: current.fulfillment)
+    }
+}
+
+/// Authoritative operation receipts. Opening a page never fabricates an Activity timestamp.
+struct BookingTimeChangeActivity: Decodable, Identifiable, Sendable {
+    let id: UUID
+    let action: BookingRescheduleAction
+    let actor: UUID
+    let recordedAt: String
+    let proposal: BookingRescheduleProposal
+    private enum CodingKeys: String, CodingKey {
+        case id, action, actor, proposal
+        case recordedAt = "recorded_at"
     }
 }

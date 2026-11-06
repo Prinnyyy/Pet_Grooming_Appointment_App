@@ -8,7 +8,11 @@ const source = path => readFileSync(root + path, 'utf8');
 test('groomer booking/chat/availability details push locally without selecting another tab', () => {
   const tabs = source('Features/Groomer/GroomerTabView.swift');
   assert.match(tabs, /bookingAction:\s*\{ navigation.open\(\.booking\(\$0.id\)\) \}/);
-  assert.match(tabs, /onOpenBooking:\s*\{ navigation.open\(\.booking\(\$0.id\)\) \}/);
+  assert.match(tabs, /GroomerGroomingView\(workspace: groomingWorkspace,[\s\S]*?path: Binding\(get: \{ paths\[\.requests\]/);
+  const grooming = source('Features/Groomer/Grooming/GroomerGroomingView.swift');
+  assert.match(grooming, /push\(\.booking\(\$0.id\)\)/);
+  assert.match(grooming, /private func push[\s\S]*?path.append\(destination\)/);
+  assert.doesNotMatch(grooming, /select\(\.bookings\)/);
   assert.match(tabs, /private func openBookingChat[\s\S]*?navigation.open\(\.bookingConversation\(booking.id\)\)/);
   assert.match(tabs, /private func openAvailability\(\) \{\s*navigation.open\(\.availability\)\s*\}/);
   assert.match(tabs, /beckonNavigationDestination\(for: GroomerDestination.self\)/);

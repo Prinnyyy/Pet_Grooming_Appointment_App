@@ -20,11 +20,12 @@ nonisolated struct ChatConversation: Codable, Equatable, Hashable, Identifiable,
     let createdAt: String
     let updatedAt: String
     let serviceTimeZoneIdentifier: String?
+    var serverCanSend: Bool? = nil
 
     // Avatar bytes retain their existing private-image cache; do not duplicate them in history files.
     private enum CodingKeys: String, CodingKey {
         case id, customerID, groomerID, latestBookingID, latestRequestID, scheduledStart, scheduledEnd
-        case priceEstimate, bookingStatus, completedAt, groomerBusinessName, counterpartDisplayName
+        case serverCanSend, priceEstimate, bookingStatus, completedAt, groomerBusinessName, counterpartDisplayName
         case latestMessageSenderID, latestMessageCreatedAt, latestMessageBody, createdAt, updatedAt, serviceTimeZoneIdentifier
     }
 
@@ -121,13 +122,15 @@ nonisolated struct ChatConversation: Codable, Equatable, Hashable, Identifiable,
     }
 
     nonisolated func isReadOnly(now: Date = Date()) -> Bool {
+        if serverCanSend == false { return true }
         guard bookingStatus == .completed else { return false }
         guard let closedDate = messageCloseReferenceDate else { return false }
         return now.timeIntervalSince(closedDate) >= Self.messageReadOnlyDelay
     }
 
     nonisolated var readOnlyReason: String {
-        "This conversation is read-only because the booking ended more than 7 days ago."
+        if serverCanSend == false { return "This invitation or offer is no longer active." }
+        return "This conversation is read-only because the booking ended more than 7 days ago."
     }
 
     nonisolated func participantReferenceCode(for role: UserRole) -> String {

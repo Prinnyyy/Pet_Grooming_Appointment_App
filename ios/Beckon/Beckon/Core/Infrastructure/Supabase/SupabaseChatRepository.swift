@@ -29,6 +29,25 @@ final class SupabaseChatRepository: ChatRepository {
         )
     }
 
+    private struct RequestContactParameters: Encodable {
+        let p_request_id: UUID
+        let p_groomer_id: UUID
+    }
+
+    func requestContact(requestID: UUID, groomerID: UUID) async throws -> RequestChatContact {
+        do {
+            return try await client.rpc("get_request_chat_contact", params: RequestContactParameters(
+                p_request_id: requestID, p_groomer_id: groomerID)).execute().value
+        } catch { throw Self.map(error) }
+    }
+
+    func openRequestConversation(requestID: UUID, groomerID: UUID) async throws -> UUID {
+        do {
+            return try await client.rpc("open_request_conversation", params: RequestContactParameters(
+                p_request_id: requestID, p_groomer_id: groomerID)).execute().value
+        } catch { throw Self.map(error) }
+    }
+
     func conversations(
         participantID: UUID,
         role: UserRole
@@ -116,6 +135,12 @@ final class SupabaseChatRepository: ChatRepository {
         guard names.count == rows.count, Set(names.map(\.conversationID)) == Set(rows.map(\.id)) else {
             throw ChatRepositoryError.unavailable
         }
+        let permissions: [ChatSendPermission] = try await client.rpc("get_conversation_send_permissions",
+            params: ["p_conversation_ids": rows.map { $0.id.uuidString.lowercased() }]).execute().value
+        guard permissions.count == rows.count, Set(permissions.map(\.conversationID)) == Set(rows.map(\.id)) else {
+            throw ChatRepositoryError.unavailable
+        }
+        let permissionsByID = Dictionary(uniqueKeysWithValues: permissions.map { ($0.conversationID, $0.canSend) })
         let namesByID = Dictionary(uniqueKeysWithValues: names.map { ($0.conversationID, $0.displayName) })
         let summariesByID = Dictionary(uniqueKeysWithValues: summaries.map { ($0.conversationID, $0) })
         let groomerBusinessNames = switch role {
@@ -136,7 +161,7 @@ final class SupabaseChatRepository: ChatRepository {
         )
 
         return rows.map { row in
-            row.conversation(
+            var conversation = row.conversation(
                 bookingSummary: summariesByID[row.id]?.bookingSummary?.summary,
                 groomerBusinessName: groomerBusinessNames[row.groomerID],
                 counterpartDisplayName: namesByID[row.id] ?? nil,
@@ -148,6 +173,8 @@ final class SupabaseChatRepository: ChatRepository {
                 ],
                 latestMessage: summariesByID[row.id]?.latestMessage
             )
+            conversation.serverCanSend = permissionsByID[row.id] ?? false
+            return conversation
         }
     }
 
@@ -609,4 +636,10 @@ private nonisolated struct ChatCounterpartNameRow: Decodable {
     enum CodingKeys: String, CodingKey {
         case conversationID = "conversation_id", displayName = "display_name"
     }
+}
+
+nonisolated private struct ChatSendPermission: Decodable {
+    let conversationID: UUID
+    let canSend: Bool
+    enum CodingKeys: String, CodingKey { case conversationID = "conversation_id", canSend = "can_send" }
 }

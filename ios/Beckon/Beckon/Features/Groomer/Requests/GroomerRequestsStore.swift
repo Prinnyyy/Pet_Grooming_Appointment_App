@@ -131,6 +131,19 @@ final class GroomerRequestsStore {
         await load()
     }
 
+    func adoptGroomingMatches(_ rows: [GroomerMatchedRequest]) {
+        guard sessionIsCurrent(), rows.allSatisfy({ $0.match.groomerID == groomerID }) else { return }
+        for row in rows {
+            if let i = matchedRequests.firstIndex(where: { $0.id == row.id }) { matchedRequests[i] = row }
+            else { matchedRequests.append(row) }
+        }
+    }
+
+    func loadGroomingPhotos(_ rows: [GroomerMatchedRequest]) async {
+        guard sessionIsCurrent(), !Task.isCancelled else { return }
+        try? await loadAdditionalRequestPhotos(for: rows)
+    }
+
     func matchedRequest(withID id: UUID) -> GroomerMatchedRequest? {
         if authorizedDetail?.id == id { return authorizedDetail }
         return matchedRequests.first { $0.id == id }
@@ -394,7 +407,7 @@ final class GroomerRequestsStore {
         confirmedAssessmentKeys: Set<String> = [],
         now: Date = Date()
     ) async {
-        guard !isSubmittingOffer else { return }
+        guard !isSubmittingOffer, sessionIsCurrent() else { return }
 
         let startedAt = Date()
         errorMessage = nil
@@ -506,7 +519,7 @@ final class GroomerRequestsStore {
     }
 
     func withdrawOffer(for matchedRequest: GroomerMatchedRequest) async {
-        guard !isWithdrawingOffer else { return }
+        guard sessionIsCurrent(), !isWithdrawingOffer else { return }
         errorMessage = nil
         actionErrorMessage = errorMessage
         noticeMessage = nil
@@ -532,6 +545,7 @@ final class GroomerRequestsStore {
 
         do {
             let result = try await repository.withdrawOffer(offerID: offer.id)
+            guard sessionIsCurrent(), !Task.isCancelled else { return }
             replace(
                 matchedRequest.replacing(
                     matchStatus: .viewed,
@@ -628,7 +642,7 @@ final class GroomerRequestsStore {
         return nil
     }
 
-    private func makeOfferDraft(
+    func makeOfferDraft(
         matchedRequest: GroomerMatchedRequest,
         proposedStart: Date,
         proposedEnd: Date,
@@ -641,10 +655,6 @@ final class GroomerRequestsStore {
             throw GroomerOfferFormError(
                 message: "This request can no longer receive offers."
             )
-        }
-
-        guard confirmedAssessmentKeys == (matchedRequest.match.eligibilityEvaluation?.confirmationKeys ?? []) else {
-            throw GroomerOfferFormError(message: "Confirm the required service details before submitting an offer.")
         }
 
         let minimumStart = now.addingTimeInterval(
@@ -668,18 +678,11 @@ final class GroomerRequestsStore {
               duration <= Double(GroomingServiceTiming.durationBounds.upperBound) else {
             throw GroomerOfferFormError(message: "Service duration must be 15-720 whole minutes.")
         }
-        guard let start = GroomingRequestDateFormatting.parsedDate(from: matchedRequest.request.preferredStart),
-              let end = GroomingRequestDateFormatting.parsedDate(from: matchedRequest.request.preferredEnd),
-              let preference = try? GroomingTimeSpan(start: start, end: end),
-              preference.contains(service) else {
-            throw GroomerOfferFormError(message: "The entire service must fit within the customer's requested time window.")
-        }
-
         let priceEstimate = try price(from: priceEstimateText)
         let normalizedMessage = try optional(
             message,
             field: "Message",
-            maximum: 2000
+            maximum: 200
         )
 
         return GroomerOfferDraft(
@@ -689,7 +692,7 @@ final class GroomerRequestsStore {
             priceEstimate: priceEstimate,
             message: normalizedMessage,
             expectedRequestRevision: matchedRequest.request.termsRevision,
-            assessmentConfirmations: confirmedAssessmentKeys.sorted()
+            assessmentConfirmations: []
         )
     }
 
@@ -701,10 +704,10 @@ final class GroomerRequestsStore {
         ) != nil,
             let price = Double(trimmed),
             price >= 0,
-            price <= 100_000
+            price <= 9999.99
         else {
             throw GroomerOfferFormError(
-                message: "Price must be 0–100000 with at most 2 decimals."
+                message: "Price must be 0–9999.99 with at most 2 decimals."
             )
         }
 
@@ -770,15 +773,21 @@ final class GroomerRequestsStore {
     private func loadAdditionalRequestPhotos(
         for matchedRequests: [GroomerMatchedRequest]
     ) async throws {
+        try await loadAdditionalRequestPhotos(requestIDs: matchedRequests.map(\.request.id))
+    }
+
+    func loadGroomingPhotoRequests(_ requestIDs: [UUID]) async {
+        guard sessionIsCurrent(), !requestIDs.isEmpty else { return }
+        try? await loadAdditionalRequestPhotos(requestIDs: requestIDs)
+    }
+
+    private func loadAdditionalRequestPhotos(requestIDs: [UUID]) async throws {
         let generation = listGeneration
-        let photos = try await repository.requestPhotos(
-            groomerID: groomerID,
-            requestIDs: matchedRequests.map(\.request.id)
-        )
+        let photos = try await repository.requestPhotos(groomerID: groomerID, requestIDs: requestIDs)
         let data = await requestPhotoDataMap(for: photos)
         try Task.checkCancellation()
         guard generation == listGeneration, sessionIsCurrent() else { return }
-        for item in matchedRequests { clearPhotos(requestID: item.request.id) }
+        for id in requestIDs { clearPhotos(requestID: id) }
         for (requestID, requestPhotos) in Dictionary(grouping: photos, by: \.requestID) {
             requestPhotosByRequestID[requestID] = ListPageMerge.appendingUnique(
                 requestPhotos,
@@ -934,6 +943,7 @@ final class GroomerRequestsStore {
     }
 }
 
-private struct GroomerOfferFormError: Error {
+struct GroomerOfferFormError: LocalizedError {
     let message: String
+    var errorDescription: String? { message }
 }
