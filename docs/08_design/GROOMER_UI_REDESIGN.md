@@ -65,3 +65,11 @@ Subtab movement animates only one persistent underline (160 ms ease-out; none wi
 Matches and Offers portraits use the request's authorized frozen pet-photo snapshot, primary photo first, through the existing private image loader. Request attachments are not pet avatars. Preserve already loaded portraits while revalidating; unavailable or unauthorized photos use the existing placeholder, without bypassing access rules.
 
 A Groomer cannot submit a customer review. Awaiting Review has no review footer action. Once a review exists, the existing read-only entry is titled “View review”. A compact read-only review below the hero progress is proposed, not yet adopted.
+
+## Grooming subtab paging (T-470)
+
+Matches, Offers and Bookings use one shared native horizontal pager pattern. Selecting a tab on the right moves the current page left and brings the next page in from the right; swiping left selects the right-hand tab, and vice versa. Pages move together on one plane, with no overlapping fade. Each scope keeps its own cached rows and vertical scroll position. Changing the main section still selects its first subtab.
+
+Subtab touch-down gives immediate opacity feedback through a native ButtonStyle; release commits selection with no added delay or press-pulse wait. Drag cancellation remains native. The pager and selection underline share a 220 ms ease-out for taps; direct swipes follow the finger. Reduce Motion removes programmatic interpolation. This supersedes the 160 ms underline-only interaction from T-468/T-469. No shared card/button style is changed.
+
+Implementation reference: [Apple TabView page style](https://developer.apple.com/documentation/swiftui/tabview).

@@ -112,6 +112,14 @@ final class GroomerGroomingWorkspace {
         }
     }
 
+    // Pager neighbours read their own scope, never the currently selected page's rows.
+    func cachedMatches(location: GroomingLocationMode?) -> [GroomerMatchedRequest] {
+        matchPages["matches/" + (location?.rawValue ?? "all")]?.items ?? []
+    }
+    func cachedOffers(group: String) -> [GroomerOfferListItem] { offerPages["offers/" + group] ?? [] }
+    func cachedBookings(closed: Bool) -> [Booking] { bookingPages["bookings/" + (closed ? "closed" : "active")] ?? [] }
+    func hasLoadedPage(_ key: String) -> Bool { loadedKeys.contains(key) }
+
     func refresh(_ section: Section) async { await readPage(section, append: false) }
     func loadMore(_ section: Section) async { await readPage(section, append: true) }
 

@@ -41,6 +41,52 @@ struct GroomerGroomingView: View {
         }
     }
 
+    private static let pagingMotion = Animation.easeOut(duration: 0.22)
+    private var pageCount: Int { section == .bookings ? 2 : 3 }
+    private var pageSelection: Binding<Int> {
+        Binding(get: {
+            switch section {
+            case .matches: MatchLocation.allCases.firstIndex(of: locationFilter) ?? 0
+            case .offers: Filter.allCases.firstIndex(of: filter) ?? 0
+            case .bookings: BookingFilter.allCases.firstIndex(of: bookingFilter) ?? 0
+            }
+        }, set: { index in
+            guard (0..<pageCount).contains(index) else { return }
+            switch section {
+            case .matches: locationFilter = MatchLocation.allCases[index]
+            case .offers: filter = Filter.allCases[index]
+            case .bookings: bookingFilter = BookingFilter.allCases[index]
+            }
+        })
+    }
+
+    private func location(at index: Int) -> GroomingLocationMode? {
+        switch MatchLocation.allCases[index] {
+        case .all: nil
+        case .studio: .customerComesToGroomer
+        case .home: .groomerComesToCustomer
+        }
+    }
+
+    private func pageKey(at index: Int) -> String {
+        switch section {
+        case .matches: "matches/" + (location(at: index)?.rawValue ?? "all")
+        case .offers: "offers/" + Filter.allCases[index].rawValue.lowercased()
+        case .bookings: "bookings/" + BookingFilter.allCases[index].rawValue.lowercased()
+        }
+    }
+
+    private var pages: some View {
+        TabView(selection: pageSelection) {
+            ForEach(0..<pageCount, id: \.self) { index in
+                workspaceList(index: index).tag(index)
+            }
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .id(section)
+        .accessibilityIdentifier("groomer.grooming.pages")
+    }
+
     private func position(for key: String) -> Binding<ScrollPosition> {
         Binding(get: { positions[key] ?? ScrollPosition() }, set: { positions[key] = $0 })
     }
@@ -51,7 +97,7 @@ struct GroomerGroomingView: View {
                 if !typeSize.isAccessibilitySize {
                     controls.padding(.horizontal, DesignTokens.Layout.pageHorizontalInset)
                 }
-                workspaceList.beckonEntrance(2)
+                pages.beckonEntrance(2)
             }
             .padding(.top, DesignTokens.Layout.pageTopInset)
             .beckonEntranceClock()
@@ -144,22 +190,23 @@ struct GroomerGroomingView: View {
         }
     }
 
-    private var workspaceList: some View {
-        ScrollView {
+    private func workspaceList(index: Int) -> some View {
+        let loaded = workspace.hasLoadedPage(pageKey(at: index))
+        return ScrollView {
             LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 if typeSize.isAccessibilitySize { controls.padding(.horizontal, DesignTokens.Layout.pageHorizontalInset) }
-                if let error = workspace.errors[section] {
+                if index == pageSelection.wrappedValue, let error = workspace.errors[section] {
                     Button { Task { await workspace.refresh(section) } } label: {
                         DesignQuietAction(title: error + " Try again", systemImage: "arrow.clockwise")
                     }.buttonStyle(BeckonGuardedPlainButtonStyle(.inline))
                     .padding(.horizontal, Self.cardMargin)
                 }
                 switch section {
-                case .offers: offerList
-                case .matches: matchList
-                case .bookings: bookingList
+                case .offers: offerList(filter: Filter.allCases[index], loaded: loaded)
+                case .matches: matchList(locationFilter: MatchLocation.allCases[index], location: location(at: index), loaded: loaded)
+                case .bookings: bookingList(bookingFilter: BookingFilter.allCases[index], loaded: loaded)
                 }
-                if workspace.hasMore(section) {
+                if index == pageSelection.wrappedValue && workspace.hasMore(section) {
                     Button { Task { await workspace.loadMore(section) } } label: {
                         DesignQuietAction(title: "Load more", systemImage: "arrow.down")
                     }.buttonStyle(BeckonGuardedPlainButtonStyle())
@@ -169,7 +216,7 @@ struct GroomerGroomingView: View {
             .scrollTargetLayout()
             .padding(.bottom, DesignTokens.Layout.pageBottomInset)
         }
-        .scrollPosition(position(for: listID))
+        .scrollPosition(position(for: pageKey(at: index)))
         .refreshable { await workspace.refresh(section) }
     }
 
@@ -223,7 +270,9 @@ struct GroomerGroomingView: View {
             ForEach(options, id: \.self) { option in
                 let selected = selection.wrappedValue == option
                 Button {
-                    if !selected { selection.wrappedValue = option }
+                    if !selected {
+                        withAnimation(reduceMotion ? nil : Self.pagingMotion) { selection.wrappedValue = option }
+                    }
                 } label: {
                     HStack(spacing: DesignTokens.Spacing.xs) {
                         Image(systemName: option[keyPath: symbol])
@@ -246,8 +295,9 @@ struct GroomerGroomingView: View {
                     .frame(minWidth: DesignTokens.Metrics.minimumTouchTarget, maxWidth: stacked ? .infinity : nil,
                         alignment: .leading)
                     .contentShape(Rectangle())
+                    .animation(nil, value: selected)
                 }
-                .buttonStyle(BeckonGuardedPlainButtonStyle(.inline))
+                .buttonStyle(GroomingSubtabPressStyle())
                 .accessibilityLabel(option.rawValue)
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
@@ -264,21 +314,21 @@ struct GroomerGroomingView: View {
                     Capsule().fill(DesignTokens.Colors.customerDeep)
                         .frame(width: bounds.width, height: DesignTokens.Ledge.card)
                         .offset(x: bounds.minX, y: bounds.maxY - DesignTokens.Ledge.card)
-                        .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: bounds)
+                        .animation(reduceMotion ? nil : Self.pagingMotion, value: bounds)
                 }
             }
             .allowsHitTesting(false)
         }
     }
 
-    @ViewBuilder private var matchList: some View {
-        let matches = workspace.matches.filter {
+    @ViewBuilder private func matchList(locationFilter: MatchLocation, location: GroomingLocationMode?, loaded: Bool) -> some View {
+        let matches = workspace.cachedMatches(location: location).filter {
             locationFilter.includes($0.request.locationMode) &&
                 GroomerRequestStage(.init(matched: $0), now: now).kind == .new
         }
         if matches.isEmpty {
             let message = switch locationFilter { case .all: "No matches yet"; case .studio: "No studio visits"; case .home: "No home visits" }
-            listPlaceholder(message, icon: locationFilter.symbol).padding(.horizontal, Self.cardMargin)
+            listPlaceholder(message, icon: locationFilter.symbol, loaded: loaded).padding(.horizontal, Self.cardMargin)
         } else {
             let unread = matches.filter { $0.match.status == .visible }.count
             listSummary(matches.count, unread: unread)
@@ -338,16 +388,12 @@ struct GroomerGroomingView: View {
         .padding(.horizontal, Self.cardMargin)
     }
 
-    private var offerGroups: GroomerOfferGroups {
-        GroomerOfferGroups(workspace.offers.filter { $0.offer.status != .withdrawnByGroomer }, now: now)
-    }
-
     private func openOffer(_ item: GroomerOfferListItem) {
         push(.offer(item))
     }
 
-    @ViewBuilder private var offerList: some View {
-        let groups = offerGroups
+    @ViewBuilder private func offerList(filter: Filter, loaded: Bool) -> some View {
+        let groups = GroomerOfferGroups(workspace.cachedOffers(group: filter.rawValue.lowercased()).filter { $0.offer.status != .withdrawnByGroomer }, now: now)
         let entries: [GroomerOfferGroups.Entry] = switch filter {
         case .waiting: (groups.attention + groups.pending).sorted {
             let a = $0.stage.problem?.needsAttention == true
@@ -364,7 +410,7 @@ struct GroomerGroomingView: View {
             case .accepted: ("No accepted offers yet", "Offers accepted by customers appear here.")
             case .closed: ("No closed offers", "Declined and expired offers appear here.")
             }
-            listPlaceholder(title, icon: filter.symbol, hint: hint)
+            listPlaceholder(title, icon: filter.symbol, hint: hint, loaded: loaded)
                 .padding(.horizontal, Self.cardMargin)
         } else {
             listSummary(entries.count, unread: unread.count)
@@ -387,9 +433,9 @@ struct GroomerGroomingView: View {
         }
     }
 
-    @ViewBuilder private var bookingList: some View {
+    @ViewBuilder private func bookingList(bookingFilter: BookingFilter, loaded: Bool) -> some View {
         let closed = bookingFilter == .closed
-        let items = workspace.bookings.filter {
+        let items = workspace.cachedBookings(closed: closed).filter {
             let stage = GroomerBookingStage($0, now: now)
             return (stage.isClosed || stage.isFinished) == closed
         }.sorted {
@@ -400,7 +446,7 @@ struct GroomerGroomingView: View {
         let unread = Set(items.filter { !workspace.bookingUpdates($0, now: now).isEmpty }.map(\.id))
         if items.isEmpty {
             listPlaceholder(closed ? "No closed bookings" : "No active bookings", icon: bookingFilter.symbol,
-                hint: closed ? "Completed and cancelled appointments appear here." : "Bookings appear here when a customer accepts an offer.")
+                hint: closed ? "Completed and cancelled appointments appear here." : "Bookings appear here when a customer accepts an offer.", loaded: loaded)
                 .padding(.horizontal, Self.cardMargin)
         } else {
             listSummary(items.count, unread: unread.count)
@@ -423,9 +469,9 @@ struct GroomerGroomingView: View {
         }
     }
 
-    @ViewBuilder private func listPlaceholder(_ title: String, icon: String, hint: String? = nil) -> some View {
+    @ViewBuilder private func listPlaceholder(_ title: String, icon: String, hint: String? = nil, loaded: Bool) -> some View {
         if workspace.errors[section] == nil {
-            if workspace.loaded.contains(section) && !workspace.hasMore(section) {
+            if loaded {
                 HStack(spacing: DesignTokens.Spacing.md) {
                     if !typeSize.isAccessibilitySize { DesignIconDisc(systemImage: icon) }
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
@@ -464,5 +510,12 @@ private struct GroomingSubtabBounds: PreferenceKey {
     static let defaultValue: [String: Anchor<CGRect>] = [:]
     static func reduce(value: inout [String: Anchor<CGRect>], nextValue: () -> [String: Anchor<CGRect>]) {
         value.merge(nextValue(), uniquingKeysWith: { _, latest in latest })
+    }
+}
+
+/// Touch-down feedback is immediate; native Button cancellation still protects scrolling.
+private struct GroomingSubtabPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.opacity(configuration.isPressed ? 0.65 : 1)
     }
 }
