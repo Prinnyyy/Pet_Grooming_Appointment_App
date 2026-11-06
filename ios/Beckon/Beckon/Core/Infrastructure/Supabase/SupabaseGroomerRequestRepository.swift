@@ -255,15 +255,16 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
     private func hydrateOffers(_ offerRows: [SupabaseGroomerOfferRow], groomerID: UUID) async throws -> [GroomerOfferListItem] {
         guard !offerRows.isEmpty else { return [] }
         guard offerRows.allSatisfy({ $0.groomerID == groomerID }) else { throw GroomerRequestRepositoryError.notAllowed }
-            let requestsByID = await visibleRequestsByID(
+            async let requestRead = visibleRequestsByID(
                 requestIDs: offerRows.map(\.requestID)
             )
-            let evaluations = try await quoteEvaluations(for: offerRows.map(\.id))
-            let bookingsByOfferID = await visibleBookingsByOfferID(
+            async let evaluationRead = quoteEvaluations(for: offerRows.map(\.id))
+            async let bookingRead = visibleBookingsByOfferID(
                 groomerID: groomerID,
                 offerIDs: offerRows.map(\.id)
             )
 
+            let (requestsByID, evaluations, bookingsByOfferID) = try await (requestRead, evaluationRead, bookingRead)
             let offers = offerRows.map { row in
                 var offer = row.offer
                 offer.quoteEvaluation = evaluations[row.id]

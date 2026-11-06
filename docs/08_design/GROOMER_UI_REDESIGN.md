@@ -73,3 +73,9 @@ Matches, Offers and Bookings use one shared native horizontal pager pattern. Sel
 Subtab touch-down gives immediate opacity feedback through a native ButtonStyle; release commits selection with no added delay or press-pulse wait. Drag cancellation remains native. The pager and selection underline share a 220 ms ease-out for taps; direct swipes follow the finger. Reduce Motion removes programmatic interpolation. This supersedes the 160 ms underline-only interaction from T-468/T-469. No shared card/button style is changed.
 
 Implementation reference: [Apple TabView page style](https://developer.apple.com/documentation/swiftui/tabview).
+
+## Grooming list loading (T-471)
+
+Until a scope's first page arrives, show available account-bound Store rows; do not mark that fallback as a loaded server page. A fetched empty page replaces the fallback. Offers hydrate independent request/evaluation/booking reads concurrently. Groomer booking lists load review state and location concurrently and omit the groomer's own profile/avatar; other booking consumers retain their existing hydration.
+
+Reappearing cards reuse presentation reads for 15 seconds (booking revision changes bypass reuse). Manual pull-to-refresh bypasses this window. Photos remain visible during refresh and failed photo reads remain retryable. Booking presentation and reschedule reads run concurrently. This is a display optimization, not permission to skip detail authorization or mutation validation, and does not introduce cross-restart order persistence.

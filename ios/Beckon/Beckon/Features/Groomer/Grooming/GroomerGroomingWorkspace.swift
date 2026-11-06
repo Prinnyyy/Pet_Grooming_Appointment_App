@@ -75,6 +75,10 @@ final class GroomerGroomingWorkspace {
     private var loadedKeys: Set<String> = []
     private var petPhotos: [UUID: Data] = [:]
     private var petPhotoReads: Set<UUID> = []
+    private var photoReadAt: [UUID: Date] = [:]
+    private var bookingCardReads: Set<UUID> = []
+    private var bookingCardReadAt: [UUID: (revision: String, date: Date)] = [:]
+    private let presentationReuseInterval: TimeInterval = 15
     private(set) var lastSentOfferID: UUID?
     private var seenChangeKeys: Set<String> = []
 
@@ -114,10 +118,11 @@ final class GroomerGroomingWorkspace {
 
     // Pager neighbours read their own scope, never the currently selected page's rows.
     func cachedMatches(location: GroomingLocationMode?) -> [GroomerMatchedRequest] {
-        matchPages["matches/" + (location?.rawValue ?? "all")]?.items ?? []
+        matchPages["matches/" + (location?.rawValue ?? "all")]?.items
+            ?? session.requests.matchedRequests.filter { location == nil || $0.request.locationMode == location }
     }
-    func cachedOffers(group: String) -> [GroomerOfferListItem] { offerPages["offers/" + group] ?? [] }
-    func cachedBookings(closed: Bool) -> [Booking] { bookingPages["bookings/" + (closed ? "closed" : "active")] ?? [] }
+    func cachedOffers(group: String) -> [GroomerOfferListItem] { offerPages["offers/" + group] ?? session.offers.offers }
+    func cachedBookings(closed: Bool) -> [Booking] { bookingPages["bookings/" + (closed ? "closed" : "active")] ?? session.bookings.bookings }
     func hasLoadedPage(_ key: String) -> Bool { loadedKeys.contains(key) }
 
     func refresh(_ section: Section) async { await readPage(section, append: false) }
@@ -293,16 +298,53 @@ final class GroomerGroomingWorkspace {
     func photo(for requestID: UUID) -> Data? { petPhotos[requestID] }
 
     func loadPetPhoto(requestID: UUID) async {
-        guard session.isCurrent(), petPhotoReads.insert(requestID).inserted else { return }
+        guard session.isCurrent() else { return }
+        if let read = photoReadAt[requestID], Date().timeIntervalSince(read) < presentationReuseInterval { return }
+        guard petPhotoReads.insert(requestID).inserted else { return }
         defer { petPhotoReads.remove(requestID) }
         do {
             let data = try await session.requestRepository.petPhoto(requestID: requestID)
             try Task.checkCancellation()
             guard session.isCurrent() else { return }
             petPhotos[requestID] = data
+            photoReadAt[requestID] = Date()
         } catch let error as GroomerRequestRepositoryError where error == .notAllowed || error == .matchNotFound {
             petPhotos[requestID] = nil
         } catch { /* Preserve cached portraits on transient failures. */ }
+    }
+
+    /// Recycled / neighbouring pager cards share short-lived display reads. Detail actions
+    /// still use the stores directly and never rely on this presentation freshness window.
+    func loadBookingCard(_ booking: Booking) async {
+        guard session.isCurrent(), !bookingCardReads.contains(booking.id) else { return }
+        if let read = bookingCardReadAt[booking.id], read.revision == booking.updatedAt,
+           Date().timeIntervalSince(read.date) < presentationReuseInterval { return }
+        bookingCardReads.insert(booking.id)
+        defer { bookingCardReads.remove(booking.id) }
+        async let presentation: Void = session.bookings.loadPresentation(for: booking)
+        async let reschedule: Void = session.bookings.loadReschedule(for: booking.id)
+        _ = await (presentation, reschedule)
+        guard session.isCurrent(), !Task.isCancelled,
+              session.bookings.rescheduleErrors[booking.id] == nil else { return }
+        bookingCardReadAt[booking.id] = (booking.updatedAt, Date())
+    }
+
+    /// Explicit pull-to-refresh bypasses the recycled-card freshness window.
+    func refreshCardPresentation(_ section: Section) async {
+        guard session.isCurrent() else { return }
+        if section == .bookings {
+            let rows = bookings
+            for row in rows { bookingCardReadAt[row.id] = nil }
+            await withTaskGroup(of: Void.self) { group in
+                for row in rows { group.addTask { [self, row] in await loadBookingCard(row) } }
+            }
+        } else {
+            let ids = Array(Set(section == .matches ? matches.map(\.request.id) : offers.map(\.offer.requestID)))
+            for id in ids { photoReadAt[id] = nil }
+            await withTaskGroup(of: Void.self) { group in
+                for id in ids { group.addTask { [self, id] in await loadPetPhoto(requestID: id) } }
+            }
+        }
     }
 
     func petProfilePhotos(for requestID: UUID, matched: GroomerMatchedRequest? = nil) -> [GroomerPetCard.Photo] {

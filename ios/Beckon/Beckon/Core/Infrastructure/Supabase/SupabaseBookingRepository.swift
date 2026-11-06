@@ -176,7 +176,15 @@ final class SupabaseBookingRepository: BookingRepository {
                 .execute()
                 .value
 
-            let bookings = try await hydrate(rows)
+            // Groomer cards do not display the groomer's own profile or avatar.
+            // Review state and location remain authoritative, but are independent reads.
+            async let reviewRead = reviewsByBookingID(bookingIDs: rows.map(\.id))
+            async let locationRead = requestLocations(for: rows.map(\.requestID))
+            let (reviews, locations) = try await (reviewRead, locationRead)
+            let bookings = rows.map { row in
+                row.booking(review: reviews[row.id], groomerSummary: nil,
+                    groomerAvatarPhotoData: nil, requestLocation: locations[row.requestID])
+            }
             return ListPage(items: bookings, request: page)
         } catch {
             throw Self.map(error)

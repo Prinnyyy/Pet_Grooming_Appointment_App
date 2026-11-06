@@ -217,7 +217,10 @@ struct GroomerGroomingView: View {
             .padding(.bottom, DesignTokens.Layout.pageBottomInset)
         }
         .scrollPosition(position(for: pageKey(at: index)))
-        .refreshable { await workspace.refresh(section) }
+        .refreshable {
+            await workspace.refresh(section)
+            await workspace.refreshCardPresentation(section)
+        }
     }
 
     private var controls: some View {
@@ -461,9 +464,8 @@ struct GroomerGroomingView: View {
                     customerName: session.bookings.customerNamesByBookingID[booking.id], decision: decision, status: status) {
                     push(.booking(booking.id))
                 }
-                .task(id: booking.id) {
-                    await session.bookings.loadPresentation(for: booking)
-                    await session.bookings.loadReschedule(for: booking.id)
+                .task(id: booking.id.uuidString + booking.updatedAt) {
+                    await workspace.loadBookingCard(booking)
                 }
             }
         }

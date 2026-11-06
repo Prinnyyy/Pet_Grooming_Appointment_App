@@ -1211,6 +1211,13 @@ struct GroomerRequestsStoreTests {
 
 @MainActor
 final class GroomerRequestRepositoryFake: GroomerRequestRepository {
+    var petPhotoResult: Result<Data?, GroomerRequestRepositoryError> = .success(nil)
+    private(set) var petPhotoReadCount = 0
+    func petPhoto(requestID: UUID) async throws -> Data? {
+        petPhotoReadCount += 1
+        return try petPhotoResult.get()
+    }
+
     var offersResult: Result<[GroomerOfferListItem], GroomerRequestRepositoryError> = .success([])
 
     func offers(groomerID: UUID) async throws -> [GroomerOfferListItem] {

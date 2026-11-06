@@ -12,6 +12,37 @@ import Testing
             bookingRepository: fixture.bookingRepository, isCurrent: isCurrent))
     }
 
+    @Test func existingStoreRowsAreAvailableBeforeFirstPageReturns() async {
+        let fixture = GroomerSandboxSession(state: .loaded)
+        let workspace = workspace(fixture, repository: GroomerRequestRepositoryFake())
+        #expect(workspace.cachedMatches(location: nil) == fixture.requests.matchedRequests)
+        #expect(workspace.cachedOffers(group: "waiting") == fixture.offers.offers)
+        #expect(workspace.cachedBookings(closed: false) == fixture.bookings.bookings)
+        #expect(!workspace.hasLoadedPage("matches/all"), "Store fallback must not suppress the authoritative page fetch")
+        await workspace.refresh(.matches)
+        #expect(workspace.hasLoadedPage("matches/all"))
+        #expect(workspace.cachedMatches(location: nil).isEmpty, "An authoritative empty page must replace cached Store rows")
+    }
+
+    @Test func recycledCardsReusePortraitsAndFailuresRemainRetryable() async {
+        let fixture = GroomerSandboxSession(state: .loaded)
+        let repository = GroomerRequestRepositoryFake()
+        let workspace = workspace(fixture, repository: repository)
+        let id = UUID(), bytes = Data("portrait".utf8)
+        repository.petPhotoResult = .success(bytes)
+        await workspace.loadPetPhoto(requestID: id)
+        await workspace.loadPetPhoto(requestID: id)
+        #expect(repository.petPhotoReadCount == 1)
+        #expect(workspace.photo(for: id) == bytes)
+        let failed = UUID()
+        repository.petPhotoResult = .failure(.networkUnavailable)
+        await workspace.loadPetPhoto(requestID: failed)
+        repository.petPhotoResult = .success(bytes)
+        await workspace.loadPetPhoto(requestID: failed)
+        #expect(repository.petPhotoReadCount == 3)
+        #expect(workspace.photo(for: failed) == bytes)
+    }
+
     @Test func pagedMatchesCanOpenInTheExistingStoreAndRestoreTheirScope() async throws {
         let fixture = GroomerSandboxSession(state: .loaded)
         let rows = Array(GroomerSandboxFixtures.matches().prefix(4))
