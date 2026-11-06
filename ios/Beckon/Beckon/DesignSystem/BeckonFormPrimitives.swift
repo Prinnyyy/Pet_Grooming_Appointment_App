@@ -924,27 +924,42 @@ private struct BeckonKeyboardDock<Actions: View>: ViewModifier {
     let actions: Actions
     @State private var collapsed = false
     @State private var keyboardPresented = false
+    @State private var entranceOffset: CGFloat = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         content.safeAreaInset(edge: .bottom, spacing: 0) {
             actions
+                .offset(y: entranceOffset)
                 .frame(height: collapsed ? 0 : nil, alignment: .bottom)
-                .clipped()
                 .opacity(keyboardPresented ? 0 : 1)
                 .allowsHitTesting(!keyboardPresented)
                 .accessibilityHidden(keyboardPresented)
+                // Outside the moving content: cover the home-indicator area as well.
+                .background {
+                    if !keyboardPresented {
+                        DesignTokens.Colors.appBackground
+                            .ignoresSafeArea(.container, edges: .bottom)
+                    }
+                }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { notification in
             guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
             let visible = BeckonKeyboardPresentationPolicy.keyboardIsOnScreen(keyboardFrame: frame, screenBounds: beckonActiveScreenBounds)
-            if visible { keyboardPresented = true }
+            if visible {
+                keyboardPresented = true
+                entranceOffset = reduceMotion ? 0 : DesignTokens.Spacing.lg
+            }
             let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
             withAnimation(reduceMotion ? nil : .easeOut(duration: duration)) { collapsed = visible }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidHideNotification)) { _ in
             collapsed = false
             keyboardPresented = false
+            // Animate only presentation, never the scroll view's reserved height.
+            withAnimation(reduceMotion ? nil : DesignTokens.Motion.swap) {
+                entranceOffset = 0
+            }
         }
     }
 }
@@ -952,5 +967,47 @@ private struct BeckonKeyboardDock<Actions: View>: ViewModifier {
 extension View {
     func beckonKeyboardDock<Actions: View>(@ViewBuilder actions: () -> Actions) -> some View {
         modifier(BeckonKeyboardDock(actions: actions()))
+    }
+}
+
+
+/// Keyboard reveal is temporary. Restore the browsing offset on dismissal unless
+/// the person deliberately scrolled while editing; never accumulate reveal offsets.
+private struct BeckonKeyboardScrollRestoration: ViewModifier {
+    let isEditing: Bool
+    @State private var position = ScrollPosition()
+    @State private var offset: CGFloat = 0
+    @State private var restingOffset: CGFloat?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content
+            .scrollPosition($position)
+            .defaultScrollAnchor(.top, for: .sizeChanges)
+            .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                max(0, geometry.contentOffset.y + geometry.contentInsets.top)
+            } action: { _, value in offset = value }
+            .onChange(of: isEditing) { old, new in
+                if !old && new { restingOffset = offset }
+            }
+            .onScrollPhaseChange { _, phase in
+                if isEditing && phase == .interacting {
+                    restingOffset = nil
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { notification in
+                guard let target = restingOffset else { return }
+                restingOffset = nil
+                let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
+                withAnimation(reduceMotion ? nil : .easeOut(duration: duration)) {
+                    position.scrollTo(y: target)
+                }
+            }
+    }
+}
+
+extension View {
+    func beckonPreservesKeyboardScrollPosition(isEditing: Bool) -> some View {
+        modifier(BeckonKeyboardScrollRestoration(isEditing: isEditing))
     }
 }

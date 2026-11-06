@@ -18,14 +18,24 @@ final class GroomerOfferKeyboardSmokeTests: XCTestCase {
         XCTAssertTrue(price.isHittable)
         let submit = app.buttons["groomer.offers.submit"].firstMatch
         let normalFooterY = submit.frame.minY
-        price.tap()
-        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
-        XCTAssertFalse(app.buttons["beckon.keyboard.done"].exists)
-        app.buttons["Done editing price"].tap()
-        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
-        XCTAssertEqual(submit.frame.minY, normalFooterY, accuracy: 2)
+        // Put the price away from the content's end stop, where keyboard reveal is needed.
+        app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: 8, dy: 350))
+            .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: .zero)
+                .withOffset(CGVector(dx: 8, dy: 430)), withVelocity: .slow, thenHoldForDuration: 0.5)
+        Thread.sleep(forTimeInterval: 1) // Only settle the setup swipe; not a production delay.
+        XCTAssertLessThan(price.frame.maxY, submit.frame.minY)
+        let initialPriceY = price.frame.minY
+        for cycle in 0..<4 {
+            price.tap()
+            XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+            XCTAssertFalse(app.buttons["beckon.keyboard.done"].exists)
+            app.buttons["Done editing price"].tap()
+            XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+            XCTAssertEqual(submit.frame.minY, normalFooterY, accuracy: 2)
+            XCTAssertEqual(price.frame.minY, initialPriceY, accuracy: 2, "Price position drifted after edit cycle \(cycle)")
+        }
         let note = app.buttons["groomerVisit.quick.note"].firstMatch
-        for _ in 0..<3 where !note.isHittable { app.swipeUp() }
+        for _ in 0..<3 where !note.isHittable || note.frame.maxY > submit.frame.minY { app.swipeUp() }
         XCTAssertTrue(note.isHittable); note.tap()
         let message = app.textViews["Message"].firstMatch
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
@@ -42,8 +52,14 @@ final class GroomerOfferKeyboardSmokeTests: XCTestCase {
         XCTAssertEqual(submit.frame.minY, normalFooterY, accuracy: 2)
         note.tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
-        note.tap()
+        // Interactive downward dismissal must recover the same dock position too.
+        app.coordinate(withNormalizedOffset: .zero)
+            .withOffset(CGVector(dx: 8, dy: message.frame.minY))
+            .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: .zero)
+                .withOffset(CGVector(dx: 8, dy: app.frame.maxY - 20)))
         XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+        XCTAssertEqual(submit.frame.minY, normalFooterY, accuracy: 2)
+        for _ in 0..<3 where note.frame.maxY > submit.frame.minY { app.swipeUp() }
         note.tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
         XCUIDevice.shared.press(.home)

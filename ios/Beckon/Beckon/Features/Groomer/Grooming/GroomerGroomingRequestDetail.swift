@@ -188,6 +188,7 @@ struct GroomerGroomingRequestDetail: View {
             .beckonKeyboardAvoidance(focusedTarget: focusedTarget?.rawValue, using: proxy,
                 additionallyPreventsPresentationDismissal: sending, showsDoneAccessory: false,
                 revealsAfterKeyboardSettles: true)
+            .beckonPreservesKeyboardScrollPosition(isEditing: focusedTarget != nil)
             .groomerVisitDismissKeyboardOnOutsideTap(isEditing: focusedTarget != nil) {
                 focusedTarget = nil
             }
