@@ -394,9 +394,18 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
         }
         let targetFrame = measurement.frame
 
+        // A persistent footer can end the usable viewport above the keyboard itself.
+        // Treat that inset edge as the obstruction too, otherwise an obscured field
+        // is incorrectly classified as needing no reveal when the two do not overlap.
+        var obstruction = keyboardFrame
+        if revealsAfterKeyboardSettles, !keyboardFrame.isNull {
+            let top = min(viewportFrame.maxY, keyboardFrame.minY)
+            obstruction = CGRect(x: keyboardFrame.minX, y: top,
+                width: keyboardFrame.width, height: keyboardFrame.maxY - top)
+        }
         let layout = BeckonKeyboardFormLayout(
             containerFrame: viewportFrame,
-            keyboardFrame: keyboardFrame
+            keyboardFrame: obstruction
         )
         let clearance = DesignTokens.Layout.fieldSpacing
         let action = layout.revealAction(for: targetFrame, clearance: clearance)
@@ -919,48 +928,35 @@ extension View {
 }
 
 
-/// A single bottom inset; no measured spacer plus independently translated overlay.
+/// The footer stays at the device bottom; only the scrolling content avoids the keyboard.
 private struct BeckonKeyboardDock<Actions: View>: ViewModifier {
     let actions: Actions
-    @State private var collapsed = false
-    @State private var keyboardPresented = false
-    @State private var entranceOffset: CGFloat = 0
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var height: CGFloat = 0
 
     func body(content: Content) -> some View {
-        content.safeAreaInset(edge: .bottom, spacing: 0) {
-            actions
-                .offset(y: entranceOffset)
-                .frame(height: collapsed ? 0 : nil, alignment: .bottom)
-                .opacity(keyboardPresented ? 0 : 1)
-                .allowsHitTesting(!keyboardPresented)
-                .accessibilityHidden(keyboardPresented)
-                // Outside the moving content: cover the home-indicator area as well.
-                .background {
-                    if !keyboardPresented {
-                        DesignTokens.Colors.appBackground
-                            .ignoresSafeArea(.container, edges: .bottom)
+        content
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Color.clear.frame(height: height)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
+                            to: nil, from: nil, for: nil)
                     }
+                    .accessibilityHidden(true)
+            }
+            .overlay {
+                GeometryReader { geometry in
+                    VStack(spacing: 0) {
+                        Spacer(minLength: 0)
+                        actions
+                            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
+                            .background(DesignTokens.Colors.appBackground
+                                .ignoresSafeArea(.container, edges: .bottom))
+                    }
+                    .frame(width: geometry.size.width, height: geometry.size.height)
                 }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { notification in
-            guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
-            let visible = BeckonKeyboardPresentationPolicy.keyboardIsOnScreen(keyboardFrame: frame, screenBounds: beckonActiveScreenBounds)
-            if visible {
-                keyboardPresented = true
-                entranceOffset = reduceMotion ? 0 : DesignTokens.Spacing.lg
+                .ignoresSafeArea(.keyboard, edges: .bottom)
             }
-            let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
-            withAnimation(reduceMotion ? nil : .easeOut(duration: duration)) { collapsed = visible }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidHideNotification)) { _ in
-            collapsed = false
-            keyboardPresented = false
-            // Animate only presentation, never the scroll view's reserved height.
-            withAnimation(reduceMotion ? nil : DesignTokens.Motion.swap) {
-                entranceOffset = 0
-            }
-        }
     }
 }
 

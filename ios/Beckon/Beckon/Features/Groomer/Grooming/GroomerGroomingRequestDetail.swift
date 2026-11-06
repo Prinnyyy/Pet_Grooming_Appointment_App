@@ -189,9 +189,6 @@ struct GroomerGroomingRequestDetail: View {
                 additionallyPreventsPresentationDismissal: sending, showsDoneAccessory: false,
                 revealsAfterKeyboardSettles: true)
             .beckonPreservesKeyboardScrollPosition(isEditing: focusedTarget != nil)
-            .groomerVisitDismissKeyboardOnOutsideTap(isEditing: focusedTarget != nil) {
-                focusedTarget = nil
-            }
             .onChange(of: stage.kind) { _, _ in
                 quoteError = nil
                 startError = nil
@@ -213,6 +210,9 @@ struct GroomerGroomingRequestDetail: View {
                     }
                 }
             })
+            .groomerVisitDismissKeyboardOnOutsideTap(isEditing: focusedTarget != nil) {
+                focusedTarget = nil
+            }
             .groomerVisitDesignModal(item: $offerToConfirm) { confirmation in
                 .groomerVisitSendOffer(draft: confirmation.draft, request: confirmation.request, serviceTimeZone: form.serviceTimeZone,
                     keepEditing: { offerToConfirm = nil }) {

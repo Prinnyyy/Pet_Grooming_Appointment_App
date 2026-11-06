@@ -460,3 +460,15 @@ T-478 keyboard follow-up: Apple distinguishes focus visibility from maintaining 
 
 
 T-478 acceptance: preflight/hygiene and Release build passed; paired iPhone installation reported success. The final UI run passed four successive price-edit/dismiss cycles away from the scroll end stop, comparing the amount field and dock to their pre-edit positions within 2pt; message visibility, outside tap, interactive dismissal and background return also passed. The unchanged native-editor/price-precision checks passed in the preceding focused run. Early UI failures included setup inertia and a test tap on a row obscured by the footer; the final driver verifies visibility and uses a held slow setup drag. No offer was submitted. Diagnostic logging was removed. Visual safe-area coverage and spring feel remain user acceptance.
+
+## T-479 — Fixed offer footer behind the keyboard
+
+Adopted user direction supersedes T-477/T-478's collapsing dock and spring entrance. The offer footer now has a constant reservation and a separate full-height overlay that ignores only the keyboard safe area. Its background covers the bottom container safe area. The keyboard physically covers/uncover the footer; there are no keyboard-notification-driven offsets, opacity changes, height changes or appearance animations in the dock. The scrolling page still avoids the keyboard and retains the existing temporary focus reveal/browsing-position restoration. Other stationary-footer consumers remain unchanged.
+
+Evidence: `artifacts/evidence/T-479/`. Focused runtime acceptance additionally checks the footer's frame while the keyboard is visible. Physical visual acceptance remains with the user.
+
+T-479 integration: focus reveal treats the actual viewport bottom as an obstruction when the fixed footer reservation ends above the keyboard; the old overlap-only guard otherwise skipped a hidden Message field. Use the already-inset viewport geometry directly rather than subtracting safe-area insets again. Outside-input dismissal wraps the complete page including its footer reservation, so the blank area immediately above the keyboard remains interactive.
+
+T-479 runtime acceptance passed: fixed footer coordinates with the keyboard visible, four price edit/dismiss cycles, Message visibility, tapping the app reservation to dismiss, interactive dismissal and background return. The clear reservation explicitly resigns the first responder on tap. The test point must stay above the system Chinese prediction strip, which is excluded from the keyboard accessibility frame; tapping that strip is not an app dismissal test. Earlier reveal/gesture failures and final evidence are retained in the task evidence directory; no offer was submitted.
+
+T-479 closeout: focused checks, preflight and context hygiene passed; Release device build succeeded (existing concurrency warnings remain). Installed `com.hellobeckon.beckon` on the paired iPhone, installation sequence 3384. No physical visual acceptance claimed; user checks interaction feel. Local signing and unrelated edits preserved.

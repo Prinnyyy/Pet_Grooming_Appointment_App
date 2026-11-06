@@ -28,6 +28,7 @@ final class GroomerOfferKeyboardSmokeTests: XCTestCase {
         for cycle in 0..<4 {
             price.tap()
             XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+            XCTAssertEqual(submit.frame.minY, normalFooterY, accuracy: 2, "The footer must stay behind the keyboard")
             XCTAssertFalse(app.buttons["beckon.keyboard.done"].exists)
             app.buttons["Done editing price"].tap()
             XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
@@ -45,9 +46,10 @@ final class GroomerOfferKeyboardSmokeTests: XCTestCase {
         expectation(for: visible, evaluatedWith: nil)
         waitForExpectations(timeout: 5)
         XCTAssertTrue(message.isHittable)
-        // Tap the page margin beside the input: no accessory-sized dead strip.
+        // The keyboard AX frame excludes the Chinese prediction strip. Stay above
+        // that system-owned strip, inside the app's fixed footer reservation.
         app.coordinate(withNormalizedOffset: .zero)
-            .withOffset(CGVector(dx: 6, dy: message.frame.midY)).tap()
+            .withOffset(CGVector(dx: 6, dy: app.keyboards.firstMatch.frame.minY - 80)).tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
         XCTAssertEqual(submit.frame.minY, normalFooterY, accuracy: 2)
         note.tap()
