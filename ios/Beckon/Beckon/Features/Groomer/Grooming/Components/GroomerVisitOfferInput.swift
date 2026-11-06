@@ -326,13 +326,14 @@ private final class GroomerVisitKeyboardAccessory: UIInputView {
         host = UIHostingController(rootView: AnyView(
             BeckonKeyboardDoneAccessoryControl(onDone: onDone)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                .background(DesignTokens.Colors.appBackground)
                 .contentShape(Rectangle())
                 .onTapGesture(perform: onDone)
         ))
         super.init(frame: CGRect(x: 0, y: 0, width: 0,
             height: BeckonKeyboardDoneAccessoryPolicy.controlDiameter + BeckonKeyboardDoneAccessoryPolicy.keyboardGap),
-            inputViewStyle: .keyboard)
+            inputViewStyle: .default)
+        backgroundColor = .clear
+        isOpaque = false
         autoresizingMask = [.flexibleWidth]
         host.safeAreaRegions = []
         host.view.backgroundColor = .clear

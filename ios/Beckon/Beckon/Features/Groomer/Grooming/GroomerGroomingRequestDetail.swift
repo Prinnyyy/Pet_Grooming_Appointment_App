@@ -185,8 +185,9 @@ struct GroomerGroomingRequestDetail: View {
                 }
                 if let error = requests.actionErrorMessage { BeckonLedgeNote(systemImage: "exclamationmark.circle", text: error) }
             }
-            .beckonKeyboardAvoidance(focusedTarget: focusedTarget?.rawValue, using: proxy,
-                additionallyPreventsPresentationDismissal: sending, showsDoneAccessory: false)
+            // Native UIKit editors reveal their caret as the keyboard changes the safe area.
+            // Do not issue a second, unanimated ScrollViewReader reveal in the same transition.
+            .scrollDismissesKeyboard(.interactively)
             .groomerVisitDismissKeyboardOnOutsideTap(isEditing: focusedTarget != nil) {
                 focusedTarget = nil
             }

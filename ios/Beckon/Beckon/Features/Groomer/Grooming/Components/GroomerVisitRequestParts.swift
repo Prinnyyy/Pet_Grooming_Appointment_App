@@ -298,7 +298,8 @@ struct GroomerVisitRequestFooter<Primary: View>: ViewModifier {
     func body(content: Content) -> some View {
         content
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                Color.clear.frame(height: isEditing ? 0 : height).allowsHitTesting(false).accessibilityHidden(true)
+                // Keep content geometry stable while the keyboard owns the bottom safe area.
+                Color.clear.frame(height: height).allowsHitTesting(false).accessibilityHidden(true)
             }
             .beckonStationaryPageAction {
                 VStack(spacing: 0) {

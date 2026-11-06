@@ -895,3 +895,14 @@ private struct BeckonFormFieldModifier: ViewModifier {
         return DesignTokens.Colors.borderSoft
     }
 }
+
+
+extension View {
+    /// Coordinate an inline editor's collapse with UIKit, without a delayed second spring.
+    func beckonOnKeyboardDismiss(perform action: @escaping (TimeInterval) -> Void) -> some View {
+        onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { notification in
+            let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
+            action(duration)
+        }
+    }
+}

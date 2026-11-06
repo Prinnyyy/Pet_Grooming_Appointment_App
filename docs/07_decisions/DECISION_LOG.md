@@ -433,3 +433,10 @@ The adopted Groomer offer form uses one native `inputAccessoryView` for both UIK
 While an offer editor is focused, its page action bar is hidden and consumes no safe-area reservation. It stays hidden while the scene is inactive. Entering the background ends editing without clearing the form; returning starts with a stable page rather than replaying keyboard-frame offsets. Existing keyboard-aware pages keep their default accessory behavior. No offer submission or backend rules change.
 
 Validation: 17 focused checks passed, including native input/accessory/responder checks and an opt-in production-page UI test tapping both Done buttons, the blank accessory area, and background/foreground return. No offer was submitted. Preflight, hygiene and Release device build passed; paired iPhone installation reported success. Evidence: `artifacts/evidence/T-475/keyboard-runtime.log` and sibling build/install logs. Phone visual acceptance remains with the user.
+
+
+## T-476 — One owner for offer keyboard movement
+
+Make an offer uses native editor/scroll-view keyboard avoidance, without the additional unanimated ScrollViewReader reveal. The hidden footer keeps its layout reservation stable across focus changes. Message collapse follows keyboard dismissal duration instead of running an independent spring; ordinary date/duration expansion remains unchanged. The native Done accessory is transparent (including its UIKit input-view style), retaining the circular button and blank-area dismissal. This supersedes T-475's focus-dependent footer reservation and opaque accessory backing. No offer validation, draft or backend behavior changes.
+
+Validation: six focused checks passed (native accessory/responder, amount precision and production-page keyboard interactions); preflight/hygiene and Release build passed, paired iPhone install reported success. Evidence: `artifacts/evidence/T-476/`. Physical animation/visual acceptance remains with the user; click-path tests alone do not prove perceived smoothness.

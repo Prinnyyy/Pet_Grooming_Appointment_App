@@ -26,6 +26,8 @@ final class GroomerOfferKeyboardTests: XCTestCase {
             try await Task.sleep(for: .milliseconds(350))
             XCTAssertTrue(input.isFirstResponder)
             let accessory = try XCTUnwrap(input.inputAccessoryView)
+            XCTAssertFalse(accessory.isOpaque)
+            XCTAssertEqual(accessory.backgroundColor, UIColor.clear)
             XCTAssertNotNil(accessory.window, "The Done control must be owned by the native keyboard")
             XCTAssertEqual(accessory.bounds.height, 64, accuracy: 1)
             XCTAssertGreaterThan(accessory.bounds.width, 300)
@@ -48,7 +50,7 @@ final class GroomerOfferKeyboardTests: XCTestCase {
                         GroomerVisitOfferMessageInput(text: $message, focusedTarget: $focus)
                     }.padding()
                 }
-                .beckonKeyboardAvoidance(focusedTarget: focus?.rawValue, using: proxy, showsDoneAccessory: false)
+                .scrollDismissesKeyboard(.interactively)
                 .modifier(GroomerVisitRequestFooter(showsPrimary: true, isEditing: focus != nil) { Button("Send offer") {} })
             }
         }

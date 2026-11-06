@@ -69,8 +69,14 @@ struct GroomerVisitCurrentOfferForm: View {
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("groomerVisit.offer.design.C3-A")
         .onChange(of: fields.focusedTarget.wrappedValue) { old, new in
-            guard old == .message, new != .message, editingMessage else { return }
-            withAnimation(GroomerVisitDetailMotion.expansion(reduceMotion: reduceMotion)) { expanded = nil }
+            // A switch to another input needs no second layout animation. Keyboard dismissal
+            // below owns the collapse when focus becomes nil.
+            if old == .message, new == .price, editingMessage { expanded = nil }
+        }
+        .beckonOnKeyboardDismiss { duration in
+            guard editingMessage else { return }
+            // Collapse alongside the keyboard, rather than starting a separate spring on focus loss.
+            withAnimation(reduceMotion ? nil : .easeOut(duration: duration)) { expanded = nil }
         }
     }
     private static let inlineWheelHeight: CGFloat = 122
@@ -153,9 +159,11 @@ struct GroomerVisitCurrentOfferForm: View {
     private func toggleMessage() {
         let shouldOpen = !editingMessage
         if shouldOpen { messageStartedEmpty = messageText.isEmpty }
-        withAnimation(GroomerVisitDetailMotion.expansion(reduceMotion: reduceMotion)) {
-            expanded = shouldOpen ? .note : nil
+        if shouldOpen {
+            // The native keyboard transition owns viewport movement; avoid a competing spring.
+            expanded = .note
         }
+        // Closing waits for keyboardWillHide so the row and viewport move together.
         // The action owns focus. A view appearing during a transition must not reopen editing.
         fields.focusedTarget.wrappedValue = shouldOpen ? .message : nil
     }
