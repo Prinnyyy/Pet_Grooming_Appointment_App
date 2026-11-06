@@ -654,6 +654,20 @@ private struct RankedMatchParameters: Encodable {
     let p_limit: Int
     let p_cursor: String?
     var p_location: String? = nil
+
+    private enum CodingKeys: String, CodingKey {
+        case p_sort, p_limit, p_cursor, p_location
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(p_sort, forKey: .p_sort)
+        try values.encode(p_limit, forKey: .p_limit)
+        // These RPC arguments are nullable, not optional: omitting either key
+        // makes PostgREST look for a different function signature.
+        try values.encode(p_cursor, forKey: .p_cursor)
+        try values.encode(p_location, forKey: .p_location)
+    }
 }
 
 nonisolated private struct RankedMatchRow: Decodable, Sendable {

@@ -262,7 +262,7 @@ struct GroomerGroomingView: View {
             if !stacked { Rectangle().fill(DesignTokens.Colors.borderSoft).frame(height: 1) }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .animation(reduceMotion ? nil : DesignTokens.Motion.morph, value: selection.wrappedValue)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: selection.wrappedValue)
     }
 
     @ViewBuilder private var matchList: some View {

@@ -53,3 +53,7 @@ Pre-change captures remain under `groomer_ui_redesign/current/` and are read onl
 ## Architecture Boundary
 
 Views do not call Supabase. Existing feature Stores remain mutation owners; the root tab owns navigation/deep-link coordination. A read-only Home aggregator may use existing repositories. No backend or remote write is part of this visual contract.
+
+## Grooming Subtab Motion (T-468)
+
+Matches location filters, Offers groups and Bookings groups share the same subtab control. Selection moves with a 160 ms ease-out, without spring overshoot; Reduce Motion disables the movement. Selection feedback starts locally and does not wait for list refresh. Keep the existing alignment, colors and touch targets. This replaces the slower general-purpose morph spring only for these subtab controls.
