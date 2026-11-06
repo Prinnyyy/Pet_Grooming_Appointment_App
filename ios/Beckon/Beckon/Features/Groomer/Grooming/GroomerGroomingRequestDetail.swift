@@ -187,8 +187,8 @@ struct GroomerGroomingRequestDetail: View {
             }
             .beckonKeyboardAvoidance(focusedTarget: focusedTarget?.rawValue, using: proxy,
                 additionallyPreventsPresentationDismissal: sending, showsDoneAccessory: false,
-                revealsAfterKeyboardSettles: true)
-            .beckonPreservesKeyboardScrollPosition(isEditing: focusedTarget != nil)
+                coordinatesRevealWithKeyboard: true)
+            .defaultScrollAnchor(.top, for: .sizeChanges)
             .onChange(of: stage.kind) { _, _ in
                 quoteError = nil
                 startError = nil

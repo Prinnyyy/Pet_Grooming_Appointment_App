@@ -260,8 +260,11 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
     let proxy: ScrollViewProxy
     let additionallyPreventsPresentationDismissal: Bool
     let showsDoneAccessory: Bool
-    let revealsAfterKeyboardSettles: Bool
-    @State private var keyboardSettled = false
+    let coordinatesRevealWithKeyboard: Bool
+    @State private var keyboardAnimationDuration: Double = 0.25
+    @State private var revealPosition = ScrollPosition()
+    @State private var contentOffset: CGFloat = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var keyboardFrame: CGRect = .null
     @State private var viewportFrame: CGRect = .zero
@@ -272,8 +275,21 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
     @State private var preventsSheetDismissal = false
     @State private var scrollPhase: ScrollPhase = .idle
 
+    @ViewBuilder
+    private func positionedContent(_ content: Content) -> some View {
+        if coordinatesRevealWithKeyboard {
+            content
+                .scrollPosition($revealPosition)
+                .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                    max(0, geometry.contentOffset.y + geometry.contentInsets.top)
+                } action: { _, value in contentOffset = value }
+        } else {
+            content
+        }
+    }
+
     func body(content: Content) -> some View {
-        content
+        positionedContent(content)
             .environment(
                 \.beckonKeyboardFocusReportingContext,
                 BeckonKeyboardFocusReportingContext(
@@ -324,7 +340,7 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
                     keyboardFrame: keyboardFrame,
                     screenBounds: screenBounds
                 )
-                keyboardSettled = false
+                keyboardAnimationDuration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
                 keyboardFrame = frame
                 let isKeyboardVisible = BeckonKeyboardPresentationPolicy.keyboardIsOnScreen(
                     keyboardFrame: frame,
@@ -337,11 +353,6 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
                 ) {
                     requestAutomaticReveal()
                 }
-            }
-            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
-                guard revealsAfterKeyboardSettles else { return }
-                keyboardSettled = true
-                requestAutomaticReveal()
             }
             .onReceive(NotificationCenter.default.publisher(
                 for: UIResponder.keyboardWillHideNotification
@@ -384,7 +395,11 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
 
     private func scheduleRequestedReveal() {
         pendingTask?.cancel()
-        guard !revealsAfterKeyboardSettles || keyboardSettled else { return }
+        // Use the keyboard's destination frame at will-change time, not did-show.
+        // This starts the reveal alongside presentation instead of a second animation.
+        guard !coordinatesRevealWithKeyboard || BeckonKeyboardPresentationPolicy.keyboardIsOnScreen(
+            keyboardFrame: keyboardFrame, screenBounds: beckonActiveScreenBounds
+        ) else { return }
         guard automaticRevealRequested,
               let target = focusedTarget,
               let measurement = focusMeasurement,
@@ -398,7 +413,7 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
         // Treat that inset edge as the obstruction too, otherwise an obscured field
         // is incorrectly classified as needing no reveal when the two do not overlap.
         var obstruction = keyboardFrame
-        if revealsAfterKeyboardSettles, !keyboardFrame.isNull {
+        if coordinatesRevealWithKeyboard, !keyboardFrame.isNull {
             let top = min(viewportFrame.maxY, keyboardFrame.minY)
             obstruction = CGRect(x: keyboardFrame.minX, y: top,
                 width: keyboardFrame.width, height: keyboardFrame.maxY - top)
@@ -431,13 +446,24 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
             guard !Task.isCancelled, focusedTarget == target else { return }
             automaticRevealRequested = false
             let marker = BeckonKeyboardFocusTargetID(target)
-            var transaction = Transaction(animation: revealsAfterKeyboardSettles ? .easeOut(duration: 0.18) : nil)
-            transaction.disablesAnimations = !revealsAfterKeyboardSettles && !BeckonKeyboardRevealPolicy.animatesProgrammaticReveal
+            var transaction = Transaction(animation: coordinatesRevealWithKeyboard && !reduceMotion ? .easeOut(duration: keyboardAnimationDuration) : nil)
+            transaction.disablesAnimations = reduceMotion || (!coordinatesRevealWithKeyboard && !BeckonKeyboardRevealPolicy.animatesProgrammaticReveal)
             withTransaction(transaction) {
-                proxy.scrollTo(
-                    action == .top ? marker.top : marker.bottom,
-                    anchor: anchor
-                )
+                if coordinatesRevealWithKeyboard {
+                    // A view-ID anchor is relative to the viewport and can move the
+                    // field again when dismissal expands it. Reveal only the measured
+                    // obstruction in content coordinates; native scrolling clamps to
+                    // the content end as the keyboard goes away.
+                    let correction = action == .top
+                        ? targetFrame.minY - (viewportFrame.minY + clearance)
+                        : targetFrame.maxY - (min(viewportFrame.maxY, keyboardFrame.minY) - clearance)
+                    revealPosition.scrollTo(y: max(0, contentOffset + correction))
+                } else {
+                    proxy.scrollTo(
+                        action == .top ? marker.top : marker.bottom,
+                        anchor: anchor
+                    )
+                }
             }
         }
     }
@@ -583,12 +609,15 @@ extension View {
         modifier(BeckonKeyboardFocusTargetModifier(id: id))
     }
 
+    /// New scrolling forms use coordinatesRevealWithKeyboard: true and
+    /// showsDoneAccessory: false (FORM_INTERACTION_RULES.md). Compatibility defaults
+    /// intentionally preserve existing consumers; the coordinated mode owns scroll position.
     func beckonKeyboardAvoidance(
         focusedTarget: String?,
         using proxy: ScrollViewProxy,
         additionallyPreventsPresentationDismissal: Bool = false,
         showsDoneAccessory: Bool = true,
-        revealsAfterKeyboardSettles: Bool = false
+        coordinatesRevealWithKeyboard: Bool = false
     ) -> some View {
         modifier(
             BeckonKeyboardAvoidanceModifier(
@@ -597,7 +626,7 @@ extension View {
                 additionallyPreventsPresentationDismissal:
                     additionallyPreventsPresentationDismissal,
                 showsDoneAccessory: showsDoneAccessory,
-                revealsAfterKeyboardSettles: revealsAfterKeyboardSettles
+                coordinatesRevealWithKeyboard: coordinatesRevealWithKeyboard
             )
         )
     }
@@ -963,47 +992,5 @@ private struct BeckonKeyboardDock<Actions: View>: ViewModifier {
 extension View {
     func beckonKeyboardDock<Actions: View>(@ViewBuilder actions: () -> Actions) -> some View {
         modifier(BeckonKeyboardDock(actions: actions()))
-    }
-}
-
-
-/// Keyboard reveal is temporary. Restore the browsing offset on dismissal unless
-/// the person deliberately scrolled while editing; never accumulate reveal offsets.
-private struct BeckonKeyboardScrollRestoration: ViewModifier {
-    let isEditing: Bool
-    @State private var position = ScrollPosition()
-    @State private var offset: CGFloat = 0
-    @State private var restingOffset: CGFloat?
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    func body(content: Content) -> some View {
-        content
-            .scrollPosition($position)
-            .defaultScrollAnchor(.top, for: .sizeChanges)
-            .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                max(0, geometry.contentOffset.y + geometry.contentInsets.top)
-            } action: { _, value in offset = value }
-            .onChange(of: isEditing) { old, new in
-                if !old && new { restingOffset = offset }
-            }
-            .onScrollPhaseChange { _, phase in
-                if isEditing && phase == .interacting {
-                    restingOffset = nil
-                }
-            }
-            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { notification in
-                guard let target = restingOffset else { return }
-                restingOffset = nil
-                let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
-                withAnimation(reduceMotion ? nil : .easeOut(duration: duration)) {
-                    position.scrollTo(y: target)
-                }
-            }
-    }
-}
-
-extension View {
-    func beckonPreservesKeyboardScrollPosition(isEditing: Bool) -> some View {
-        modifier(BeckonKeyboardScrollRestoration(isEditing: isEditing))
     }
 }
